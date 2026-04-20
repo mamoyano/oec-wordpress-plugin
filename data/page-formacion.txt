@@ -1,0 +1,819 @@
+[oec-content]
+
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"></noscript>
+    <style>
+    /* Generales */
+    a {text-decoration: none;}
+    p {font-size: 15px;}
+    h2 { font-size: 18px; margin: 70px 0 30px; }
+    .cm_contrast_text {color: #eba134;}
+    .cm_main_color { color: {{ extra.brand_color }}; }
+    #whatsappctc { position: fixed !important; bottom: 20px !important; right: 20px !important; width: 60px !important; height: auto !important; z-index: 9999 !important; display: block !important; }
+    #whatsappctc img {width: 60px!important; }
+    .box-content { width: 100%; background-clip: padding-box; border-radius: 10px; border: 0px; white-space: normal; text-decoration: none; line-height: 20px; background: #fff; color: #333; display: block; padding: 10px 20px!important; overflow: hidden; }
+
+    /* Acordeón */
+    .acordeon-custom { max-width: 100%; display: flex; flex-direction: column; gap: 15px; }
+    .acordeon-item { background-color: #ffffff; border-radius: 10px; overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .acordeon-header { width: 100%; padding: 1rem; display: flex; align-items: center; gap: 20px; background: none; border: none; cursor: pointer; text-align: left; }
+    .acordeon-header h3 { padding: 0; margin: 5px 0 0 0;}
+    .acordeon-content ul { list-style: none; padding: 0; margin: 0; }
+    .acordeon-content ul li { display: grid; grid-template-columns: auto 1fr; gap: 0 12px; margin: 0 0 6px 6px; align-items: start; }
+    .acordeon-content ul li::before { content: ""; width: 8px; height: 8px; background-color: {{ extra.brand_color }}; border-radius: 20%; margin-top: 6px; grid-column: 1; }
+    .acordeon-content ul li > *:not(::before) { grid-column: 2; }
+    .acordeon-content ul li ul { grid-column: 2; margin-top: 8px; }
+    .acordeon-header i { font-size: 1.8rem; color: #ccc; transition: color 0.3s ease, transform 0.2s ease; }
+    .acordeon-header:hover i { color: #666; }
+    .acordeon-content { max-height: 0; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); background-color: #fafafa; }
+    .acordeon-item.is-active .acordeon-content { padding: 1.5rem; max-height: 100%; border-top: 1px solid #eee; }
+    .acordeon-content {font-size: 15px;}
+    .acordeon-item .bi-dash-circle-fill { display: none; }
+    .acordeon-item.is-active .bi-plus-circle-fill { display: none; }
+    .acordeon-item.is-active .bi-dash-circle-fill { display: block; }
+    .acordeon-header.fake { cursor: default; pointer-events: none; }
+    .acordeon-header.fake i { display: none; }
+    
+    
+    /* Reviews */
+    #reviews_average_div, #see_reviews_div { float: left; }
+    #reviews_average_div .stars_container { display: inline-block !important; vertical-align: middle; }
+    #reviews_average_div .stars_average { float: right; display: inline-block !important; vertical-align: middle; margin-left: 8px !important; font-size: 18px; }
+    #see_reviews_div { margin-left: 15px !important; }
+    #see_reviews_div .cta { color: #ebebeb !important; font-size: 13px; text-decoration: underline; }
+    div.stars_container { width: 160px; display: inline-block; height: 20px; background-image: url(https://imgrsize.oe-img.center/statics/img/stars-sprite.webp?w=220&q=100); background-size: 110px 40px; background-position: 0 0; margin: 0; padding: 0; background-repeat: no-repeat; vertical-align: middle; line-height: 20px;}
+    div.stars { display: inline-block; height: 20px; background-image: url(https://imgrsize.oe-img.center/statics/img/stars-sprite.webp?w=220&q=100); background-size: 110px 40px; background-position: 0 -20px; margin: 0; padding: 0; background-repeat: no-repeat; }
+    div.stars_average { color: #eba134; font-weight: bold; }
+    div.cant_reviewers { color: #808080; margin-left: 10px; }
+    #reviews_top_div { margin-top: 20px !important; }
+    #reviews_top_div .et_pb_row.reviews_row { display: flex !important; flex-wrap: wrap !important; gap: 15px !important; }
+    #reviews_top_div .et_pb_column.et_pb_column_1_2 { flex: 1 1 calc(50% - 8px) !important; min-width: 220px !important; box-sizing: border-box !important; margin: 0 !important; float: none !important; width: auto !important; }
+    #reviews_top_div .box-content { width: auto !important; box-sizing: border-box !important; }
+    #reviews_top_div .transp { display: grid !important; grid-template-columns: 48px 1fr !important; grid-template-rows: auto 1fr !important; gap: 4px 12px !important; position: relative !important; height: 160px !important; overflow: hidden !important; }
+    #reviews_top_div .transp::after { content: "" !important; position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; height: 50px !important; background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, #fff 90%) !important; pointer-events: none !important; z-index: 1 !important; }
+    #reviews_top_div .reviewer_image { width: 42px !important; height: 42px !important; border-radius: 50% !important; float: none !important; margin: 0 !important; grid-column: 1 !important; grid-row: 1 !important; align-self: center !important; }
+    #reviews_top_div .r_header { padding-left: 0 !important; grid-column: 2 !important; grid-row: 1 !important; align-self: center !important; }
+    #reviews_top_div .r_header h4 { font-size: 14px !important; font-weight: 600 !important; padding: 0 !important; margin: 0 0 3px 0 !important; line-height: 1.3 !important; }
+    #reviews_top_div .stars_container { width: 110px !important; margin: 0 !important; display: block !important; }
+    #reviews_top_div .description { font-style: italic !important; font-size: 15px !important; color: #555 !important; line-height: 1.5 !important; margin: 10px 0 0 0 !important; grid-column: 1 / 3 !important; grid-row: 2 !important; align-self: start !important; }
+    #reviews_top_div > a.et_pb_button { display: block !important; width: 100% !important; text-align: center !important; text-decoration: none !important; box-sizing: border-box !important; margin-top: 10px !important; }
+    #reviews_div .review { width: 100%; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eee; display: flex; height: auto!important; }
+    #reviews_div .review .review_img { width: 70px; vertical-align: top; padding-top: 5px; }
+    #reviews_div .review .review_data { flex: 1; font-size: 14px; }
+    #reviews_div .review .review_data .review_date { font-size: 11px; color: #777; }
+    #reviews_div .review .review_data .reviewer_name { font-size: 13px; color: #333; font-weight: 700; }
+    #reviews_div .reviewer_image { width: 55px; height: 55px; border-radius: 40px; }
+    .review .stars_container { width: 110px; margin: 0 0 5px !important; }
+    .review .comment {margin: 5px 0;}
+    #reviews_div .info-content {padding: 30px 20px!important;}
+
+    /* Grid general */
+    .oec-main-wrapper { background-color: #dddddd; width: 100%; padding: 0; margin: 0; }
+    .oec-width-wrapper { width: 80%; max-width: 1400px; margin-left: auto; margin-right: auto; padding: 0; box-sizing: border-box; }
+    .oec-training-container { display: flex; flex-wrap: nowrap; gap: 40px; }
+    .oec-training-columna-izq { flex: 1 1 55%; min-width: 0; padding: 0; }
+    .oec-training-columna-der { flex: 0 0 430px; min-width: 360px; padding: 0; }
+
+    /* Portada */
+    #portada .oec-training-columna-izq { display: flex; flex-direction: column; justify-content: flex-end; height: 400px; min-height: 400px; max-height: 400px; }
+    .tip { margin: 0 5px 5px 0; padding: 3px 10px; color: rgba(255,255,255,0.92); font-weight: 500; font-size: 12px; display: inline-block; line-height: 1.6; background: rgba(255,255,255,0.18); border-radius: 20px; }
+    h1.title { text-shadow: 0 2px 2px rgba(0,0,0,.6); line-height: 1.3em; font-weight: 700; color: #fff; margin: 6px 0 10px; }
+    h1.title.xl { font-size: 50px; }
+    h1.title.l { font-size: 40px; }
+    h1.title.m { font-size: 30px; }
+
+    /* Docentes */
+    .imagecont { width: 150px; height: 150px; min-width: 150px; border-radius: 50%; border: 3px solid #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .lecturername, .acc-head-full { flex-grow: 1; }
+    .name-teacher { margin: 0 0 10px 0; font-size: 1.1rem; font-weight: 700; color: #2d3436; }
+    .origin-teacher { margin: 2px 0 0 0; font-size: 0.85rem; color: #636e72; line-height: 1.2; padding: 0 0 5px 0; }
+
+    /* Popup */
+    .popup-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,.5); display: none; z-index: 1005; }
+    .popup-content { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #fff; padding: 20px; border-radius: 10px; width: 90%; max-width: 600px; box-shadow: 0 4px 20px rgba(0,0,0,.3); }
+    .popup-close { position: absolute; top: 10px; right: 10px; cursor: pointer; font-size: 20px; font-weight: 700; border: none; background: none; color: #333; }
+    .popup-info { display: none; }
+
+    .cta-cmd { float: left; }
+    .cta-cmd .cta { font-weight: 700; display: inline-block; color: #ebebeb; text-decoration: underline; font-size: 13px; padding-top: 5px; cursor: pointer; }
+    .reviews_row { width: 100%; padding: 0; }
+
+    .collapsible-wrapper { position: relative; margin-bottom: 2rem; }
+    .info-content-container { overflow: hidden; transition: max-height .5s ease; position: relative; border-radius: 10px; }
+    .info-content-container::after { content: ""; position: absolute; bottom: 0; left: 0; right: 0; height: 100px; background: linear-gradient(to bottom,rgba(255,255,255,0) 0%,#fff 90%); pointer-events: none; z-index: 1; opacity: 0; transition: opacity .3s; }
+    .info-content-container.contraido::after { opacity: 1; }
+    .info-content-container.contraido { cursor: pointer; max-height: 300px; }
+    .toggle-button { position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 45px; cursor: pointer; color: #ccc; z-index: 2; padding: 5px; transition: color .3s ease; font-family: bootstrap-icons!important; }
+    .toggle-button::before { content: "\f4f9"; }
+    .toggle-button:hover, .toggle-button-hover { color: #808080!important; }
+    .info-content-container.expandido + .toggle-button { display: none; }
+    .m-mod { font-size: 13px; }
+
+    /* Contenidos */
+    .subject { margin-top: 30px; line-height: 1.4em; }
+    .subj-lecturer { display: inline-flex; align-items: center; margin-right: 5px; font-size: 13px; }
+    .subj-lect-img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; margin-right: 5px; }
+    .mini-bullets { margin: 15px 0 0 0; display: flex; flex-wrap: wrap; gap: 12px; text-decoration: none; cursor: pointer; }
+    .mini-bullets .mini-bullet-container { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: inherit; }
+    .mini-bullet { font-size: 20px; vertical-align: middle; }
+    .methodology {border-radius: 10px; padding: 20px; background-color: #ebebeb; font-style: italic; margin-bottom: 30px; color: #0f2a54;}
+    
+    /* Bullets */
+    .bullets { margin-top: 50px; }
+    #bullets.et_pb_row { display: flex !important; flex-wrap: wrap !important; gap: 0 40px !important; }
+    #bullets .et_pb_column.et_pb_column_1_2 { flex: 1 1 calc(50% - 20px) !important; min-width: 260px !important; float: none !important; width: auto !important; box-sizing: border-box !important; }
+    #bullets h4 { margin: 10px 0 5px 0;}
+    #bullets p { margin: 0; font-size: 15px; line-height: 1.5em; }
+    .bullet-container { display: flex; margin-bottom: 30px; }
+    .bullet-icon { width: 70px; }
+    .bullet-text { flex: 1; }
+    .bullet-icon i { font-size: 45px; }
+    #reg_config { margin: 75px 0; border: 1px solid #808080; border-radius: 10px; padding: 30px; }
+    .regional_select { width: 100%; font-size: 15px; margin-bottom: 15px; }
+    #regional_change { color: #333!important; border-color: #808080; padding: 5px 15px; font-size: 12px; width: 120px; cursor: pointer; }
+    #maindate { text-align: center; color: #fff; font-weight: 700; }
+    .disc-container { border: 1px dashed #28a745; padding: 15px; border-radius: 4px; display: flex; }
+    .disc-icon { width: 50px; }
+    .disc-icon .bi { font-size: 40px; color: #28a745; }
+    .disc-text { flex: 1; }
+    .disc-text p { padding-bottom: 5px; }
+    .preciotachado { text-decoration: line-through; }
+    .active-discount { color: #28a745; display: block; font-size: 25px; font-weight: 700; }
+
+    /* Menú sticky */
+    #menu-sticky { display: none; position: fixed; top: 0; left: 0; width: 100%; background-color: rgba(255,255,255,.95); padding: 15px 20px; box-shadow: 0 0 11px rgba(33,33,33,.2); z-index: 99999; box-sizing: border-box;}
+    .enroll-button { display: block; width: 100%; background-color: #3b82f6; color: #fff; border: none; border-radius: .5rem; text-align: center; padding: 1rem 1.5rem; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: background-color .3s ease,transform .1s ease; appearance: none; text-decoration: none !important; }
+    .enroll-button:hover { background-color: #1e3ea8; }
+    .imgsalesman { filter: grayscale(100%); width: 70px; height: 70px; border-radius: 70px; box-shadow: 0 0 11px rgba(33,33,33,.2); }
+    #email-form-container { display: flex; margin: 20px 0; }
+    .oec-more-info-form { padding: 20px; border-radius: 8px; background: #ebebeb; max-width: 100%; }
+    .oec-more-info-form form { display: flex; flex-direction: column; gap: 12px; }
+    .oec-more-info-form input { padding: 10px 12px; font-size: 15px; border-radius: 6px; border: 1px solid #ccc; }
+    .oec-more-info-form button { width: 100%; background-color: #808080; color: #fff; border: none; border-radius: .5rem; padding: 1rem; font-size: 1.1rem; cursor: pointer; transition: .3s; }
+    .oec-more-info-form button.btn-active { background-color: #3b82f6; }
+    .oec-more-info-form button:hover { background-color: #1e3ea8; }
+    .oec-form-response { margin-top: 15px; font-weight: 700; }
+    .oec-success { color: #1b7e3c; }
+    .oec-error { color: #b3261e; }
+    .img-certy {border: 1px solid #c0c0c0; padding: 5px; float: right; border-radius: 4px; max-width: 220px; margin: 0 0 15px 15px;}
+    .cont-avals{width:100%}
+    .cont-avals .logo-aval{width:30%;overflow:hidden;padding:10px;margin-bottom:20px;float:left;text-align:center}
+    #content-supports {background-color: #fff;}
+
+
+    /* COLUMNA DERECHA */
+
+    /* Columna derecha */
+    #r-column { position: relative; margin-top: -150px; }
+    #fechas {height: 120px;}
+    #r-column .header_meta_data { border-radius: 10px 10px 0 0; padding: 15px; color: #fff; position: relative; z-index: 2; }
+    #r-column .header_meta_data * { color: #fff !important; }
+    .column-container { background-color: #fff; border-radius: 0 0 10px 10px; padding: 20px; position: relative; z-index: 2; }
+    .info-content { border-radius: 10px; background: #fff; color: #333; padding: 20px; font-size: 15px; line-height: 1.5em;}
+    .disclaimer { font-size: 11px; line-height: 1.4em; color: #808080; }
+    .dashed { border-top: 1px dashed #808080; padding-top: 10px; }
+    .et_pb_button, .et_pb_button:hover { width: auto; display: block; text-align: center; border: 1px solid #808080!important; padding: 10px!important; border-radius: 4px; color: #666666; font-size: 14px; cursor: pointer; text-decoration: none !important; }
+    .et_pb_button:after { display: none!important; }
+    .fondo_gris { background-color: #f4f4f4; padding: 15px; border-radius: 4px; margin: 20px 0; }
+    .close-registre { text-align: center; border: 1px solid #ebebeb; padding: 20px; border-radius: 4px; color: #808080; margin-top: 25px; }
+    .hidden, .timer { display: none; }
+    .buyhere-cta { border: 1px solid red; border-radius: 10px; padding: 20px; font-size: 17px; margin-top: 40px; background-color: #fff; }
+
+    /* Fechas */
+    #maindate{text-align:center;color:#fff;font-weight:700}
+
+    /* Formas de pago */
+    .po_img{max-height:25px;max-width:50px;margin-right:10px}
+    .po_images{display:block;width:100%;margin-top:5px}
+
+    /* Descuentos */
+    .disc-container{border:1px dashed #28a745;padding:15px;border-radius:4px;display:flex}
+    .disc-icon{width:50px;vertical-align:top}
+    .disc-icon .bi{font-size:40px;color:#28a745}
+    .disc-text{flex:1}
+    .disc-text p{padding-bottom:5px}
+    .preciotachado{text-decoration:line-through}
+    .active-discount{color:#28a745;display:block;font-size:25px;font-weight:700}
+
+    /* Menú Sticky */
+    #menu-sticky{display:none;position:fixed;top:0;left:0;width:100%;background-color:rgba(255,255,255,.95);padding:15px 20px;box-shadow:0 0 11px rgba(33,33,33,.2);z-index:99999}
+    #menu-sticky .title{font-weight:700;font-size:16px;padding:0 0 5px;color:#000;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+    #menu-sticky .sticky-container{display:flex;width:100%;padding:0!important;align-items:center}
+    #menu-sticky .primera {flex: 1; vertical-align: middle}
+    #menu-sticky .cont-p-s {flex: 0 0 330px; display: flex; align-items: center;}
+    #menu-sticky .segunda {flex: 1;}
+    #menu-sticky .tercera {flex: 0 0 100px; text-align:right}
+    #menu-sticky .primera, #menu-sticky .segunda {margin-right: 15px}
+    #menu-sticky .primera .menu{display:inline-block;margin:0 15px 0 0;cursor:pointer;color:#1a2dbd}
+    #menu-sticky .menu {font-size: 12px;}
+    #menu-sticky .timer {margin: 0;}
+    .cta-sticky{font-size:15px!important;width:100%;display:block;text-align:center}
+    .cta-sticky:after{font-size:26px}
+    .whatsapp i{color:#25d366;font-size:35px;margin-right:15px}
+    .whatsapp:hover i{color:#128c7e}
+    .email i{font-size:32px;color:#808080;cursor:pointer}
+    .email:hover i{color:#333}
+    #sticky-close{position:absolute;left:85%;margin-top:15px;cursor:pointer}
+    .icon_sticky{background-color:rgba(255,255,255,.95);padding:5px 12px;border-radius:0 0 15px 15px;font-size:18px!important;color:#808080;line-height:1}
+    #sticky-open{display:none;position:fixed;left:85%;top:0;cursor:pointer;z-index:99999;margin-top:5px}
+    .icon_menu{padding-top:25px!important;box-shadow:0 0 11px rgba(33,33,33,.2)}
+
+    /* INICIAR INSCRIPCIÓN */
+    .enroll-button{display:block;width:auto;background-color:#3b82f6;color:#fff;border:none;border-radius:.5rem;text-align:center;padding:1rem 1.5rem;font-size:1.1rem;font-weight:600;cursor:pointer;transition:background-color .3s ease,transform .1s ease;appearance:none}
+    .enroll-button:hover{background-color:#1e3ea8}
+    .enroll-button:active{transform:scale(.99)}
+
+    /* Más información */
+    .imgsalesman{filter:grayscale(100%);-webkit-filter:grayscale(100%);filter:gray;-webkit-filter:grayscale(1);width:70px;height:70px;border-radius:70px;box-shadow:0 0 11px rgba(33,33,33,.2)}
+    #email-form-container{display:flex;margin:20px 0}
+
+    /* Contact Form */
+    .oec-more-info-form{padding:20px;border-radius:8px;background:#ebebeb;max-width:100%}
+    .oec-more-info-form form{display:flex;flex-direction:column;gap:12px}
+    .oec-more-info-form input{padding:10px 12px;font-size:15px;border-radius:6px;border:1px solid #ccc}
+    .oec-more-info-form button{width:100%;background-color:#808080;color:#fff;border:none;border-radius:.5rem;padding:1rem;font-size:1.1rem;cursor:pointer;transition:.3s}
+    .oec-more-info-form button.btn-active{background-color:#3b82f6}
+    .oec-more-info-form button:hover{background-color:#1e3ea8}
+    .oec-form-response{margin-top:15px;font-weight:700}
+    .oec-success{color:#1b7e3c}
+    .oec-error{color:#b3261e}
+
+
+    @media(max-width:600px) {
+        h1.title.xl { font-size: 38px!important; }
+        h1.title.l { font-size: 28px!important; }
+        h1.title.m { font-size: 20px!important; }
+        .padding-mobile, .acordeon-custom { padding-left: 20px!important; padding-right: 20px!important; }
+        .margin-mobile, .et_pb_accordion, .buyhere-cta, .et_pb_button { margin: 0 20px!important; }
+        .imagecont { max-width: 80px; max-height: 80px; min-width: 80px; }
+        .img-certy, .text-certy { float: none; width: 100%; margin: 0; }
+        .cont-avals .logo-aval { width: 70%; margin-left: 15%; }
+        .oec-training-columna-izq, .oec-training-columna-der { flex: 1 1 100% !important; min-width: 0 !important; }
+        .oec-width-wrapper { width: 100%; }
+        #reviews_top_div .et_pb_column.et_pb_column_1_2 { flex: 1 1 100% !important; }
+        #bullets .et_pb_column.et_pb_column_1_2 { flex: 1 1 100% !important; }
+        #r-column { margin-top: 0 !important; }
+    }
+    @media(max-width:900px) {
+        h1.title.xl { font-size: 45px; }
+        h1.title.l { font-size: 35px; }
+        h1.title.m { font-size: 25px; }
+        .column-container { border-radius: 0!important; }
+        .oec-training-container { flex-wrap: wrap; }
+        #r-column { margin-top: 0 !important; }
+        #r-column .header_meta_data { border-radius: 10px 10px 0 0; }
+    }
+    </style>
+
+
+    {% if data.community in extra.current_url %}
+        {% set inCommunity = true %}
+        {% set enrollmentLink = "https://" ~ data.community_slug ~ ".onlineeducation.center/es/checkoutv2/enrollment/" ~ data.id %}
+    {% else %}
+        {% set inCommunity = false %}
+        {% set enrollmentLink = "https://" ~ data.organization.data.subdomain ~ ".onlineeducation.center/es/checkoutv2/enrollment/" ~ data.id %}
+    {% endif %}
+
+    {% if data.prices.discounts.early_payment and "now"|date("Ymd") <= data.prices.discounts.early_payment.expiration|date("Ymd") %}
+        {% set earlyPayDiscount = true %}
+    {% else %}
+        {% set earlyPayDiscount = false %}
+    {% endif %}
+    
+    {% if data.enrollment_end|date("Ymd") >= "now"|date("Ymd") %}
+        {% set openEnrollment = true %}
+    {% else %}
+        {% set openEnrollment = false %}
+    {% endif %}
+    
+    {% if "now"|date("Ymd") < data.start|date("Ymd") %}
+        {% set beforeStart = true %}
+    {% else %}
+        {% set beforeStart = false %}
+    {% endif %}
+
+    {% set t_image = data.image|split('/') %}
+    {% set t_image_last = t_image|last %}
+    {% set module_count = data.modules.data|length %}
+    {% set module_phrase = module_count > 1 ? module_count ~ " módulos" : "1 módulo" %}
+    {% set edition_phrase = data.edition_number > 1 ? data.edition_number ~ " ediciones" : "Primera edición" %}
+    {% set certificate_phrase = data.certificates.data|length > 1 ? data.certificates.data|length ~ " certificados" : "1 certificado" %}
+    {% set supports_phrase = data.supports.data|length > 1 ? data.supports.data|length ~ " avales científicos" : "1 aval científico" %}
+    {% set teachers_count = data.teachers.data|length %}
+    {% set teachers_phrase = teachers_count > 1 ? teachers_count ~ " docentes" : "1 docente" %}
+    {% set force_contact = data.force_contact %}
+    {% set contact_title = force_contact ? "INFORMES E INSCRIPCIÓN" : "¿Alguna duda?" %}
+    {% set modality = data.modality %}
+    {% if modality == "ONLINE" %}{% set modality_icon = "bi bi-person-video2" %}{% set modality_title = "100% ONLINE" %}{% set modality_text = "Para realizar esta formación no se requiere ninguna instancia presencial." %}
+    {% elseif modality == "BLEND-LINE-COMP" %}{% set modality_icon = "bi bi-person-plus-fill" %}{% set modality_title = "BLENDED ONLINE" %}{% set modality_text = "Esta formación es online, pero tiene al menos una instancia presencial <b>obligatoria</b>." %}
+    {% elseif modality == "BLEND-LINE-OPT" %}{% set modality_icon = "bi bi-person-fill" %}{% set modality_title = "BLENDED ONLINE" %}{% set modality_text = "Esta formación es online, pero tiene al menos una instancia presencial <b>optativa</b>." %}
+    {% elseif modality == "BLEND-SITE-COMP" %}{% set modality_icon = "bi bi-person-fill" %}{% set modality_title = "BLENDED ONSITE" %}{% set modality_text = "Esta formación es presencial, pero tiene al menos una instancia online <b>obligatoria</b>." %}
+    {% elseif modality == "BLEND-SITE-OPT" %}{% set modality_icon = "bi bi-person-fill" %}{% set modality_title = "BLENDED ONSITE" %}{% set modality_text = "Esta formación es presencial, pero tiene soporte online <b>optativo</b>." %}
+    {% else %}{% set modality_icon = "bi bi-person-fill-check" %}{% set modality_title = "100% ONSITE" %}{% set modality_text = "Esta formación es totalmente presencial, y no tiene ninguna instancia online." %}
+    {% endif %}
+    {% set synchronicity = data.synchronicity %}
+    {% if synchronicity == "SYNC" %}{% set synchronic = true %}{% set synchronicity_icon = "bi bi-cast" %}{% set synchronicity_title = "100% LIVE LEARNING" %}{% set synchronicity_text = "Los docentes o conferencistas anunciados están en vivo con usted durante el período de sus módulos y asignaturas." %}
+    {% elseif synchronicity == "MIXED" %}{% set synchronic = true %}{% set synchronicity_icon = "bi bi-cast" %}{% set synchronicity_title = "MIXED LEARNING" %}{% set synchronicity_text = "Algunas clases ya están grabadas, pero hay encuentros en vivo (sincrónicos) y foros sincrónicos." %}
+    {% elseif synchronicity == "ASYNC-F" %}{% set synchronic = false %}{% set synchronicity_icon = "bi bi-chat-right-text" %}{% set synchronicity_title = "ASINCRÓNICA CON FOROS" %}{% set synchronicity_text = "Las clases ya están grabadas, no hay encuentros en vivo, pero si hay foros sincrónicos. Estudie a su ritmo." %}
+    {% else %}{% set synchronic = false %}{% set synchronicity_icon = "bi bi-collection-play" %}{% set synchronicity_title = "ASINCRÓNICA" %}{% set synchronicity_text = "Las clases ya están grabadas y no hay ninguna interacción sincrónica. Estudie a su ritmo." %}
+    {% endif %}
+    {% if data.mkp_only %}{% set lms_icon = "bi bi-building-up" %}{% set lms_title = "LMS EXTERNO" %}{% set lms_text = "Esta formación se realiza en el campus virtual de " ~ data.organization.data.name ~ "." %}
+    {% else %}{% set lms_icon = "bi bi-building" %}{% set lms_title = "LMS PROPIO" %}{% set lms_text = "Esta formación se realiza en el campus virtual de Online Education Center." %}
+    {% endif %}
+    {% if synchronicity == "ASYNC" or synchronicity == "ASYNC-F" %}
+        {% set access_text = "Luego de que usted finalice esta formación, tendrá UN AÑO MÁS para seguir ingresando y revisando material, descargando certificaciones, etc." %}
+    {% else %}
+        {% set access_text = "Luego de finalizada esta formación el " ~ data.end|format_date ~ ", tendrá UN AÑO MÁS para seguir ingresando y revisando material, descargando certificaciones, etc." %}
+    {% endif %}
+    {% set organizacion_name = data.organization.data.name %}
+
+    <div id="portada" class="oec-main-wrapper" style="background:linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.85)),url(https://imgrsize.oe-img.center/campus/capacitacion/imagen/{{ t_image_last }}?w=1200&q=89&format=webp);background-size:cover;background-position:center;padding:2% 0">
+        <div class="oec-width-wrapper">
+            <div class="oec-training-container">
+                <div class="oec-training-columna-izq padding-mobile">
+                    <div>
+                        <span class="tip">{{ edition_phrase }}</span>
+                        {% if data.total_students > 1 %}<span class="tip">{{ data.total_students }} alumnos</span>{% endif %}
+                        <span class="tip">{{ teachers_phrase }}</span>
+                        <span class="tip">{{ data.lecture_hours }} Horas cátedra</span>
+                        <span class="tip">{{ module_phrase }}</span>
+                        <span class="tip">{{ certificate_phrase }}</span>
+                        {% if data.supports.data|length >= 1 %}<span class="tip">{{ supports_phrase }}</span>{% endif %}
+                    </div>
+                    <h1 id="training-title" class="title{% if data.name|length > 100 %} m{% elseif data.name|length > 50 %} l{% else %} xl{% endif %}">{{ data.name }}</h1>
+                    <div>
+                        <div id="reviews_average_div" class="cta-cmd"></div>
+                        <div id="see_reviews_div" class="cta-cmd"></div>
+                        <div style="clear:both"></div>
+                    </div>
+                    {% if inCommunity %}
+                        <div>
+                            <span class="tip" style="font-size:13px">Organiza: 
+                                {% if data.organization.data.facebook_app_id %}
+                                    <a target="_blank" href="{{ data.community }}/es/socio/{{ data.organization.data.facebook_app_id }}" style="color:#fff"><span id="training-organization" style="text-decoration:underline">{{ organizacion_name }}</span></a>
+                                {% elseif data.organization.data.short_description %}
+                                    <a class="scroll-link" where="organization-description" style="color:#fff;cursor:pointer"><span id="training-organization" style="text-decoration:underline">{{ organizacion_name }}</span></a>
+                                {% else %}
+                                    <span id="training-organization">{{ organizacion_name }}</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="oec-training-columna-der hidemobile"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="oec-main-wrapper">
+        <div class="oec-width-wrapper">
+            <div class="oec-training-container">
+                <div class="oec-training-columna-izq">
+                    <a class="scroll-link mini-bullets" where="bullets" style="color: {{ extra.brand_color }};">
+                        <span class="mini-bullet-container" {% if modality == "ONSITE" %}style="color:#ff0000!important;font-weight:700!important"{% endif %}>
+                            <i title="{{ modality_title }}" class="{{ modality_icon }} cm_comp_color mini-bullet"></i>{{ modality_title }}
+                        </span>
+                        <span class="mini-bullet-container"><i title="EN ESPAÑOL" class="bi bi-globe cm_comp_color mini-bullet"></i>EN ESPAÑOL</span>
+                        {% if modality != 'ONSITE' %}
+                            <span class="mini-bullet-container"><i title="{{ synchronicity_title }}" class="{{ synchronicity_icon }} cm_comp_color mini-bullet"></i><span class="hidemobile">{{ synchronicity_title }}</span></span>
+                            <span class="mini-bullet-container"><i title="{{ lms_title }}" class="{{ lms_icon }} cm_comp_color mini-bullet"></i><span class="hidemobile">{{ lms_title }}</span></span>
+                        {% endif %}
+                    </a>
+
+                    <div id="reviews_top_div" style="margin-top:40px!important;"></div>
+
+                    <div class="producto">
+                        {% if data.great_lecturers %}
+                            <h2 id="docentes" class="padding-mobile">Docentes</h2>
+                            <div class="acordeon-custom">
+                                {% for docente in data.teachers.data %}
+                                    {% set teacher_image = docente.image|split('/') %}{% set teacher_image_last = teacher_image|last %}
+                                    <div class="acordeon-item">
+                                        <button class="acordeon-header{% if docente.biography is empty %} fake{% endif %}">
+                                            <div class="imagecont" style="background:url('{% if docente.image is empty %}https://imgrsize.oe-img.center/img/user-default.jpg?w=300&q=89&format=webp{% else %}https://imgrsize.oe-img.center/usuario/{{ teacher_image_last }}?w=300&q=89&format=webp{% endif %}');background-size:cover;background-repeat:no-repeat;background-position:center"></div>
+                                            <div class="lecturername">
+                                                <h5 class="name-teacher"><span>{{ docente.first_name }}</span> <span>{{ docente.last_name }}</span></h5>
+                                                {% if docente.origin %}<p class="origin-teacher">{{ docente.origin|raw }}.</p>{% endif %}
+                                                {% if docente.background %}<p class="origin-teacher">{{ docente.background|raw }}.</p>{% endif %}
+                                            </div>
+                                            <i class="bi bi-plus-circle-fill"></i><i class="bi bi-dash-circle-fill"></i>
+                                        </button>
+                                        <div class="acordeon-content">{{ docente.biography|raw }}</div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <h2 id="presentacion" class="padding-mobile">Presentación</h2>
+                            <div class="collapsible-wrapper" data-height="300">
+                                <div class="info-content-container"><div class="info-content">{{ data.short_description|raw }}</div></div>
+                                <div class="toggle-button"></div>
+                            </div>
+                        {% else %}
+                            <h2 id="presentacion" class="padding-mobile">Presentación</h2>
+                            <div class="collapsible-wrapper" data-height="300">
+                                <div class="info-content-container"><div class="info-content">{{ data.short_description|raw }}</div></div>
+                                <div class="toggle-button"></div>
+                            </div>
+                            <h2 id="docentes" class="padding-mobile">Docentes</h2>
+                            <div class="acordeon-custom">
+                                {% for docente in data.teachers.data %}
+                                    {% set teacher_image = docente.image|split('/') %}{% set teacher_image_last = teacher_image|last %}
+                                    <div class="acordeon-item">
+                                        <button class="acordeon-header{% if docente.biography is empty %} fake{% endif %}">
+                                            <div class="imagecont" style="background:url('{% if docente.image is empty %}https://imgrsize.oe-img.center/img/user-default.jpg?w=300&q=89&format=webp{% else %}https://imgrsize.oe-img.center/usuario/{{ teacher_image_last }}?w=300&q=89&format=webp{% endif %}');background-size:cover;background-repeat:no-repeat;background-position:center"></div>
+                                            <div class="lecturername">
+                                                <h5 class="name-teacher"><span>{{ docente.first_name }}</span> <span>{{ docente.last_name }}</span></h5>
+                                                {% if docente.origin %}<p class="origin-teacher">{{ docente.origin|raw }}.</p>{% endif %}
+                                                {% if docente.background %}<p class="origin-teacher">{{ docente.background|raw }}.</p>{% endif %}
+                                            </div>
+                                            <i class="bi bi-plus-circle-fill"></i><i class="bi bi-dash-circle-fill"></i>
+                                        </button>
+                                        <div class="acordeon-content">{{ docente.biography|raw }}</div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div id="pricesEnrollmentMobile" style="margin-top:70px;display:none"></div>
+
+                        <h2 id="contenidos" class="padding-mobile">Contenidos</h2>
+                        <div class="acordeon-custom">
+                            {% for modulo in data.modules.data %}
+                                <div class="acordeon-item">
+                                    <button class="acordeon-header">
+                                        <div class="acc-head-full">
+                                            <h3>Módulo {{ modulo.number }}</h3>
+                                            <p class="m-mod"><b>{{ modulo.lecture_hours }} horas cátedra</b>{% if synchronic %} | Comienza: {{ modulo.start|format_date }} | Termina: {{ modulo.end|format_date }}{% endif %}</p>
+                                        </div>
+                                        <i class="bi bi-plus-circle-fill"></i><i class="bi bi-dash-circle-fill"></i>
+                                    </button>
+                                    <div class="acordeon-content">
+                                        <p style="padding:0;margin-bottom:-10px">Asignaturas:</p>
+                                        {% for asignatura in modulo.subjects.data %}
+                                            <h4 class="subject">{{ asignatura.name }}</h4>
+                                            <p>
+                                                {% for docente in asignatura.teachers.data %}
+                                                    {% set teacher_image = docente.image|split('/') %}{% set teacher_image_last = teacher_image|last %}
+                                                    <span class="subj-lecturer">
+                                                        <img src="{% if docente.image is empty %}https://imgrsize.oe-img.center/img/user-default.jpg?w=300&q=89&format=webp{% else %}https://imgrsize.oe-img.center/usuario/{{ teacher_image_last }}?w=300&q=89&format=webp{% endif %}" alt="{{ docente.first_name }} {{ docente.last_name }}" class="subj-lect-img" loading="lazy">
+                                                        {% if docente.prefix %}{{ docente.prefix }} {% endif %}{{ docente.first_name }} {{ docente.last_name }}{{ docente.suffix }}
+                                                        {% if not loop.last %}{% if loop.revindex == 2 %} y {% else %}, {% endif %}{% else %}.{% endif %}
+                                                    </span>
+                                                {% endfor %}
+                                            </p>
+                                            {{ asignatura.content|raw }}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div id="reviews_div"></div>
+                        <div id="anyQuestionsMobile" style="margin-top:70px!important;display:none"></div>
+
+                        <h2 id="masinformacion" class="padding-mobile">Más información</h2>
+                        <div class="acordeon-custom">
+                            {% if data.target_audience %}
+                                <div class="acordeon-item"><button class="acordeon-header"><h3 class="acc-head-full">Destinado a:</h3><i class="bi bi-plus-circle-fill"></i><i class="bi bi-dash-circle-fill"></i></button><div class="acordeon-content"><p>{{ data.target_audience|raw }}</p></div></div>
+                            {% endif %}
+                            {% if data.short_description != data.introduction %}
+                                <div class="acordeon-item"><button class="acordeon-header"><h3 class="acc-head-full">Descripción</h3><i class="bi bi-plus-circle-fill"></i><i class="bi bi-dash-circle-fill"></i></button><div class="acordeon-content"><p>{{ data.introduction|raw }}</p></div></div>
+                            {% endif %}
+                            {% if data.certificates.data is not empty %}
+                                <div class="acordeon-item">
+                                    <button class="acordeon-header"><h3 class="acc-head-full">Certificados</h3><i class="bi bi-plus-circle-fill"></i><i class="bi bi-dash-circle-fill"></i></button>
+                                    <div class="acordeon-content">
+                                        {% for certificate in data.certificates.data %}
+                                            {% set cert_image = certificate.thumb|split('/') %}{% set cert_image_last = cert_image|last %}
+                                            <figure class="cont-certy">
+                                                {% if certificate.thumb %}<img src="https://imgrsize.oe-img.center/campus/certificado/thumbs/{{ cert_image_last }}?w=500&q=89&format=webp" alt="{{ certificate.name }}" class="img-certy" loading="lazy">{% endif %}
+                                                <figcaption class="text-certy">
+                                                    <h4 style="margin:20px 0;font-weight:600;line-height:1.2em">{{ certificate.name }}</h4>
+                                                    <ul style="margin-right:20px"><li><span><b>Otorga:</b> {{ certificate.organization_name }}</span></li><li><span><b>Formato:</b> {{ certificate.type }}</span></li></ul>
+                                                </figcaption>
+                                                <span>{{ certificate.description }}</span>
+                                            </figure>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {% if data.supports.data is not empty %}
+                                <div class="acordeon-item">
+                                    <button class="acordeon-header"><h3 class="acc-head-full">Avales Científicos</h3><i class="bi bi-plus-circle-fill"></i><i class="bi bi-dash-circle-fill"></i></button>
+                                    <div id="content-supports" class="acordeon-content">
+                                        <div class="cont-avals">
+                                            {% for aval in data.supports.data %}
+                                                {% if loop.index == 4 %}<div style="clear:both;height:1px"></div>{% endif %}
+                                                {% set support_image = aval.logo_gse|split('/') %}{% set support_image_last = support_image|last %}
+                                                <figure class="logo-aval"><img src="https://imgrsize.oe-img.center/institucion/{{ support_image_last }}?w=300&q=89&format=webp" alt="{{ aval.name }}" style="width:65%" loading="lazy"><figcaption><p>{{ aval.name }}</p></figcaption></figure>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {% if data.requirements %}
+                                <div class="acordeon-item"><button class="acordeon-header"><h3 class="acc-head-full">Requisitos</h3><i class="bi bi-plus-circle-fill"></i><i class="bi bi-dash-circle-fill"></i></button><div class="acordeon-content"><p>{{ data.requirements|raw }}</p></div></div>
+                            {% endif %}
+
+                            {% if not data.mkp_only %}
+                                {% set startDateObj = date(data.start|date("Y-m-d")) %}
+                                {% set endDateObj = date(data.end|date("Y-m-d")) %}
+                                {% set todayObj = date("now"|date("Y-m-d")) %}
+                                {% set diff = startDateObj.diff(endDateObj) %}
+                                {% set daysTotal = diff.days %}
+                                {% if todayObj <= startDateObj %}{% set daysToday = 0 %}{% else %}{% set diff = startDateObj.diff(todayObj) %}{% set daysToday = diff.days %}{% endif %}
+                                {% if todayObj >= endDateObj %}{% set offlinePercent = 100 %}{% else %}{% set offlinePercent = daysTotal != 0 ? daysToday * 100 / daysTotal : 0 %}{% endif %}
+                                {% set onlinePercent = 100 - offlinePercent %}
+                                <div id="pierdealgo" class="acordeon-item">
+                                    <button class="acordeon-header"><h3 class="acc-head-full">Metodología</h3><i class="bi bi-plus-circle-fill"></i><i class="bi bi-dash-circle-fill"></i></button>
+                                    <div class="acordeon-content pierdealgo">
+                                        {% if showMethodology %}
+                                            <div class="methodology">{{ data.methodology|raw }}</div>
+                                        {% endif %}
+                                        {% if "SITE" in modality %}
+                                            {% if not showMethodology %}
+                                                <p>Metodología y horarios en la presentación.</p>
+                                            {% endif %}
+                                        {% else %}
+                                            {% if "ASYNC" not in synchronicity %}
+                                            {% if not showMethodology %}
+                                                {% if synchronicity == "MIXED" %}
+                                                <p>En esta formación hay clases o conferencias ya grabadas, pero los docentes o conferencistas también propondrán interacción en vivo: conferencias o sesiones de consulta.</p>
+                                                {% else %}
+                                                <p>Los docentes o conferencistas van proponiendo diferentes horarios para la grabación EN VIVO de sus clases o conferencias según la composición regional del alumnado, intentando de que todos puedan participar.</p>
+                                                {% endif %}
+                                            {% endif %}
+                                            <p>Si no puede asistir a las grabaciones en vivo, NO PIERDE NADA, porque automáticamente luego de conferencia en vivo, se coloca la grabación de la misma (y también las consultas que se hicieron) como material de estudio de su programa educativo, para reproducir cuantas veces quiera y en cualquier día y horario.</p>
+                                            <p>Esto también sirve para los que se matriculan luego de haber comenzado una capacitación. <b>Estos alumnos pueden estar seguros de que toda la interacción que ha sucedido mientras ellos no estaban, está grabada y a su disposición en el campus virtual.</b></p>
+                                            <p style="margin-bottom:20px">Por ejemplo, si usted se inscribe hoy en: <b>{{ data.name }}</b>, va a encontrar:</p>
+                                            <div style="display:flex">
+                                                <div style="width:50%">
+                                                {% if offlinePercent > 0 %}<p style="color:#666">{{ offlinePercent|round(0, 'common') }}% de INTERACCIÓN GRABADA</p>{% endif %}
+                                                </div>
+                                                <div style="flex:1">
+                                                {% if onlinePercent > 0 %}<p class="cm_main_color" style="text-align:right">{{ onlinePercent|round(0, 'common') }}% EN VIVO</p>{% endif %}
+                                                </div>
+                                            </div>
+                                            <div style="background-color: {{ extra.brand_color }}80;">
+                                                <div style="background-color:#ddd;width:{{ offlinePercent }}%!important;height:50px;border-right:1px solid #fff"></div>
+                                            </div>
+                                            {% else %}
+                                            <p>Todo el material de estudio ya está grabado y a su disposición en el campus virtual. No hay encuentros en vivo{% if synchronicity == "ASYNC-F" %}, pero si hay foros sincrónicos{% endif %}. Estudie a su ritmo.</p>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div id="bullets" class="et_pb_row reviews_row bullets padding-mobile" style="margin-top:50px;">
+                            <div class="et_pb_column et_pb_column_1_2">
+                                <div class="bullet-container"><div class="bullet-icon"><i class="{{ modality_icon }} cm_main_color"></i></div><div class="bullet-text"><h4>{{ modality_title }}</h4><p>{{ modality_text|raw }}</p></div></div>
+                                <div class="bullet-container"><div class="bullet-icon"><i class="bi bi-globe cm_main_color"></i></div><div class="bullet-text"><h4>EN ESPAÑOL</h4><p>Todo material de estudio obligatorio es en español.</p></div></div>
+                                {% if modality != 'ONSITE' and not data.mkp_only %}
+                                    <div class="bullet-container"><div class="bullet-icon"><i class="{{ synchronicity_icon }} cm_main_color"></i></div><div class="bullet-text"><h4>{{ synchronicity_title }}</h4><p>{{ synchronicity_text|raw }}</p></div></div>
+                                    <div class="bullet-container"><div class="bullet-icon"><i class="bi bi-calendar3-range cm_main_color"></i></div><div class="bullet-text"><h4>ACCESO EXTENDIDO</h4><p>{{ access_text }}</p></div></div>
+                                {% endif %}
+                            </div>
+                            <div class="et_pb_column et_pb_column_1_2">
+                                {% if modality != 'ONSITE' %}<div class="bullet-container"><div class="bullet-icon"><i class="{{ lms_icon }} cm_main_color"></i></div><div class="bullet-text"><h4>{{ lms_title }}</h4><p>{{ lms_text|raw }}</p></div></div>{% endif %}
+                                <div class="bullet-container"><div class="bullet-icon"><i class="bi bi-stopwatch cm_main_color"></i></div><div class="bullet-text"><h4>{{ data.lecture_hours }} HORAS CATEDRA</h4><p>{{ module_phrase }} y {{ teachers_phrase }}.</p></div></div>
+                                {% if not data.mkp_only %}<div class="bullet-container"><div class="bullet-icon"><i class="bi bi-bank cm_main_color"></i></div><div class="bullet-text"><h4>100% SEGURO</h4><p>Si no cumplimos con lo publicitado, le devolvemos el 100% de su dinero.</p></div></div>{% endif %}
+                                {% if not data.mkp_only and data.type|lower not in ['webinar', 'taller'] %}
+									<div class="bullet-container">
+										<div class="bullet-icon"><i class="bi bi-archive cm_main_color"></i></div>
+										<div class="bullet-text">
+											<a target="_blank" href="https://about.ebsco.com/es/productos/bases-de-datos/sportdiscus-full-text"><img title="SPORT Discus with Full text" alt="SPORT Discus with Full text" src="https://imgrsize.oe-img.center/campus/capacitacion/imagen/12410_1_FbAd_69cc46aebdb99.png" style="height: 100%; max-height: 55px;"></a>
+											<p>Acceso a SPORT Discus with Full text en el campus virtual. <a target="_blank" href="https://about.ebsco.com/m/ee/Marketing/titleLists/s3h-coverage.htm">Journals incluidos <i class="bi bi-box-arrow-up-right"></i></a></p>
+										</div>
+									</div>
+								{% endif %}
+                            </div>
+                        </div>
+
+                        {% if openEnrollment and not force_contact %}
+                            <div id="reg_config" class="margin-mobile" base_url="{{ extra.current_url }}">
+                                <p>Precios para:</p>
+                                <select id="countries_select" class="regional_select" name="countries_select">
+                                    <option value="AR">Argentina</option><option value="BO">Bolivia</option><option value="BR">Brasil</option><option value="CL">Chile</option><option value="CO">Colombia</option><option value="CR">Costa Rica</option><option value="CU">Cuba</option><option value="EC">Ecuador</option><option value="ES">España</option><option value="US">Estados Unidos</option><option value="MX">Mexico</option><option value="PA">Panama</option><option value="PY">Paraguay</option><option value="PE">Perú</option><option value="UY">Uruguay</option><option value="VE">Venezuela</option><option value="XX">Otros Países</option>
+                                </select>
+                                <select id="currencies_select" class="regional_select" name="currencies_select">
+                                    <option value="ARS">en (ARS) Pesos Argentinos</option><option value="CLP">en (CLP) Pesos Chilenos</option><option value="COP">en (COP) Pesos Colombianos</option><option value="EUR">en (EUR) Euros</option><option value="MXN">en (MXN) Pesos Mexicanos</option><option value="USD">en (USD) Dólares Americanos</option>
+                                </select>
+                                <p><a id="regional_change" class="et_pb_button et_pb_bg_layout_light">Cambiar</a></p>
+                            </div>
+                        {% endif %}
+                        <br><br><br>
+                    </div>
+                </div>
+
+                <div class="oec-training-columna-der" id="r-column">
+
+					<div id="right-column">
+						<div id="fechas" class="header_meta_data hm-col-der" style="background-color: color-mix(in srgb, {{ extra.brand_color }}, transparent 50%)!important;">
+							<div class="et_pb_title_meta_container">
+								{% if synchronic %}
+									{% if beforeStart %}
+										<h3 id="maindate" class="localdate">{{ data.start|format_date }}</h3>
+										<p class="timer" style="text-align:center" date="{{ data.start }}" startPhrase="" endPhrase=" para comenzar."></p>
+									{% else %}
+										<p style="text-align:center;padding-bottom:0!important;font-weight:300;font-size:11px">
+											{% if "now"|date("Ymd") > data.end|date("Ymd") %}
+												Finalizó: <b>{{ data.end|format_date }}</b>
+											{% else %}
+												Inició: <b>{{ data.start|format_date }}</b>
+											{% endif %}
+											{% if openEnrollment and not data.mkp_only %}
+												<span> <a class="scroll-link cm_contrast_text" style="text-decoration:underline;cursor:pointer" where="pierdealgo">¿Se pierde algo?</a></span>
+											{% endif %}
+										</p>
+										{% if openEnrollment %}
+											<p style="text-align:center;padding-bottom:0!important">Inscripción hasta: <b>{{ data.enrollment_end|format_date }}</b><br></p>
+											<p class="timer" style="text-align:center;font-size:11px" date="{{ data.enrollment_end }}" startPhrase="" endPhrase=""></p>
+										{% else %}
+											<p style="text-align:center;padding-bottom:0!important">INSCRIPCIONES CERRADAS</p>
+										{% endif %}
+									{% endif %}
+								{% else %}
+									{% if openEnrollment %}
+										<p style="text-align:center;padding-bottom:0!important">COMIENCE EN CUALQUIER MOMENTO</p>
+										{% set one_month_from_now = "now"|date_modify("+1 month") %}
+										{% if data.enrollment_end|date("Ymd") <= one_month_from_now|date("Ymd") %}
+											<p style="text-align:center;padding-bottom:0!important">Inscripción hasta: <b>{{ data.enrollment_end|format_date }}</b></p>
+											<p class="timer" style="text-align:center;font-size:11px" date="{{ data.enrollment_end }}" startPhrase="" endPhrase=""></p>
+										{% endif %}
+									{% else %}
+										<p style="text-align:center;padding-bottom:0!important">INSCRIPCIONES CERRADAS</p>
+									{% endif %}
+								{% endif %}
+							</div>
+						</div>
+
+						<div class="column-container">
+							{% if openEnrollment and synchronic %}
+								<link rel="stylesheet" href="https://cdn.addevent.com/libs/atc/themes/fff-theme-3/theme.css" media="all">
+								<script type="text/javascript" src="https://cdn.addevent.com/libs/atc/1.6.1/atc.min.js" async></script>
+								
+								{% if beforeStart %}
+									<div class="addeventatc" data-styling="none" style="width:100%!important">
+										<div class="date" style="width:18%!important">
+											<span class="mon">{{ data.start|date("F") }}</span>
+											<span class="day">{{ data.start|date("d") }}</span>
+											<div class="bdr1"></div><div class="bdr2"></div>
+										</div>
+										<div class="desc" style="width:78%!important">
+											<p><strong class="hed">{{ data.name|truncate(35) }}</strong><span class="des">{{ organizacion_name|truncate(35) }}<br>AGREGAR FECHA DE INICIO A SU CALENDARIO</span></p>
+										</div>
+										<span class="start">{{ data.start|date("m/d/Y", "America/Buenos_Aires") }} 10:00 AM</span>
+										<span class="end">{{ data.start|date("m/d/Y", "America/Buenos_Aires") }} 11:00 AM</span>
+										<span class="timezone">America/Buenos_Aires</span>
+										<span class="title">Inscribirme en: {{ data.name }}</span>
+										<span class="description">{{ data.short_description|raw }}<br><br>INSCRIPCIONES ABIERTAS<br><br>Informes e inscripción: {{ data.community }}/es/formacion/{{ data.slug }}?utm_source=addevent&utm_medium=addtocalendar-button&utm_campaign=ficha-{{ data.community_oec_domain }}</span>
+										<span class="location">{{ data.community }}/es/formacion/{{ data.slug }}?utm_source=addevent&utm_medium=addtocalendar-button&utm_campaign=ficha-{{ data.community_oec_domain }}</span>
+										<span class="organizer_email">info@onlineeducation.center</span>
+										<span class="all_day_event">false</span>
+										<span class="alarm_reminder">1440</span>
+										<span class="calname">use-title</span>
+									</div>
+								{% else %}
+									<div class="addeventatc" data-styling="none" style="width:100%!important">
+										<div class="date" style="width:18%!important">
+											<span class="mon">{{ data.enrollment_end|date("F") }}</span>
+											<span class="day">{{ data.enrollment_end|date("d") }}</span>
+											<div class="bdr1"></div><div class="bdr2"></div>
+										</div>
+										<div class="desc" style="width:78%!important">
+											<p><strong class="hed">{{ data.name|truncate(35) }}</strong><span class="des">{{ organizacion_name|truncate(35) }}<br>AGREGAR CIERRE DE INSCRIPCIONES A SU CALENDARIO</span></p>
+										</div>
+										<span class="start">{{ data.enrollment_end|date("m/d/Y", "America/Buenos_Aires") }} 10:00 AM</span>
+										<span class="end">{{ data.enrollment_end|date("m/d/Y", "America/Buenos_Aires") }} 11:00 AM</span>
+										<span class="timezone">America/Buenos_Aires</span>
+										<span class="title">Cierre de inscripciones de: {{ data.name }}</span>
+										<span class="description">{{ data.short_description|raw }}<br><br>INSCRIPCIONES ABIERTAS<br><br>Informes e inscripción: {{ data.community }}/es/formacion/{{ data.slug }}?utm_source=addevent&utm_medium=addtocalendar-button&utm_campaign=ficha-{{ data.community_oec_domain }}</span>
+										<span class="location">{{ data.community }}/es/formacion/{{ data.slug }}?utm_source=addevent&utm_medium=addtocalendar-button&utm_campaign=ficha-{{ data.community_oec_domain }}</span>
+										<span class="organizer_email">info@onlineeducation.center</span>
+										<span class="all_day_event">false</span>
+										<span class="alarm_reminder">1440</span>
+										<span class="calname">use-title</span>
+									</div>
+								{% endif %}
+							{% endif %}
+
+							{% if openEnrollment and not force_contact %}
+								<div id="precios" class="fondo_gris">
+									{% if module_count > 1 %}
+										{% for modulo in data.modules.data %}
+											<p style="padding:3px;border-bottom:1px solid #ebebeb">
+												<span class="cm_main_color">
+													Módulo {{ modulo.number }}{% if synchronicity != "ASYNC" and synchronicity != "ASYNC-F" %}<span style="color:#808080"> ({{ modulo.start|format_date("d/m") }}):</span>{% else %}:{% endif %}
+												</span>
+												<span style="float:right" class="cm_main_color price-module-{{ modulo.number }}">buscando...</span>
+											</p>
+										{% endfor %}
+										<p class="cm_main_color" style="padding:10px 0">
+											<b>Total: <span class="just-price {% if earlyPayDiscount %} preciotachado{% endif %}" style="float:right">buscando...</span></b>
+										</p>
+										<p class="disclaimer dashed" style="text-align:left">Se pueden ir comprando los módulos{% if synchronic %} <span>en las fechas indicadas</span>{% else %} <span>de a uno</span>{% endif %}. <span id="po_span"></span></p>
+									{% else %}
+										<p style="text-align:center;font-size:18px">{{ data.type|upper }} COMPLETO<br><b class="cm_main_color"><span class="just-price {% if earlyPayDiscount %} preciotachado{% endif %}">buscando...</span></b></p>
+										<p class="disclaimer dashed" style="text-align:left"><span id="po_span"></span></p>
+									{% endif %}
+								</div>
+
+								{% if earlyPayDiscount %}
+									<div id="disc-early-payment" class="disc-container" date="{{ data.prices.discounts.early_payment.expiration|date("Ymd") }}">
+										<div class="disc-icon"><i class="bi bi-tags-fill"></i></div>
+										<div class="disc-text">
+											<p><b><span class="std-disc-percent">{{ data.prices.discounts.early_payment.percentage }}</span>% de descuento por pago anticipado</b>.<br>Hasta el <span class="early_payment_expiration_date">{{ data.prices.discounts.early_payment.expiration|format_date }}</span> pagará<br><span class="total-price active-discount">{{ data.prices.currency }} {{ data.prices.discounts.early_payment.total }}</span></p>
+											<p style="color:#ff0000;line-height:1.3em" class="timer" startPhrase="Quedan " endPhrase=" para aprovechar este descuento." date="{{ data.prices.discounts.early_payment.expiration }}"></p>
+											<p class="disclaimer">Luego: <b><span class="just-price">{{ data.prices.currency }} {{ data.prices.total }}</span></b>.<br>Este descuento se aplica automáticamente al iniciar inscripción hasta la fecha indicada.</p>
+										</div>
+									</div>
+								{% elseif data.prices.discounts.full_payment %}
+									<div class="disc-container">
+										<div class="disc-icon"><i class="bi bi-tags-fill"></i></div>
+										<div class="disc-text">
+											<p><b><span class="std-disc-percent">{{ data.prices.discounts.full_payment.percentage }}</span>% de descuento por pago completo</b>.<br>Por todos los módulos juntos pagará <span class="total-price active-discount">{{ data.prices.currency }} {{ data.prices.discounts.full_payment.total }}</span></p>
+											<p class="disclaimer">Pagando módulo por módulo: <b><span class="just-price" style="display:inline-block">{{ data.prices.currency }} {{ data.prices.total }}</span></b>.<br>Este descuento se aplica automáticamente cuando elige pagar todos los módulos juntos en el proceso de inscripción.</p>
+										</div>
+									</div>
+								{% endif %}
+
+								<a onclick="metaAddToCart();" class="enroll-button" style="margin-top:20px" href="https://{{ data.community_oec_domain }}.onlineeducation.center/es/checkoutv2/enrollment/{{ data.id }}">INICIAR INSCRIPCION</a>
+								{% if data.mkp_only == true %}
+									<p class="disclaimer" style="margin:5px 0 10px 0">Esta formación se desarrolla en el campus virtual de <b>{{ organizacion_name }}</b>, pero se procesan sus matriculaciones en <b>Online Education Center</b>.</p>
+								{% else %}
+									<p class="disclaimer" style="margin:5px 0 10px 0">Este formación se desarrolla en el campus virtual de <b>Online Education Center</b>.</p>
+								{% endif %}
+							{% elseif not openEnrollment %}
+								<div style="padding:10px 10px 0 10px">
+									<h4 style="margin-bottom:20px">¿Algunas alternativas?</h4>
+                                    <p><b><a class="whatsapp" target="_blank" href="https://api.whatsapp.com/send?phone=5493512584960&text=Info%20sobre%20{{data.canonical}}%20por%20favor." rel="noopener">Contáctanos por <i title="Contáctenos por Whatsapp" class="bi bi-whatsapp" style="font-size:22px;vertical-align:middle;margin: 0 0 0 4px;"></i> Whatsapp</a></b>, solicita hablar con un agente para poder hablar sobre alternativas.</p>
+								</div>
+							{% endif %}
+						</div>
+					</div>
+
+					<div class="info-content" style="margin-top:35px">
+						<div id="more-information">
+							<div style="margin-bottom:20px">
+								<a name="more-info-request"></a>
+								{% if openEnrollment %}
+									<div id="email-form-container">
+										<div style="width:90px">
+											{% set comercial_image = data.salesman.image|split('/') %}
+											{% set comercial_image_last = comercial_image|last %}
+											<img src="https://imgrsize.oe-img.center/usuario/{{ comercial_image_last }}?w=200&q=89&format=webp" class="imgsalesman" loading="lazy" alt="{{ data.salesman.full_name }}">
+										</div>
+										<div style="flex:1">
+											<h3>{{ contact_title }}</h3>
+											<p style="font-style:italic"><b><a class="whatsapp" target="_blank" href="https://api.whatsapp.com/send?phone=5493512584960&text=Info%20sobre%20{{data.canonical}}%20por%20favor." rel="noopener">Contáctame por <i title="Contáctenos por Whatsapp" class="bi bi-whatsapp" style="font-size:22px;vertical-align:middle;margin: 0 0 0 4px;"></i> Whatsapp</a></b>, o envía el formulario, espera mi Email y respóndeme con tu consulta.</p>
+											<p><b>{{ data.salesman.full_name }}</b><br><span style="font-size:11px">Customer Success Manager en Online Education Center</span></p>
+										</div>
+									</div>
+								{% else %}
+									<p style="margin-bottom:20px;font-weight:700">Deja tus datos para enterarte cuando <span class="cm_main_color">{{ data.title }}</span> vuelve a abrir inscripciones:</p>
+								{% endif %}
+								<div class="oec-more-info-form" data-uid="{{ data.id }}" data-locale="es" data-country="XX">
+									<form class="oecMoreInfoForm">
+										<input type="text" name="name" placeholder="Nombre" required>
+										<input type="text" name="lastname" placeholder="Apellido" required>
+										{% if force_contact %}<input type="tel" name="phone" placeholder="Teléfono" required>{% endif %}
+										<input type="email" name="email" placeholder="Email" required>
+										<button type="submit"{% if force_contact %} class="btn-active"{% endif %}>{% if force_contact %}SOLICITAR INFORMACION{% else %}Contactarme por Email{% endif %}</button>
+									</form>
+									<div class="oec-form-response"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.acordeon-header').forEach(header => {
+            header.addEventListener('click', () => { header.parentElement.classList.toggle('is-active'); });
+        });
+        window.OEC_TRAINING_DATA = {
+            id: '{{ data.id }}',
+            title: "{{ data.title|e('js') }}",
+            name: "{{ data.name|e('js') }}",
+            canonical: "{{ data.canonical|e('js') }}",
+            start: '{{ data.start }}',
+            type: '{{ data.type }}',
+            enrollment_end: '{{ data.enrollment_end }}',
+            community_oec_domain: '{{ data.community_oec_domain }}',
+            community: '{{ data.community }}',
+            edition_uid: '{{ data.edition_uid }}',
+            prices: { total: {{ data.prices.total }}, discounts: { early_payment: { expiration: "{{ data.prices.discounts.early_payment.expiration }}" } } }
+        };
+        window.OEC_CONFIG = {
+            openEnrollment: {% if openEnrollment %}true{% else %}false{% endif %},
+            force_contact: {% if force_contact %}true{% else %}false{% endif %}
+        };
+    </script>
+    <script src="https://g-se.com/wp-includes/js/oec-trainings-v17.js" defer></script>
+    <script src="https://cdn.addevent.com/libs/atc/1.6.1/atc.min.js" defer></script>
+[/oec-content]

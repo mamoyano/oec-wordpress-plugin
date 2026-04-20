@@ -1,0 +1,79 @@
+[oec-list trainings-per-page="20"]
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"></noscript>
+<style>
+    .oec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 35px; padding: 20px 0; }
+    .oec-card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: all 0.3s ease; display: flex; flex-direction: column; border: 1px solid #eee; height: 520px; position: relative; text-decoration: none !important; }
+    .oec-card:hover { transform: translateY(-8px); box-shadow: 0 12px 24px rgba(0,0,0,0.15); border-color: {{ extra.brand_color }}; }
+    .oec-image-wrapper { position: relative; height: 180px; flex-shrink: 0; overflow: hidden; }
+    .oec-image { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+    .oec-card:hover .oec-image { transform: scale(1.08); }
+    .oec-badges-container { position: absolute; top: 20px; left: 20px; right: 10px; display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; z-index: 2; }
+    .oec-badge-item { background: rgba(255,255,255,0.8); color: #1c1d1f; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 700; text-transform: uppercase; border-left: 3px solid {{ extra.brand_color }}; white-space: nowrap; }
+    .oec-body { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; min-height: 0; }
+    .oec-title { font-size: 18px; color: #1c1d1f; font-weight: 700; margin-bottom: 8px; line-height: 1.3;}
+    .oec-description-container { position: relative; flex-grow: 1; overflow: hidden; }
+    .oec-description { font-size: 14px; color: #6a6f73; line-height: 1.6; }
+    .oec-description-container::after { content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 50px; background: linear-gradient(transparent, white); }
+    .oec-grid-reviews { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 5px; }
+    .oec-stars-container { position: relative; width: 110px; height: 20px; background-image: url(https://imgrsize.oe-img.center/statics/img/stars-sprite.webp?w=220&q=100); background-size: 110px 40px; background-position: 0 0; background-repeat: no-repeat; }
+    .oec-stars { position: absolute; top: 0; left: 0; height: 20px; background-image: url(https://imgrsize.oe-img.center/statics/img/stars-sprite.webp?w=220&q=100); background-size: 110px 40px; background-position: 0 -20px; background-repeat: no-repeat; }
+    .oec-stars-average { color: #eba134; font-weight: 700; }
+    .oec-cant-reviewers { color: #808080; font-size: 12px; }
+    .oec-footer { padding: 15px 20px; border-top: 1px solid #f0f0f0; background: #fafafa; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+    .oec-meta-info { display: flex; flex-direction: column; gap: 4px; }
+    .oec-start-date { font-size: 13px; font-weight: 600; color: #1d2327; display: flex; align-items: center; gap: 5px; }
+    .oec-start-date i { color: {{ extra.brand_color }}; font-size: 14px; }
+    .oec-tags-container { font-size: 10px; color: #646970; text-transform: uppercase; letter-spacing: 0.5px; }
+    .oec-btn-fake { background: {{ extra.brand_color }}; color: #fff; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 13px; transition: 0.2s; }
+</style>
+<div class="oec-grid">
+    {% for row in data %}
+        <a href="{{ extra.detail_url ~ row.slug }}" class="oec-card">
+            <div class="oec-image-wrapper">
+                <div class="oec-badges-container">
+                    {% if row.great_lecturers %}<div class="oec-badge-item">Docentes Destacados</div>{% endif %}
+                    {% if row.great_topic %}<div class="oec-badge-item">Temática Destacada</div>{% endif %}
+                    {% if row.great_organizer %}<div class="oec-badge-item">Organizador Líder</div>{% endif %}
+                    {% if row.great_certification %}<div class="oec-badge-item">Certificación Oficial</div>{% endif %}
+                    {% if row.great_price %}<div class="oec-badge-item">Mejor Precio</div>{% endif %}
+                </div>
+                <img src="{{ row.image }}" class="oec-image" alt="{{ row.title }}">
+            </div>
+            <div class="oec-body">
+                <div class="oec-title">{{ row.title }}</div>
+                <div class="oec-description-container">
+                    <div class="oec-description">{{ row.short_description|striptags }}</div>
+                </div>
+                <div class="oec-grid-reviews">
+                    {% if row.reviews_summary.count > 0 %}
+                        {% set review_percent = (row.reviews_summary.average * 100 / 5) %}
+                        <div class="oec-stars-container"><div class="oec-stars" style="width: {{ review_percent }}%;"></div></div>
+                        <span class="oec-stars-average">{{ row.reviews_summary.average|number_format(1, ",", ".") }}</span>
+                        <span class="oec-cant-reviewers">({{ row.reviews_summary.count }} opiniones)</span>
+                    {% else %}
+                        <div style="color:#064f1c;font-size:10px;font-weight:700;text-transform:uppercase;">Nueva Formación</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="oec-footer">
+                <div class="oec-meta-info">
+                    <div class="oec-start-date">
+                        <i class="bi bi-calendar3"></i>
+                        {{ row.start|format_date }}
+                    </div>
+                    <div class="oec-tags-container">{{ row.type|capitalize }} • {{ row.modality|capitalize }} • {{ row.synchronicity|capitalize }}</div>
+                </div>
+                <div class="oec-btn-fake">Ver {{ row.type }}</div>
+            </div>
+        </a>
+    {% else %}
+        <p>No hay formaciones disponibles en este momento.</p>
+    {% endfor %}
+</div>
+{% if show_pager %}
+    <div style="text-align:center;margin-top:30px;">
+        <button class="oec-btn-fake" style="background:#1c1d1f;cursor:pointer;padding:12px 30px;">Cargar más resultados</button>
+    </div>
+{% endif %}
+[/oec-list]
