@@ -144,7 +144,7 @@
     #menu-sticky { display: none; position: fixed; top: 0; left: 0; width: 100%; background-color: rgba(255,255,255,.95); padding: 15px 20px; box-shadow: 0 0 11px rgba(33,33,33,.2); z-index: 99999; box-sizing: border-box;}
     .enroll-button { display: block; width: 100%; background-color: #3b82f6; color: #fff; border: none; border-radius: .5rem; text-align: center; padding: 1rem 1.5rem; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: background-color .3s ease,transform .1s ease; appearance: none; text-decoration: none !important; }
     .enroll-button:hover { background-color: #1e3ea8; }
-    .imgsalesman { filter: grayscale(100%); width: 70px; height: 70px; border-radius: 70px; box-shadow: 0 0 11px rgba(33,33,33,.2); }
+    .imgsalesman { filter: grayscale(100%); -webkit-filter: grayscale(100%); width: 70px; height: 70px; border-radius: 70px; box-shadow: 0 0 11px rgba(33,33,33,.2); }
     #email-form-container { display: flex; margin: 20px 0; }
     .oec-more-info-form { padding: 20px; border-radius: 8px; background: #ebebeb; max-width: 100%; }
     .oec-more-info-form form { display: flex; flex-direction: column; gap: 12px; }
@@ -180,23 +180,12 @@
     .buyhere-cta { border: 1px solid red; border-radius: 10px; padding: 20px; font-size: 17px; margin-top: 40px; background-color: #fff; }
 
     /* Fechas */
-    #maindate{text-align:center;color:#fff;font-weight:700}
 
     /* Formas de pago */
     .po_img{max-height:25px;max-width:50px;margin-right:10px}
     .po_images{display:block;width:100%;margin-top:5px}
 
-    /* Descuentos */
-    .disc-container{border:1px dashed #28a745;padding:15px;border-radius:4px;display:flex}
-    .disc-icon{width:50px;vertical-align:top}
-    .disc-icon .bi{font-size:40px;color:#28a745}
-    .disc-text{flex:1}
-    .disc-text p{padding-bottom:5px}
-    .preciotachado{text-decoration:line-through}
-    .active-discount{color:#28a745;display:block;font-size:25px;font-weight:700}
-
     /* Menú Sticky */
-    #menu-sticky{display:none;position:fixed;top:0;left:0;width:100%;background-color:rgba(255,255,255,.95);padding:15px 20px;box-shadow:0 0 11px rgba(33,33,33,.2);z-index:99999}
     #menu-sticky .title{font-weight:700;font-size:16px;padding:0 0 5px;color:#000;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
     #menu-sticky .sticky-container{display:flex;width:100%;padding:0!important;align-items:center}
     #menu-sticky .primera {flex: 1; vertical-align: middle}
@@ -217,26 +206,7 @@
     .icon_sticky{background-color:rgba(255,255,255,.95);padding:5px 12px;border-radius:0 0 15px 15px;font-size:18px!important;color:#808080;line-height:1}
     #sticky-open{display:none;position:fixed;left:85%;top:0;cursor:pointer;z-index:99999;margin-top:5px}
     .icon_menu{padding-top:25px!important;box-shadow:0 0 11px rgba(33,33,33,.2)}
-
-    /* INICIAR INSCRIPCIÓN */
-    .enroll-button{display:block;width:auto;background-color:#3b82f6;color:#fff;border:none;border-radius:.5rem;text-align:center;padding:1rem 1.5rem;font-size:1.1rem;font-weight:600;cursor:pointer;transition:background-color .3s ease,transform .1s ease;appearance:none}
-    .enroll-button:hover{background-color:#1e3ea8}
     .enroll-button:active{transform:scale(.99)}
-
-    /* Más información */
-    .imgsalesman{filter:grayscale(100%);-webkit-filter:grayscale(100%);filter:gray;-webkit-filter:grayscale(1);width:70px;height:70px;border-radius:70px;box-shadow:0 0 11px rgba(33,33,33,.2)}
-    #email-form-container{display:flex;margin:20px 0}
-
-    /* Contact Form */
-    .oec-more-info-form{padding:20px;border-radius:8px;background:#ebebeb;max-width:100%}
-    .oec-more-info-form form{display:flex;flex-direction:column;gap:12px}
-    .oec-more-info-form input{padding:10px 12px;font-size:15px;border-radius:6px;border:1px solid #ccc}
-    .oec-more-info-form button{width:100%;background-color:#808080;color:#fff;border:none;border-radius:.5rem;padding:1rem;font-size:1.1rem;cursor:pointer;transition:.3s}
-    .oec-more-info-form button.btn-active{background-color:#3b82f6}
-    .oec-more-info-form button:hover{background-color:#1e3ea8}
-    .oec-form-response{margin-top:15px;font-weight:700}
-    .oec-success{color:#1b7e3c}
-    .oec-error{color:#b3261e}
 
 
     @media(max-width:600px) {

@@ -13,6 +13,15 @@ class OEC_Admin {
         add_submenu_page('oec-main', 'Mesa de Ayuda', 'Mesa de Ayuda', 'manage_options', 'oec-help', [$this, 'page_help']);
         add_submenu_page('oec-main', 'Documentación', 'Documentación', 'manage_options', 'oec-docs', [$this, 'page_docs']);
         add_submenu_page('oec-main', 'Contáctenos', 'Contáctenos', 'manage_options', 'oec-contact', [$this, 'page_contact']);
+
+        // Suprimir notices de otros plugins en todas las páginas de OEC
+        add_action('admin_head', function() {
+            $page = $_GET['page'] ?? '';
+            if (str_starts_with($page, 'oec-')) {
+                remove_all_actions('admin_notices');
+                remove_all_actions('all_admin_notices');
+            }
+        });
     }
 
 
