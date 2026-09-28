@@ -1,0 +1,40 @@
+/* Tema hostil de prueba — NO se encola nunca. Lo inyecta tests/hostile-audit.js en el navegador.
+   Imita las reglas genéricas que meten Divi, Avada, Elementor/Hello, Astra, GeneratePress, etc.
+   sobre etiquetas sueltas. ":is(body, #x)" da especificidad de ID (como "#page-container h2" de
+   Divi o "#wrapper p" de Avada) sin necesitar que exista ese ID. Casi todo sin !important, como
+   en los temas reales; el plugin tiene que ganarle a TODO esto. */
+html { font-size: 62.5%; }
+*, *::before, *::after { box-sizing: content-box; }
+:is(body, #x) { font-family: Georgia, "Times New Roman", serif; font-size: 17px; line-height: 1.9; color: #333; letter-spacing: .02em; word-spacing: 2px; }
+:is(body, #x) a { color: #e02b20; text-decoration: underline; font-weight: 600; border-bottom: 1px dotted currentColor; text-transform: none; }
+:is(body, #x) a:visited { color: #800080; }
+:is(body, #x) h1, :is(body, #x) h2, :is(body, #x) h3, :is(body, #x) h4, :is(body, #x) h5, :is(body, #x) h6 {
+  font-family: Impact, "Arial Black", sans-serif; font-size: 40px; line-height: 2; margin: 30px 0; padding: 10px 0;
+  text-transform: uppercase; letter-spacing: 3px; color: #c00; font-weight: 300; text-align: center; border-bottom: 2px solid #c00;
+  font-style: italic; word-spacing: 6px; }
+:is(body, #x) h1 { font-size: 60px; }
+:is(body, #x) p { margin: 0 0 30px; padding: 5px 0; font-size: 19px; line-height: 2; text-align: justify; text-indent: 1em; color: #444; }
+:is(body, #x) ul, :is(body, #x) ol { margin: 0 0 30px 40px; padding: 10px 20px; list-style: square outside; }
+:is(body, #x) li { margin: 8px 0; padding: 4px 0 4px 10px; line-height: 2; list-style: square; }
+:is(body, #x) ul li::before { content: "\2192"; color: red; margin-right: 6px; }
+:is(body, #x) button, :is(body, #x) input[type=submit], :is(body, #x) input[type=button], :is(body, #x) .button, :is(body, #x) [role=button] {
+  background: #f0f; color: #fff; padding: 20px 40px; border: 3px solid #000; border-radius: 0; text-transform: uppercase;
+  letter-spacing: 4px; font-size: 22px; line-height: 3; min-height: 60px; box-shadow: 5px 5px 0 #000;
+  font-family: Impact, sans-serif; font-weight: 400; text-align: left; margin: 10px; }
+:is(body, #x) input:not([type=submit]):not([type=button]):not([type=checkbox]):not([type=radio]), :is(body, #x) select, :is(body, #x) textarea {
+  height: 60px; padding: 15px; border: 3px solid red; border-radius: 0; font-size: 20px; background: #ffe; color: #900;
+  box-shadow: inset 0 0 5px red; margin: 0 0 20px; line-height: 3; font-family: Georgia, serif; min-width: 200px; }
+:is(body, #x) label { display: block; font-size: 20px; margin-bottom: 10px; text-transform: uppercase; font-weight: 900; }
+:is(body, #x) img { border: 5px solid #000; border-radius: 0; padding: 5px; box-shadow: 0 0 10px #000; margin: 10px 0; vertical-align: bottom; background: #ff0; }
+:is(body, #x) svg { vertical-align: baseline; }
+:is(body, #x) section, :is(body, #x) article, :is(body, #x) aside, :is(body, #x) nav, :is(body, #x) header, :is(body, #x) footer {
+  padding: 80px 0; margin: 40px 0; border: 1px dashed #999; background-color: #fafad2; }
+:is(body, #x) strong, :is(body, #x) b { font-weight: 900; color: #900; }
+:is(body, #x) em, :is(body, #x) i { font-style: italic; color: #060; font-family: "Comic Sans MS", cursive; }
+:is(body, #x) small { font-size: 8px; }
+:is(body, #x) span { letter-spacing: 1px; }
+:is(body, #x) table, :is(body, #x) th, :is(body, #x) td { border: 2px solid #000; padding: 20px; }
+:is(body, #x) blockquote { border-left: 10px solid red; padding: 30px; font-size: 30px; font-style: italic; background: #eee; margin: 40px; quotes: none; }
+:is(body, #x) hr { border: 0; height: 10px; background: red; margin: 50px 0; }
+:is(body, #x) iframe { border: 5px solid #000; }
+:is(body, #x) div { line-height: 2.2; }

@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.2
+Version: 1.3
 Author: Online Education Center
 */
 
@@ -49,6 +49,158 @@ define('OEC_CACHE_ENABLED', OEC_ENV === 'production');
 
 
 // ─────────────────────────────────────────────────────────────────
+// COMUNIDADES PROPIAS — sistema de créditos por descuentos
+// Este plugin se instala tanto en nuestras propias comunidades como en
+// sitios de socios que no administramos. El canje de créditos SOLO
+// existe en las primeras: si el dominio actual no está en esta lista,
+// todo el sistema queda inactivo (endpoints, UI y la API key de abajo
+// nunca se usan), sin necesidad de configurar nada en wp-admin.
+//
+// Agregar acá cada comunidad nueva a medida que se activa.
+// ─────────────────────────────────────────────────────────────────
+if (!defined('OEC_CREDITS_ALLOWED_DOMAINS')) {
+    define('OEC_CREDITS_ALLOWED_DOMAINS', [
+        'g-se.com',
+        'traumato.site',
+        'fisio.one',
+        'swimming.science',
+        'is.fitness',
+        'scalify.business',
+        'oec-test.local', // sitio de desarrollo local
+    ]);
+}
+
+// Clave real de la API de créditos. Solo tiene efecto en los dominios de
+// arriba — en cualquier otro sitio el código nunca llega a leerla.
+// Igual queda dentro del archivo distribuido a todos los sitios: quien
+// tenga acceso al hosting de un sitio de socio podría leer este archivo
+// y ver el valor, aunque ahí nunca se use. Es una decisión consciente para
+// que nadie tenga que cargar nada a mano en wp-admin.
+if (!defined('OEC_CREDITS_API_KEY_DEFAULT')) {
+    define('OEC_CREDITS_API_KEY_DEFAULT', 'c869e9c4597328ad388e6cead7fc87f43770d7f4');
+}
+
+// Slug de la página de confirmación del canje (paso 2, [oec-confirm-redeem]).
+// Se crea sola en las comunidades habilitadas — ver OEC_Admin::oec_create_pages().
+if (!defined('OEC_REDEEM_CONFIRM_SLUG')) {
+    define('OEC_REDEEM_CONFIRM_SLUG', 'confirmacion-de-canje-de-creditos');
+}
+
+if (!function_exists('oec_credits_system_enabled')) {
+    function oec_credits_system_enabled() {
+        $host = wp_parse_url(home_url(), PHP_URL_HOST);
+        return in_array($host, OEC_CREDITS_ALLOWED_DOMAINS, true);
+    }
+}
+
+
+// ─────────────────────────────────────────────────────────────────
+// CHAT DIRECTO (BOTMAKER) — proyecto de OEC, hardcodeado
+// El chat directo solo se ofrece cuando el contacto lo atiende el
+// equipo comercial de OEC (toggle "¿Equipo de Ventas de OEC?" en
+// wp-admin → OEC → Configuración, oec_equipo_ventas) — en ese caso es
+// SIEMPRE este mismo proyecto de Botmaker, nunca uno distinto por
+// sitio de socio, así que no tiene sentido pedirle a cada sitio que lo
+// configure (a diferencia de oec_ventas_whatsapp/oec_ventas_email, que
+// sí son propios de cada sitio y solo aplican cuando NO es el equipo
+// de OEC el que atiende). Antes vivía en wp-admin como
+// "Botmaker — ID de proyecto"; a pedido explícito de Mario se sacó de
+// ahí y se hardcodeó acá.
+// ─────────────────────────────────────────────────────────────────
+if (!defined('OEC_BOTMAKER_PROJECT_ID')) {
+    define('OEC_BOTMAKER_PROJECT_ID', '6EJESDV1VQ');
+}
+
+
+// ─────────────────────────────────────────────────────────────────
+// DEBUG DE PERFORMANCE — mide cuánto tarda cada llamada a la API de
+// OEC y el render de Twig, y lo muestra en consola + un panel chico
+// en pantalla. Se activa agregando ?oec_debug=1 a la URL (en cualquier
+// sitio, local o no) — ya no se prende solo en local, para no dejarlo
+// de fondo mientras se prueban otras cosas. Costo cero cuando está
+// desactivado: oec_debug_time() directamente ejecuta el callback sin
+// medir nada.
+// ─────────────────────────────────────────────────────────────────
+$GLOBALS['oec_debug_timings'] = [];
+
+if (!function_exists('oec_debug_enabled')) {
+    function oec_debug_enabled() {
+        return isset($_GET['oec_debug']);
+    }
+}
+
+if (!function_exists('oec_debug_record')) {
+    function oec_debug_record($label, $seconds, $detail = '') {
+        if (!oec_debug_enabled()) return;
+        $GLOBALS['oec_debug_timings'][] = [
+            'label'  => $label,
+            'ms'     => round($seconds * 1000, 1),
+            'detail' => $detail,
+        ];
+    }
+}
+
+if (!function_exists('oec_debug_time')) {
+    function oec_debug_time($label, callable $fn, $detail_fn = null) {
+        if (!oec_debug_enabled()) return $fn();
+        $start  = microtime(true);
+        $result = $fn();
+        $detail = $detail_fn ? $detail_fn($result) : '';
+        oec_debug_record($label, microtime(true) - $start, $detail);
+        return $result;
+    }
+}
+
+add_action('wp_footer', function () {
+    if (!oec_debug_enabled()) return;
+
+    $rows = $GLOBALS['oec_debug_timings'];
+    $total_php = array_sum(array_column($rows, 'ms'));
+
+    ?>
+    <style>@media (max-width: 960px) { #oec-debug-panel { display: none !important; } }</style>
+    <div id="oec-debug-panel" style="position:fixed;left:12px;bottom:12px;z-index:999999;max-width:380px;background:rgba(17,24,39,.94);color:#e5e7eb;font:11px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:10px 12px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.3);">
+        <div style="font-weight:700;color:#fff;margin-bottom:4px;">⏱ OEC Debug — PHP: <?php echo esc_html($total_php); ?>ms</div>
+        <?php foreach ($rows as $r): ?>
+            <div style="display:flex;justify-content:space-between;gap:10px;">
+                <span><?php echo esc_html($r['label']); ?><?php if ($r['detail']): ?> <span style="color:#9ca3af;">(<?php echo esc_html($r['detail']); ?>)</span><?php endif; ?></span>
+                <span style="color:#fbbf24;flex-shrink:0;"><?php echo esc_html($r['ms']); ?>ms</span>
+            </div>
+        <?php endforeach; ?>
+        <div style="color:#6b7280;margin-top:4px;">Detalle de carga real del navegador: ver consola.</div>
+    </div>
+    <script>
+    (function(){
+        var phpTimings = <?php echo wp_json_encode($rows); ?>;
+        console.group('%c⏱ OEC Debug Timing', 'font-weight:bold;color:#2271b1;');
+        console.log('PHP (server-side) — cada llamada a la API de OEC y el render de Twig:');
+        console.table(phpTimings.map(function(r){ return {label:r.label, ms:r.ms, detail:r.detail}; }));
+
+        window.addEventListener('load', function(){
+            setTimeout(function(){
+                var nav = performance.getEntriesByType('navigation')[0];
+                if (!nav) { console.groupEnd(); return; }
+                var browserTimings = [
+                    {etapa:'DNS + conexión',            ms: Math.round(nav.connectEnd - nav.startTime)},
+                    {etapa:'TTFB (server total: WP + plugin)', ms: Math.round(nav.responseStart - nav.requestStart)},
+                    {etapa:'Descarga del HTML',          ms: Math.round(nav.responseEnd - nav.responseStart)},
+                    {etapa:'DOM interactivo',            ms: Math.round(nav.domInteractive - nav.startTime)},
+                    {etapa:'DOMContentLoaded',            ms: Math.round(nav.domContentLoadedEventEnd - nav.startTime)},
+                    {etapa:'Load completo (con imágenes)', ms: Math.round(nav.loadEventEnd - nav.startTime)},
+                ];
+                console.log('Navegador (lo que realmente esperó el usuario):');
+                console.table(browserTimings);
+                console.log('%cTip: "TTFB" es el bloque que corresponde al PHP de arriba (WP + este plugin) — si el total PHP es mucho menor al TTFB, el resto lo está gastando otro plugin/el theme.', 'color:#9ca3af;font-style:italic;');
+                console.groupEnd();
+            }, 0);
+        });
+    })();
+    </script>
+    <?php
+}, 999);
+
+
+// ─────────────────────────────────────────────────────────────────
 // AUTOLOADER MANUAL PARA TWIG (Sin Composer)
 // ─────────────────────────────────────────────────────────────────
 spl_autoload_register(function ($class) {
@@ -73,8 +225,8 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-oec-ajax.php';
 // ─────────────────────────────────────────────────────────────────
 add_action('init', function () {
     add_rewrite_rule(
-        '^oec-formacion/.*(t-[a-zA-Z0-9]{14})/?$',
-        'index.php?pagename=oec-formacion',
+        '^formacion/.*(t-[a-zA-Z0-9]{14})/?$',
+        'index.php?pagename=formacion',
         'top'
     );
 });
@@ -85,34 +237,283 @@ add_action('init', function () {
 // ─────────────────────────────────────────────────────────────────
 add_action('wp_head', 'oec_seo_and_stars_metadata', 5);
 
-function oec_seo_and_stars_metadata() {
-    if (!is_page('oec-formacion')) return;
+/**
+ * URL de la miniatura de portada que usamos para calcular el color
+ * dominante — vía imgrsize.oe-img.center (sistema propio, cacheado) en vez
+ * de pegarle directo al archivo original. w=1200&q=89 (no un tamaño chico
+ * ad-hoc como antes) porque ese es un tamaño que ya se pide seguido en la
+ * plataforma — labura con caché caliente del lado de ellos, más rápido que
+ * pedir un tamaño exclusivo nuestro que fuerza un resize al vuelo.
+ */
+if (!function_exists('oec_build_color_thumb_url')) {
+    function oec_build_color_thumb_url($image) {
+        $parts    = explode('/', $image);
+        $filename = end($parts);
+        return 'https://imgrsize.oe-img.center/campus/capacitacion/imagen/' . $filename . '?w=1200&q=89';
+    }
+}
 
-    preg_match('/t-[a-zA-Z0-9]{14}/', $_SERVER['REQUEST_URI'], $matches);
-    $id = !empty($matches[0]) ? $matches[0] : '';
+/**
+ * URL de portada para USO VISUAL (og:image/twitter:image, ver
+ * oec_seo_and_stars_metadata() más abajo) — mismo criterio que
+ * oec_build_color_thumb_url() (extraer el filename de la URL que manda la
+ * API, que apunta directo a static1.onlineeducation.center, y pedirla vía
+ * imgrsize.oe-img.center en su lugar) pero con &format=webp, igual que ya
+ * hace el resto de la ficha (JSON-LD Course, hero, etc. en
+ * page-formacion-testing.html) — no se reusa oec_build_color_thumb_url()
+ * tal cual porque esa SÍ necesita el formato "de origen" para el análisis
+ * de color de OEC_Api::compute_dominant_color_from_bytes().
+ */
+if (!function_exists('oec_build_display_image_url')) {
+    function oec_build_display_image_url($image, $width = 1200, $quality = 89) {
+        $parts    = explode('/', $image);
+        $filename = end($parts);
+        return 'https://imgrsize.oe-img.center/campus/capacitacion/imagen/' . $filename . '?w=' . $width . '&q=' . $quality . '&format=webp';
+    }
+}
 
-    if ($id) {
-        $data = OEC_Api::call("trainings/" . $id);
+/**
+ * Trae TODO lo que necesita la página de una formación (datos, reviews,
+ * resumen de opiniones, color dominante) en un solo lugar, memoizado por
+ * request. wp_head (metadata SEO) es quien primero la llama — dispara el
+ * batch en paralelo bien temprano — y el shortcode [oec-content], que
+ * corre después, reutiliza este mismo resultado sin pedir nada de nuevo.
+ *
+ * El color dominante solo entra en el MISMO batch paralelo si la formación
+ * ya estaba en caché (o sea, ya sabíamos el nombre de archivo de la imagen
+ * antes de pedir nada) — si "training" también hay que pedirlo de cero, el
+ * color se resuelve aparte, justo después, porque recién ahí conocemos la
+ * URL de la imagen.
+ */
+if (!function_exists('oec_get_page_bundle')) {
+    function oec_get_page_bundle() {
+        static $bundle  = null;
+        static $checked = false;
+        if ($checked) return $bundle;
+        $checked = true;
+
+        preg_match('/t-[a-zA-Z0-9]{14}/', $_SERVER['REQUEST_URI'], $matches);
+        $id = !empty($matches[0]) ? $matches[0] : '';
+
+        $bundle = ['id' => $id, 'data' => null, 'reviews' => null, 'summary' => null, 'dominant_color' => null, 'dominant_color_css' => 'rgb(248,250,252)'];
+        if (!$id) return $bundle;
+
+        $use_cache = defined('OEC_CACHE_ENABLED') ? OEC_CACHE_ENABLED : true;
+        $token     = get_option('oec_token');
+        $now       = time();
+
+        $key_training = 'oec_cache_' . md5("trainings/{$id}");
+        $key_reviews  = 'oec_cache_' . md5("https://api.g-se.com/v2/content/trainings/{$id}/reviews?page=1");
+        $key_summary  = 'oec_cache_' . md5("https://oas-api.onlineeducation.center/api-oas/v1/trainings/{$id}/reviews/summary");
+        $key_parents  = 'oec_cache_' . md5("trainings/{$id}/parents");
+
+        $cached_training = $use_cache ? get_option($key_training) : false;
+        $cached_reviews  = $use_cache ? get_option($key_reviews)  : false;
+        $cached_summary  = $use_cache ? get_option($key_summary)  : false;
+        $cached_parents  = $use_cache ? get_option($key_parents)  : false;
+
+        $data            = ($cached_training && $cached_training['expires'] > $now) ? $cached_training['data'] : null;
+        $reviews_data    = ($cached_reviews  && $cached_reviews['expires']  > $now) ? $cached_reviews['data']  : null;
+        $reviews_summary = ($cached_summary  && $cached_summary['expires']  > $now) ? $cached_summary['data']  : null;
+        // "parents" puede legítimamente ser null (formación sin padres) — no
+        // alcanza con "if ($cached_parents)", necesitamos saber si ya lo
+        // resolvimos alguna vez o si todavía hay que pedirlo.
+        $parents_resolved = ($cached_parents && $cached_parents['expires'] > $now);
+        $parents           = $parents_resolved ? $cached_parents['data'] : null;
+
+        // Si ya tenemos "data" (de caché), ya podemos calcular la URL de la
+        // imagen y sumar el pedido del color dominante al mismo batch.
+        $dominant_color  = null;
+        $color_thumb_url = null;
+        if ($data && !empty($data['image'])) {
+            $color_thumb_url = oec_build_color_thumb_url($data['image']);
+            $dominant_color  = OEC_Api::get_cached_dominant_color($color_thumb_url);
+        }
+
+        $requests = [];
+        if (!$data)                               $requests['training'] = ['url' => 'https://oas-api.onlineeducation.center/api-oas/v1/trainings/' . $id, 'headers' => ['X-API-TOKEN' => $token, 'Accept' => 'application/json']];
+        if (!$reviews_data)                       $requests['reviews']  = ['url' => 'https://api.g-se.com/v2/content/trainings/' . $id . '/reviews?page=1', 'headers' => ['Accept' => 'application/json']];
+        if (!$reviews_summary)                    $requests['summary']  = ['url' => 'https://oas-api.onlineeducation.center/api-oas/v1/trainings/' . $id . '/reviews/summary', 'headers' => ['Accept' => 'application/json']];
+        if ($color_thumb_url && !$dominant_color) $requests['color']    = ['url' => $color_thumb_url, 'headers' => ['Accept' => 'image/*']];
+        // Pedido APARTE para "parents" — probamos meterlo como ?include=parents
+        // en el pedido principal, pero la API devuelve una respuesta recortada
+        // con eso (sin prices, modules, teachers, organization...). Va solo,
+        // pero en el mismo batch en paralelo, así no le agrega tiempo extra.
+        if (!$parents_resolved)                   $requests['parents']  = ['url' => 'https://oas-api.onlineeducation.center/api-oas/v1/trainings/' . $id . '?include=parents', 'headers' => ['X-API-TOKEN' => $token, 'Accept' => 'application/json']];
+
+        if (!empty($requests)) {
+            $responses = oec_debug_time(
+                'Batch en paralelo (' . implode('+', array_keys($requests)) . ')',
+                function () use ($requests) {
+                    return \WpOrg\Requests\Requests::request_multiple(
+                        array_map(fn($r) => ['url' => $r['url'], 'headers' => $r['headers']], $requests),
+                        ['timeout' => 20]
+                    );
+                }
+            );
+
+            foreach ($responses as $key => $response) {
+                if (!($response instanceof \WpOrg\Requests\Response) || !$response->success) continue;
+                switch ($key) {
+                    case 'training':
+                        $decoded = json_decode($response->body, true);
+                        $data    = isset($decoded['data']) ? $decoded['data'] : $decoded;
+                        if (!empty($data)) update_option($key_training, ['data' => $data, 'expires' => $now + 86400], false);
+                        break;
+                    case 'reviews':
+                        $reviews_data = json_decode($response->body, true) ?? [];
+                        if (!empty($reviews_data)) update_option($key_reviews, ['data' => $reviews_data, 'expires' => $now + 21600], false);
+                        break;
+                    case 'summary':
+                        $reviews_summary = json_decode($response->body, true) ?? [];
+                        if (!empty($reviews_summary)) update_option($key_summary, ['data' => $reviews_summary, 'expires' => $now + 21600], false);
+                        break;
+                    case 'color':
+                        $dominant_color = OEC_Api::compute_dominant_color_from_bytes($color_thumb_url, $response->body);
+                        break;
+                    case 'parents':
+                        $decoded = json_decode($response->body, true);
+                        $parents_payload = isset($decoded['data']) ? $decoded['data'] : $decoded;
+                        $parents = $parents_payload['parents'] ?? null;
+                        update_option($key_parents, ['data' => $parents, 'expires' => $now + 86400], false);
+                        break;
+                }
+            }
+        }
+
+        // "training" no estaba en caché al armar el batch de arriba, así que el
+        // color dominante no se pudo pedir en paralelo con nada — se resuelve
+        // acá solo, ahora que ya sabemos la URL de la imagen. Caso raro: pasa
+        // solo si training y el color están fríos los dos a la vez.
+        if (!$dominant_color && !$color_thumb_url && $data && !empty($data['image'])) {
+            $color_thumb_url = oec_build_color_thumb_url($data['image']);
+            $dominant_color  = oec_debug_time('Color dominante (no se pudo paralelizar, training estaba frío)', function () use ($color_thumb_url) {
+                return OEC_Api::get_dominant_color($color_thumb_url);
+            });
+        }
+
+        // "parents" viaja adentro de $data para que el Twig siga usando
+        // data.parents tal cual, sin enterarse de que viene de un pedido aparte.
+        if (is_array($data)) {
+            $data['parents'] = $parents;
+        }
+
+        $bundle = [
+            'id'                 => $id,
+            'data'               => $data,
+            'reviews'            => $reviews_data,
+            'summary'            => $reviews_summary,
+            'dominant_color'     => $dominant_color,
+            'dominant_color_css' => $dominant_color ? "rgb({$dominant_color['r']},{$dominant_color['g']},{$dominant_color['b']})" : 'rgb(248,250,252)',
+        ];
+        return $bundle;
+    }
+}
+
+if (!function_exists('oec_get_current_training_data')) {
+    function oec_get_current_training_data() {
+        return oec_get_page_bundle()['data'];
+    }
+}
+
+if (!function_exists('oec_seo_and_stars_metadata')) {
+    function oec_seo_and_stars_metadata() {
+        if (!is_page('formacion')) return;
+        $data = oec_get_current_training_data();
         if (!$data) return;
 
-        $img       = !empty($data['image']) ? $data['image'] : '';
+        // Nunca la URL cruda que manda la API (static1.onlineeducation.center) —
+        // pasa por imgrsize.oe-img.center como el resto de la ficha (ver
+        // oec_build_display_image_url()), así og:image/twitter:image se sirven
+        // optimizadas (webp, tamaño acotado) igual que cualquier otra imagen
+        // de esta página, en vez del archivo original sin procesar.
+        $img       = !empty($data['image']) ? oec_build_display_image_url($data['image']) : '';
         $raw_desc  = !empty($data['short_description']) ? $data['short_description'] : $data['title'];
-        $clean_desc = wp_strip_all_tags(strip_shortcodes($raw_desc));
-        $desc      = esc_attr(wp_trim_words($clean_desc, 25, '...'));
-        $title     = esc_html($data['title']);
+        // El HTML de origen suele venir como "...</p><p>..." sin espacio entre
+        // medio — strip_tags a lo bruto pega las dos palabras ("VIVOÚnete").
+        // Insertamos un espacio en los cierres de bloque ANTES de limpiar tags.
+        $spaced_desc = preg_replace('/<\/(p|div|li|h[1-6])\s*>|<br\s*\/?>/i', ' ', $raw_desc);
+        $clean_desc  = wp_strip_all_tags(strip_shortcodes($spaced_desc));
+        $clean_desc  = preg_replace('/\s+/', ' ', trim($clean_desc));
+        $desc        = esc_attr(wp_trim_words($clean_desc, 25, '...'));
+        $title       = esc_html($data['title']);
+        $url         = esc_url(!empty($data['canonical']) ? $data['canonical'] : oec_get_current_training_canonical());
 
         echo "\n\n";
         echo "<meta name='description' content='{$desc}'>\n";
+        echo "<meta property='og:type' content='website'>\n";
+        echo "<meta property='og:locale' content='es_ES'>\n";
+        echo "<meta property='og:site_name' content='" . esc_attr(get_bloginfo('name')) . "'>\n";
+        echo "<meta property='og:url' content='{$url}'>\n";
         echo "<meta property='og:title' content='{$title}'>\n";
         echo "<meta property='og:description' content='{$desc}'>\n";
-
         if ($img) {
             echo "<meta property='og:image' content='{$img}'>\n";
             echo "<meta property='og:image:secure_url' content='{$img}'>\n";
             echo "<meta name='twitter:image' content='{$img}'>\n";
         }
         echo "<meta name='twitter:card' content='summary_large_image'>\n";
-        echo "\n";
+        echo "<meta name='twitter:title' content='{$title}'>\n";
+        echo "<meta name='twitter:description' content='{$desc}'>\n\n";
+
+        oec_breadcrumb_jsonld($data, $url);
+    }
+}
+
+/**
+ * Ítems del breadcrumb de la ficha (Inicio → Formaciones → nombre de la formación). UNA sola fuente
+ * para el BreadcrumbList JSON-LD (acá abajo) y para el breadcrumb VISIBLE del hero (el Twig lo recibe
+ * como extra.breadcrumb): Google pide que lo marcado se vea en la página y coincida.
+ * - "Formaciones" solo aparece si el sitio tiene esa página (slug "formaciones"), con su título real;
+ *   antes se armaba igual una URL "/formaciones" que en un sitio sin esa página daba 404.
+ * - El último ítem (la página actual) va sin URL: Google lo permite, y así no apunta al canonical,
+ *   que puede ser OTRA comunidad.
+ * Devuelve [['name' => ..., 'url' => ... | null], ...].
+ */
+if (!function_exists('oec_training_breadcrumb_items')) {
+    function oec_training_breadcrumb_items($data) {
+        $items = [['name' => 'Inicio', 'url' => home_url('/')]];
+        $formaciones_page = get_page_by_path('formaciones', OBJECT, 'page');
+        if ($formaciones_page && $formaciones_page->post_status === 'publish') {
+            $items[] = ['name' => get_the_title($formaciones_page), 'url' => get_permalink($formaciones_page)];
+        }
+        $items[] = ['name' => $data['title'] ?? ($data['name'] ?? ''), 'url' => null];
+        return $items;
+    }
+}
+
+if (!function_exists('oec_breadcrumb_jsonld')) {
+    function oec_breadcrumb_jsonld($data, $current_url) {
+        $items = [];
+        foreach (oec_training_breadcrumb_items($data) as $i => $it) {
+            $li = ['@type' => 'ListItem', 'position' => $i + 1, 'name' => $it['name']];
+            if ($it['url']) $li['item'] = $it['url'];
+            $items[] = $li;
+        }
+
+        $jsonld = [
+            '@context'        => 'https://schema.org',
+            '@type'           => 'BreadcrumbList',
+            'itemListElement' => $items,
+        ];
+
+        echo "<script type='application/ld+json'>" . wp_json_encode($jsonld, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "</script>\n\n";
+    }
+}
+
+/**
+ * URL canónica de la formación actual. Prioriza data.canonical (lo manda
+ * la API con este nombre para justamente este uso — normalmente apunta a
+ * la comunidad "dueña" de la formación) y si por lo que sea no viene, arma
+ * una a partir del propio sitio como respaldo.
+ */
+if (!function_exists('oec_get_current_training_canonical')) {
+    function oec_get_current_training_canonical() {
+        $data = oec_get_current_training_data();
+        if (!$data) return home_url('/formacion');
+        if (!empty($data['canonical'])) return $data['canonical'];
+        $slug = $data['slug'] ?? $data['id'] ?? '';
+        return $slug ? home_url('/formacion/' . $slug . '/') : home_url('/formacion');
     }
 }
 
@@ -124,19 +525,268 @@ add_filter('pre_get_document_title', 'oec_fix_seo_title', 999);
 add_filter('wpseo_title',            'oec_fix_seo_title', 999);
 add_filter('rank_math/frontend/title', 'oec_fix_seo_title', 999);
 
-function oec_fix_seo_title($title) {
-    if (is_page('oec-formacion')) {
-        preg_match('/t-[a-zA-Z0-9]{14}/', $_SERVER['REQUEST_URI'], $matches);
-        $id = !empty($matches[0]) ? $matches[0] : '';
-        if ($id) {
-            $data = OEC_Api::call("trainings/" . $id);
+if (!function_exists('oec_fix_seo_title')) {
+    function oec_fix_seo_title($title) {
+        if (is_page('formacion')) {
+            $data = oec_get_current_training_data();
             if ($data && isset($data['title'])) {
                 return $data['title'] . " | " . get_bloginfo('name');
             }
         }
+        return $title;
     }
-    return $title;
 }
+
+
+// ─────────────────────────────────────────────────────────────────
+// 3b. CANONICAL CORRECTO POR FORMACIÓN
+// Sin esto, WordPress usa el permalink de la página "Formación" tal cual
+// (siempre el mismo, sin el ?id=) como canonical de TODAS las formaciones
+// — le dice a Google que son todas la misma página. Esto se lleva bien
+// con Yoast/RankMath si están instalados (se filtran sus propios hooks).
+// ─────────────────────────────────────────────────────────────────
+add_filter('get_canonical_url',        'oec_fix_canonical_url', 999, 2);
+add_filter('wpseo_canonical',          'oec_fix_canonical', 999);
+add_filter('rank_math/frontend/canonical', 'oec_fix_canonical', 999);
+
+if (!function_exists('oec_fix_canonical_url')) {
+    function oec_fix_canonical_url($canonical_url, $post) {
+        return oec_fix_canonical($canonical_url);
+    }
+}
+
+if (!function_exists('oec_fix_canonical')) {
+    function oec_fix_canonical($canonical) {
+        if (is_page('formacion')) {
+            $data = oec_get_current_training_data();
+            if ($data) {
+                return oec_get_current_training_canonical();
+            }
+        }
+        return $canonical;
+    }
+}
+
+
+// ─────────────────────────────────────────────────────────────────
+// 3c. SCHEMA DE SITIO (Organization + WebSite) — en TODAS las páginas
+// Da contexto de marca (nombre, logo, home) independiente de la formación
+// puntual que se esté viendo. Usa solo datos nativos de WordPress
+// (bloginfo, site icon) para que funcione igual en cualquier sitio donde
+// se instale el plugin, sin configuración extra.
+// ─────────────────────────────────────────────────────────────────
+add_action('wp_head', 'oec_site_jsonld', 5);
+
+if (!function_exists('oec_site_jsonld')) {
+    function oec_site_jsonld() {
+        if (is_admin()) return;
+
+        $logo = get_site_icon_url();
+        $org  = array_filter([
+            '@type' => 'Organization',
+            'name'  => get_bloginfo('name'),
+            'url'   => home_url('/'),
+            'logo'  => $logo ?: null,
+        ]);
+
+        $website = [
+            '@context' => 'https://schema.org',
+            '@graph'   => [
+                $org,
+                [
+                    '@type' => 'WebSite',
+                    'name'  => get_bloginfo('name'),
+                    'url'   => home_url('/'),
+                ],
+            ],
+        ];
+
+        echo "<script type='application/ld+json'>" . wp_json_encode($website, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "</script>\n\n";
+    }
+}
+
+
+// ─────────────────────────────────────────────────────────────────
+// 3d. AEO/GEO — crawlers de IA y llms.txt
+// Permitir explícitamente a los crawlers/agentes de IA más comunes
+// (además de lo que ya permita el robots.txt por defecto de WordPress) y
+// exponer un llms.txt básico. Vía filtro/rewrite, no archivos físicos —
+// así funciona en cualquier sitio donde se instale el plugin, sin que
+// haya que subir nada a mano en cada uno.
+// ─────────────────────────────────────────────────────────────────
+add_filter('robots_txt', 'oec_allow_ai_crawlers', 10, 2);
+
+if (!function_exists('oec_allow_ai_crawlers')) {
+    function oec_allow_ai_crawlers($output, $public) {
+        if ((int) $public !== 1) return $output; // sitio marcado como no público: no tocamos nada
+
+        $ai_agents = [
+            'GPTBot', 'ChatGPT-User', 'OAI-SearchBot',
+            'ClaudeBot', 'Claude-User', 'Claude-SearchBot', 'anthropic-ai',
+            'PerplexityBot', 'Perplexity-User',
+            'Google-Extended', 'CCBot', 'Applebot-Extended',
+        ];
+
+        $output .= "\n# Crawlers/agentes de IA — permitidos explícitamente para citación (AEO)\n";
+        foreach ($ai_agents as $agent) {
+            $output .= "User-agent: {$agent}\nAllow: /\n\n";
+        }
+        $output .= "# llms.txt: " . home_url('/llms.txt') . "\n";
+
+        return $output;
+    }
+}
+
+add_action('init', function () {
+    add_rewrite_rule('^llms\.txt$', 'index.php?oec_llms_txt=1', 'top');
+    add_rewrite_tag('%oec_llms_txt%', '1');
+});
+
+add_action('template_redirect', function () {
+    if (get_query_var('oec_llms_txt') != 1) return;
+
+    $formaciones_page = get_page_by_path('formaciones', OBJECT, 'page');
+    $formaciones_url  = $formaciones_page ? get_permalink($formaciones_page) : home_url('/formaciones');
+    $tagline          = get_bloginfo('description');
+
+    header('Content-Type: text/plain; charset=utf-8');
+    echo "# " . get_bloginfo('name') . "\n\n";
+    if ($tagline) echo "> " . $tagline . "\n\n";
+    echo "Sitio de formación online. El listado completo de cursos disponibles está en:\n";
+    echo "- [Formaciones](" . esc_url($formaciones_url) . "): listado de todos los cursos disponibles, con su descripción, docentes, fechas y precios.\n";
+
+    // Landings de temática (ej. /especiales/nutricion-deportiva) — páginas
+    // hijas de cualquier página con slug "especiales", si existe. Listado
+    // dinámico (no hardcodeado) para que cada landing nueva que se arme
+    // con este mismo patrón aparezca acá sola, sin tener que acordarse de
+    // tocar este archivo cada vez.
+    $especiales_page = get_page_by_path('especiales', OBJECT, 'page');
+    if ($especiales_page) {
+        $landings = get_pages(['parent' => $especiales_page->ID, 'sort_column' => 'post_title']);
+        if (!empty($landings)) {
+            echo "\nLandings por temática, con formaciones curadas, docentes destacados y opiniones reales:\n";
+            foreach ($landings as $landing) {
+                $excerpt = has_excerpt($landing) ? get_the_excerpt($landing) : '';
+                echo "- [" . esc_html(get_the_title($landing)) . "](" . esc_url(get_permalink($landing)) . ")" . ($excerpt ? ": " . esc_html($excerpt) : "") . "\n";
+            }
+        }
+    }
+    exit;
+});
+
+
+// ─────────────────────────────────────────────────────────────────
+// 3e. PROTECCIÓN CONTRA CORRUPCIÓN DE GUTENBERG
+// El Twig de [oec-content] usa "<" ">" "{" "}" sueltos
+// (ej. "{% if x > y %}") que no son HTML válido. El editor de bloques,
+// al ABRIR una página para editar (no hace falta ni guardar), valida
+// cada bloque "HTML personalizado" re-parseando su contenido guardado
+// con el motor de HTML del propio navegador para compararlo contra lo
+// que el bloque "debería" verse — y ese re-parseo interpreta "{% if
+// opt.selected %}" como si fueran atributos sueltos de la etiqueta,
+// destrozándolo. Pasa aunque el bloque ya sea texto plano (no hace
+// falta ni tocar el contenido, ni usar un editor enriquecido) — el daño
+// ocurre en la VALIDACIÓN del bloque, no al escribir. La única forma
+// real de evitarlo es que Gutenberg nunca llegue a parsear esa página:
+// para cualquier post que use alguno de nuestros shortcodes, forzamos
+// el editor clásico (sigue siendo una caja de texto plano, misma
+// experiencia de "pegar código") y le sacamos la pestaña "Visual" (con
+// TinyMCE rompería todavía más). No requiere instalar ningún plugin
+// aparte — "use_block_editor_for_post" es el filtro nativo de
+// WordPress para esto.
+//
+// Además, como red de seguridad por si el contenido llega corrompido
+// por otra vía (un editor externo, una importación, etc.), un segundo
+// filtro detecta la firma típica de esta corrupción
+// (`{%=""`/`%}=""`, que jamás aparece en Twig válido) y bloquea el
+// guardado en vez de dejar pasar una página rota en silencio.
+//
+// Aparte, y sin relación con lo de arriba: WordPress también le aplica
+// wpautop() al contenido al MOSTRARLO (no al guardarlo) — envuelve en
+// <p> cada salto de línea en blanco y convierte los simples en <br>.
+// Normalmente esto se evita marcando el contenido como bloque
+// "core/html" (el comentario "<!-- wp:html -->"), que hace que
+// do_blocks() saque wpautop solo — pero es un mecanismo frágil: alcanza
+// con que alguien borre ese comentario (nos pasó a nosotros mismos) para
+// que vuelva a romperse. Acá lo sacamos de forma explícita para
+// cualquier página con nuestros shortcodes, sin depender de que ese
+// comentario exista o no.
+// ─────────────────────────────────────────────────────────────────
+if (!function_exists('oec_post_uses_shortcodes')) {
+    function oec_post_uses_shortcodes($content) {
+        if (empty($content)) return false;
+        // Solo la ficha: es el único shortcode con cuerpo Twig. [oec-list] arma su propio
+        // HTML (una línea, sin cuerpo), así que no necesita editor clásico ni sacar wpautop
+        // — y forzarlo le cambiaría el editor a cualquier página de un sitio de socio que
+        // solo quiera mostrar unas pocas formaciones.
+        return has_shortcode($content, 'oec-content');
+    }
+}
+
+add_filter('use_block_editor_for_post', function ($use_block_editor, $post) {
+    if ($post && oec_post_uses_shortcodes($post->post_content)) {
+        return false;
+    }
+    return $use_block_editor;
+}, 10, 2);
+
+// Sin el editor de bloques, WordPress cae solo en la pantalla clásica de
+// post.php — ahí "user_can_richedit" decide si se muestran las pestañas
+// Visual/Texto (TinyMCE) o directo la caja de texto plano. La sacamos del
+// todo para estos posts: no hay forma de que alguien la abra por error.
+add_filter('user_can_richedit', function ($default) {
+    if (!is_admin()) return $default;
+    global $post;
+    if ($post && oec_post_uses_shortcodes($post->post_content)) {
+        return false;
+    }
+    return $default;
+});
+
+add_filter('wp_insert_post_data', function ($data, $postarr) {
+    if (empty($data['post_content']) || !oec_post_uses_shortcodes($data['post_content'])) {
+        return $data;
+    }
+    if (!preg_match('/\{%=""|%\}=""/', $data['post_content'])) {
+        return $data;
+    }
+    // Firma de corrupción detectada — no lo dejamos pasar. Si es una
+    // actualización, mantenemos la versión anterior (buena) en vez de
+    // pisarla con la rota.
+    if (!empty($postarr['ID'])) {
+        $existing = get_post($postarr['ID']);
+        if ($existing) {
+            $data['post_content'] = $existing->post_content;
+        }
+    }
+    set_transient('oec_corruption_warning_' . get_current_user_id(), true, 60);
+    return $data;
+}, 10, 2);
+
+add_action('admin_notices', function () {
+    $key = 'oec_corruption_warning_' . get_current_user_id();
+    if (!get_transient($key)) return;
+    delete_transient($key);
+    echo '<div class="notice notice-error"><p><strong>OEC:</strong> se detectó contenido corrompido en el guardado (típico de haber editado el shortcode desde el editor de bloques de WordPress) y no se guardó — se mantuvo la versión anterior. Volvé a intentar desde el editor de texto plano.</p></div>';
+});
+
+// wpautop() envuelve en <p> cada línea en blanco del contenido al
+// MOSTRARLO (no al guardarlo) — con 800 líneas de CSS/JS/Twig crudo,
+// el resultado es una sopa de <p> intercalados que rompe todo
+// visualmente. Normalmente WordPress evita esto solo cuando detecta un
+// comentario de bloque "<!-- wp:... -->" en el contenido (do_blocks()
+// saca wpautop del filtro the_content al vuelo) — pero es un mecanismo
+// frágil: alcanza con que ese comentario se borre (nos pasó a nosotros
+// mismos al limpiarlo del contenido) para que wpautop vuelva a actuar.
+// Lo sacamos de forma explícita e incondicional para cualquier página
+// con nuestros shortcodes, sin depender de ningún comentario mágico.
+add_filter('the_content', function ($content) {
+    global $post;
+    if ($post && oec_post_uses_shortcodes($post->post_content)) {
+        remove_filter('the_content', 'wpautop');
+    }
+    return $content;
+}, 8); // antes de wpautop (prioridad 10 por default)
 
 
 // ─────────────────────────────────────────────────────────────────

@@ -1,0 +1,165 @@
+/* CSS de [oec-list] — tarjetas de formación en grilla (layout="grid") o en tira
+   horizontal con flechas (layout="scroll"). Encolado desde class-oec-shortcodes.php
+   (enqueue_list_assets()) con versión por filemtime(). El color de marca llega como
+   variable CSS --oec-brand, puesta en línea en el propio .oec-scope.
+
+   OJO: oec-wp-theme también usa este archivo (y js/oec-formaciones.js) para SUS
+   tarjetas y tiras (oec_formacion_card(), inc/tiras.php): mismas clases .oec-card,
+   .fecha-*, .oec-scroll-*, .oec-countdown/.oec-cd-*, .oec-empty-title — sin el
+   envoltorio .oec-scope. No renombrar esas clases sin tocar el tema también. */
+
+/* ═══ AISLAMIENTO DEL TEMA ═══════════════════════════════════════
+   Mismo criterio que la capa equivalente de oec-formacion.css (ver ahí el porqué de cada regla):
+   todo dentro de :where(...) = especificidad cero (las reglas propias del plugin le ganan), con
+   !important (le gana a cualquier regla normal del tema, tenga la especificidad que tenga), y solo
+   propiedades que el JS no toca en caliente. Raíz: .oec-scope, el <div> con que PHP envuelve la
+   salida de [oec-list] (OEC_Shortcodes::scope()). El HTML es todo del plugin (texto plano de la
+   API, escapado), así que no hace falta la excepción para style="…" del editor.
+   Probado con tests/hostile-theme.css + tests/hostile-audit.js. */
+:where(.oec-scope) {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+    font-size: 16px !important; line-height: 1.7 !important; color: #1e2d3d !important;
+    font-weight: 400 !important; font-style: normal !important; letter-spacing: normal !important; word-spacing: normal !important;
+    text-transform: none !important; text-indent: 0 !important; text-align: start !important; text-shadow: none !important;
+    margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+    background-color: transparent !important; text-decoration: none !important; list-style: none !important; float: none !important;
+}
+:where(.oec-scope), :where(.oec-scope) *, :where(.oec-scope) *::before, :where(.oec-scope) *::after { box-sizing: border-box !important; }
+:where(.oec-scope) * {
+    font-family: inherit !important; line-height: inherit !important; letter-spacing: inherit !important; word-spacing: inherit !important;
+    text-transform: inherit !important; text-indent: inherit !important; text-shadow: inherit !important; quotes: none !important;
+    font-size: inherit !important; color: inherit !important; font-weight: inherit !important; font-style: inherit !important;
+    text-align: inherit !important; float: none !important;
+}
+:where(.oec-scope) :where(h1, h2, h3, h4, h5, h6, p, ul, ol, li, dl, dt, dd, blockquote, figure, figcaption, pre, table, caption, th, td,
+    section, article, aside, nav, header, footer, main, form, fieldset, legend, label, address, img, iframe, video, svg,
+    button, input, select, textarea, a, span, strong, b, em, i, small, code) {
+    margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+    background: transparent !important; text-decoration: none !important; outline: 0 !important; vertical-align: baseline !important;
+    list-style: none !important;
+}
+:where(.oec-scope) :where(h1, h2, h3, h4, h5, h6, strong, b, th) { font-weight: 700 !important; }
+:where(.oec-scope) :where(em, cite, dfn, var) { font-style: italic !important; }
+:where(.oec-scope) :where(h1) { font-size: 2em !important; }
+:where(.oec-scope) :where(h2) { font-size: 1.5em !important; }
+:where(.oec-scope) :where(h3) { font-size: 1.17em !important; }
+:where(.oec-scope) :where(h1, h2, h3, h4, h5, h6) { line-height: 1.25 !important; }
+:where(.oec-scope) :where(small) { font-size: .85em !important; }
+:where(.oec-scope) :where(p) { margin: 0 0 8px !important; }
+:where(.oec-scope) :where(a) { color: var(--oec-brand) !important; }
+:where(.oec-scope) :where(hr) { height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-top: 1px solid #e5e7eb !important; background: none !important; }
+:where(.oec-scope) :where(img, svg, video, iframe) { max-width: 100% !important; }
+:where(.oec-scope) :where(input, select, textarea) { height: auto !important; background: #fff !important; }
+:where(.oec-scope) :where(button, input, select, textarea, a, [role=button]) { min-height: auto !important; min-width: auto !important; }
+:where(.oec-scope) :where(button, input, select, textarea) { line-height: normal !important; }
+:where(.oec-scope) :where(li, a, h1, h2, h3, h4, h5, h6, p, blockquote, button, section, nav, label, strong, ul, ol)::before,
+:where(.oec-scope) :where(li, a, h1, h2, h3, h4, h5, h6, p, blockquote, button, section, nav, label, strong, ul, ol)::after { content: none !important; margin: 0 !important; color: inherit !important; }
+
+/* ─── CONTENEDOR DE CADA [oec-list] ─────────────────────────────── */
+.oec-list { margin: 0 0 40px !important; padding: 0 !important; }
+.oec-list-title { font-size: 22px !important; font-weight: 700 !important; color: #1c1d1f !important; line-height: 1.25 !important; margin: 0 0 16px !important; }
+.oec-list .oec-empty-title { text-align: center !important; padding: 40px 20px !important; margin: 0 !important; }
+.oec-list-more { display: flex; justify-content: center; margin-top: 8px !important; }
+.oec-list-more-link { display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px !important; border-radius: 8px !important; border: 1.5px solid var(--oec-brand) !important; color: var(--oec-brand) !important; font-size: 14px !important; font-weight: 700 !important; line-height: 1.2 !important; text-decoration: none !important; transition: background .2s, color .2s; }
+.oec-list-more-link:hover { background: var(--oec-brand) !important; color: #fff !important; }
+.oec-empty-title { font-size: 15px !important; color: #374151 !important; margin: 0 0 14px !important; }
+
+
+/* ─── TIRA HORIZONTAL CON FLECHAS (layout="scroll") ─────────────────
+   Las flechas flotan SOBRE la tira (el wrapper es el contenedor posicionado)
+   en vez de ocupar su propia columna. El padding vertical del track no es
+   capricho: sin él, el translateY(-8px) + box-shadow del hover de .oec-card
+   quedan recortados — overflow-x:auto fuerza overflow-y a "auto" también
+   (regla del spec de CSS). .oec-scroll-section/.oec-scroll-title los usan
+   las tiras del tema; padding-block:0 neutraliza el
+   "section { padding-block: 4rem }" que oec-wp-theme le pone a todo <section>. */
+.oec-scroll-section { margin: 0 0 48px !important; padding-block: 0 !important; }
+.oec-scroll-title { font-size: 22px !important; font-weight: 700 !important; color: #1c1d1f !important; margin: 0 0 16px !important; }
+.oec-scroll-wrapper { position: relative; }
+.oec-scroll-track { display: flex; gap: 20px; overflow-x: auto; overflow-y: visible; scroll-behavior: smooth; padding: 28px 4px 44px !important; scrollbar-width: thin; }
+.oec-scroll-track::-webkit-scrollbar { height: 6px; }
+.oec-scroll-track::-webkit-scrollbar-thumb { background: #e5e7eb !important; border-radius: 3px !important; }
+.oec-scroll-track .oec-card { flex: 0 0 330px; width: 330px; }
+.oec-scroll-arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 20; display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50% !important; border: none !important; background: #fff !important; color: #1c1d1f !important; font-size: 26px !important; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,.22) !important; transition: background .2s, color .2s, box-shadow .2s; }
+.oec-scroll-arrow:hover { background: var(--oec-brand) !important; color: #fff !important; box-shadow: 0 6px 20px rgba(0,0,0,.3) !important; }
+.oec-scroll-arrow[disabled] { opacity: 0; pointer-events: none; }
+.oec-scroll-arrow-left { left: 6px; }
+.oec-scroll-arrow-right { right: 6px; }
+.oec-scroll-more { flex: 0 0 80px; width: 80px; display: flex; align-items: center; justify-content: center; border-radius: 12px !important; border: 1px dashed #d1d5db !important; color: var(--oec-brand) !important; font-size: 22px !important; text-decoration: none !important; transition: border-color .2s, background .2s; }
+.oec-scroll-more:hover { border-color: var(--oec-brand) !important; background: color-mix(in srgb, var(--oec-brand) 6%, #fff) !important; }
+@media (max-width: 640px) {
+    .oec-scroll-arrow { display: none; }
+    /* Ancho de tarjeta relativo al contenedor (no al viewport) menos un
+       margen fijo, así siempre asoma un pedacito de la próxima — la
+       señal visual de "esto se desliza" que reemplaza a las flechas,
+       que en mobile se sacan. OJO con usar "vw": el tema le pone
+       padding al contenido (~30px de cada lado), así que "82vw" en un
+       celular de 360px terminaba dando prácticamente el mismo ancho que
+       el contenedor entero (300px) — sin nada de "peek" visible.
+       "calc(100% - Xpx)" sí resuelve contra el ancho REAL disponible. */
+    .oec-scroll-track .oec-card { flex: 0 0 calc(100% - 48px); width: calc(100% - 48px); max-width: 340px; }
+}
+
+/* ─── COUNTDOWN EN TARJETA (countdown="yes") — mismas clases y animación que el
+   de la ficha (css/oec-formacion.css). Arranca oculto: el JS lo muestra recién
+   si faltan 15 días o menos. ───────────────────────────────────────── */
+.oec-countdown { display: none; align-items: baseline; gap: 7px; margin-top: 8px !important; }
+.oec-cd-unit { display: inline-flex; align-items: baseline; gap: 2px; line-height: 1 !important; }
+.oec-cd-days.oec-cd-hide { display: none; }
+.oec-cd-num { font-size: 12.5px !important; font-weight: 700 !important; color: var(--oec-brand) !important; font-variant-numeric: tabular-nums; display: inline-block; }
+.oec-cd-num.oec-cd-pulse { animation: oecCdPop .3s ease; }
+@keyframes oecCdPop { 0% { opacity: .45; } 100% { opacity: 1; } }
+.oec-cd-label { font-size: 10px !important; font-weight: 600 !important; color: #9ca3af !important; }
+
+/* ─── GRILLA (layout="grid") Y TARJETA ─────────────────────────────
+   min(330px, 100%): en un celular angosto la columna nunca es más ancha que
+   el contenedor (con 330px fijos, la grilla desbordaba a los costados). */
+.oec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); gap: 35px; padding: 20px 0 !important; }
+.oec-card { background: #fff !important; border-radius: 12px !important; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important; transition: all 0.3s ease; display: flex; flex-direction: column; border: 1px solid #eee !important; height: 560px; position: relative; text-decoration: none !important; color: inherit !important; }
+.oec-card:hover { transform: translateY(-8px); box-shadow: 0 12px 24px rgba(0,0,0,0.15) !important; border-color: var(--oec-brand) !important; }
+/* oec-wp-theme pinta .oec-card:hover, .oec-badge-item y .oec-scroll-arrow:hover con su propio
+   acento (mismo selector, carga después → gana). Selectores más específicos para que el
+   plugin use SIEMPRE su color de marca. */
+.oec-grid .oec-card:hover, .oec-scroll-track .oec-card:hover, .oec-scope .oec-card:hover { border-color: var(--oec-brand) !important; }
+.oec-scope .oec-badge-item { border-left-color: var(--oec-brand) !important; }
+.oec-scope .oec-scroll-arrow:hover { background: var(--oec-brand) !important; }
+.oec-card.enrollment-closed { opacity: 0.72; filter: grayscale(25%); }
+.oec-card.enrollment-closed:hover { transform: none; box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important; }
+.oec-image-wrapper { position: relative; height: 180px; flex-shrink: 0; overflow: hidden; }
+.oec-image { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+.oec-card:hover .oec-image { transform: scale(1.08); }
+.oec-badges-container { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; z-index: 2; }
+.oec-badge-item { background: rgba(255,255,255,0.88) !important; color: #1c1d1f !important; padding: 2px 8px !important; border-radius: 4px !important; font-size: 9px !important; font-weight: 700 !important; text-transform: uppercase !important; border-left: 3px solid var(--oec-brand) !important; white-space: nowrap !important; }
+.oec-body { padding: 20px !important; flex-grow: 1; display: flex; flex-direction: column; min-height: 0 !important; }
+.oec-title { font-size: 17px !important; color: #1c1d1f !important; font-weight: 700 !important; margin-bottom: 6px !important; line-height: 1.3 !important; }
+.oec-organization { font-size: 12px !important; color: #646970 !important; margin-bottom: 8px !important; display: flex; align-items: center; gap: 4px; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; }
+.oec-organization i { color: var(--oec-brand) !important; flex-shrink: 0; }
+.oec-description-container { position: relative; flex-grow: 1; overflow: hidden; }
+.oec-description { font-size: 13px !important; color: #6a6f73 !important; line-height: 1.6 !important; }
+.oec-description-container::after { content: "" !important; position: absolute; bottom: 0; left: 0; width: 100%; height: 40px; background: linear-gradient(transparent, white) !important; }
+.oec-grid-reviews { display: flex; align-items: center; gap: 8px; margin-top: auto !important; padding-top: 8px !important; min-height: 26px !important; }
+.oec-stars-container { position: relative; width: 110px; height: 20px; background-image: url(https://imgrsize.oe-img.center/statics/img/stars-sprite.webp?w=220&q=100) !important; background-size: 110px 40px; background-position: 0 0; background-repeat: no-repeat; flex-shrink: 0; }
+.oec-stars { position: absolute; top: 0; left: 0; height: 20px; background-image: url(https://imgrsize.oe-img.center/statics/img/stars-sprite.webp?w=220&q=100) !important; background-size: 110px 40px; background-position: 0 -20px; background-repeat: no-repeat; }
+.oec-stars-average { color: #eba134 !important; font-weight: 700 !important; font-size: 13px !important; }
+.oec-cant-reviewers { color: #808080 !important; font-size: 12px !important; }
+.oec-cant-reviewers.destacado-review { color: var(--oec-brand) !important; font-weight: 700 !important; }
+.oec-footer { padding: 12px 20px !important; border-top: 1px solid #f0f0f0 !important; background: #fafafa !important; flex-shrink: 0; }
+.oec-footer-top { margin-bottom: 8px !important; }
+.oec-footer-bottom { display: flex; justify-content: space-between; align-items: center; }
+.oec-tags-container { font-size: 10px !important; color: #646970 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; }
+.oec-tags-container .separador { margin: 0 3px !important; }
+.oec-tags-container .destacado-edicion { color: var(--oec-brand) !important; font-weight: 700 !important; }
+.oec-start-date { font-size: 13px !important; font-weight: 600 !important; color: #1d2327 !important; display: flex; align-items: flex-start; gap: 5px; }
+.oec-start-date i { font-size: 14px !important; margin-top: 1px !important; flex-shrink: 0; }
+.oec-start-date.fecha-inicio i { color: var(--oec-brand) !important; }
+.oec-start-date.fecha-cierre i { color: #e67e22 !important; }
+.oec-start-date.fecha-cerrada i { color: #999 !important; }
+.oec-start-date.fecha-async i { color: #27ae60 !important; }
+.oec-card .fecha-contenedor { display: flex; flex-direction: column; line-height: 1.2 !important; }
+.oec-card .fecha-valor { font-weight: 700 !important; }
+.oec-card .fecha-etiqueta { font-size: 10px !important; font-weight: 400 !important; color: #888 !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; }
+.oec-start-date.fecha-cierre .fecha-etiqueta { color: #e67e22 !important; }
+.oec-start-date.fecha-cerrada .fecha-valor { color: #999 !important; font-weight: 400 !important; }
+.oec-btn-fake { background: var(--oec-brand) !important; color: #fff !important; padding: 7px 14px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 12px !important; transition: 0.2s; white-space: nowrap !important; flex-shrink: 0; }
+.oec-card.enrollment-closed .oec-btn-fake { background: #999 !important; }
+.oec-new-label { color: #064f1c !important; font-size: 10px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: .5px !important; line-height: 1.2 !important; }
