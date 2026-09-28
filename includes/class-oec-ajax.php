@@ -175,7 +175,7 @@ if (!class_exists('OEC_Ajax')) {
          * otro sitio esto ni se llega a leer.
          */
         private function credits_api_request($method, $url, $body = null) {
-            $api_key = ($this->credits_enabled() && defined('OEC_CREDITS_API_KEY_DEFAULT')) ? OEC_CREDITS_API_KEY_DEFAULT : '';
+            $api_key = $this->credits_enabled() ? oec_credits_api_key_value() : '';
 
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

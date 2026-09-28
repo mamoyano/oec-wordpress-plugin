@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.3
+Version: 1.3.1
 Author: Online Education Center
 */
 
@@ -66,18 +66,27 @@ if (!defined('OEC_CREDITS_ALLOWED_DOMAINS')) {
         'swimming.science',
         'is.fitness',
         'scalify.business',
+        'nuevo.g-se.com', // staging en Cloudways
         'oec-test.local', // sitio de desarrollo local
     ]);
 }
 
-// Clave real de la API de créditos. Solo tiene efecto en los dominios de
-// arriba — en cualquier otro sitio el código nunca llega a leerla.
-// Igual queda dentro del archivo distribuido a todos los sitios: quien
-// tenga acceso al hosting de un sitio de socio podría leer este archivo
-// y ver el valor, aunque ahí nunca se use. Es una decisión consciente para
-// que nadie tenga que cargar nada a mano en wp-admin.
-if (!defined('OEC_CREDITS_API_KEY_DEFAULT')) {
-    define('OEC_CREDITS_API_KEY_DEFAULT', 'c869e9c4597328ad388e6cead7fc87f43770d7f4');
+// Clave de la API de créditos. NO va en el código: el repo es público.
+// Se resuelve en este orden (solo en los dominios de arriba):
+//   1. OEC_CREDITS_API_KEY_DEFAULT en wp-config.php (nombre histórico).
+//   2. La del tema OEC, si está activo: Ajustes OEC > Integraciones del
+//      sitio de configuración de la red, o su constante OEC_CREDITS_API_KEY.
+//   3. OEC_CREDITS_API_KEY en wp-config.php.
+if (!function_exists('oec_credits_api_key_value')) {
+    function oec_credits_api_key_value() {
+        if (defined('OEC_CREDITS_API_KEY_DEFAULT')) {
+            return OEC_CREDITS_API_KEY_DEFAULT;
+        }
+        if (function_exists('oec_credits_api_key')) {
+            return oec_credits_api_key();
+        }
+        return defined('OEC_CREDITS_API_KEY') ? OEC_CREDITS_API_KEY : '';
+    }
 }
 
 // Slug de la página de confirmación del canje (paso 2, [oec-confirm-redeem]).
