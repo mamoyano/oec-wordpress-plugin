@@ -2079,6 +2079,34 @@ Verificado en mobile (375px) en la de Fisiología (2 docentes, bio abierta/cerra
   git MENOS `CLAUDE.md`, `tests/` y `.gitignore` (mismo contenido que el zip de v1.3.1). Los sitios lo
   ven en Plugins → "Hay una nueva versión".
 
+## v1.3.3 — el plugin aguanta una caída de la API de OEC (2026-09-29)
+
+Incidente: justo después de publicar v1.3.2, nuevo.g-se.com se puso muy lento. No era la
+actualización: `oas-api.onlineeducation.center` y `api.onlineeducation.center` dejaron de responder
+(los pedidos quedaban colgados, ni la raíz contestaba; `onlineeducation.center` y `api.g-se.com`
+andaban). El servidor esperaba 20s por pedido y, como un fallo no se guardaba, CADA visita volvía a
+esperar: medido 20,4s en una ficha cuyo resumen de opiniones no estaba en caché
+(`?oec_debug=1` → "Batch en paralelo (summary) 20000 ms").
+
+Arreglo (`OEC_Api`, usado por `call()`, `call_paginated()`, `fetch_many()` y
+`oec_get_page_bundle()`):
+- timeout `OEC_Api::TIMEOUT` = 8s (antes 20; `connect_timeout` 4 en los lotes);
+- un pedido que falla (timeout/sin respuesta/5xx, `OEC_Api::failed()`) se marca con un transient
+  `oec_down_<md5(clave de caché)>` por `DOWN_TTL` = 5 min: en ese lapso nadie vuelve a salir a la red
+  por él;
+- mientras tanto se usa `OEC_Api::stale()`: el último dato bueno guardado, aunque esté vencido.
+Medido en local con la API caída: 1ra visita 8,1s, siguientes 0,1s. Con la API sana no cambia nada.
+Una ficha que NUNCA se cacheó igual sale vacía si la API está caída (no hay de dónde sacar datos).
+
+Del lado del navegador, lo que depende de `api.onlineeducation.center` (precios por país, medios de
+pago) queda sin completar mientras la API no responda; no traba el resto del JS (son pedidos async).
+
+**`?ver=` de los assets**: `oec-wp-theme/inc/performance.php` (`oec_remove_query_strings()`) le sacaba
+el `?ver=` a todo CSS/JS que no fuera del tema, incluido el plugin — y el plugin depende de ese
+`?ver=filemtime()` para que el navegador baje los archivos nuevos al actualizar. Se excluyó
+`/plugins/oec-wordpress-plugin/` en el TEMA (repo aparte). Ojo: otros temas/plugins de
+"performance" en sitios de socios pueden hacer lo mismo.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

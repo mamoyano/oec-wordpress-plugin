@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.3.2
+Version: 1.3.3
 Author: Online Education Center
 */
 
@@ -350,16 +350,30 @@ if (!function_exists('oec_get_page_bundle')) {
         // pero en el mismo batch en paralelo, así no le agrega tiempo extra.
         if (!$parents_resolved)                   $requests['parents']  = ['url' => 'https://oas-api.onlineeducation.center/api-oas/v1/trainings/' . $id . '?include=parents', 'headers' => ['X-API-TOKEN' => $token, 'Accept' => 'application/json']];
 
+        // A prueba de caídas de la API (ver OEC_Api::TIMEOUT/DOWN_TTL): lo que falló
+        // hace menos de 5 min no se vuelve a pedir, y se usa el último dato bueno
+        // guardado aunque esté vencido. El color no entra (no es de la API de OEC).
+        $req_keys = ['training' => $key_training, 'reviews' => $key_reviews, 'summary' => $key_summary, 'parents' => $key_parents];
+        foreach ($req_keys as $rk => $ck) {
+            if (isset($requests[$rk]) && OEC_Api::is_down($ck)) unset($requests[$rk]);
+        }
+
         if (!empty($requests)) {
             $responses = oec_debug_time(
                 'Batch en paralelo (' . implode('+', array_keys($requests)) . ')',
                 function () use ($requests) {
                     return \WpOrg\Requests\Requests::request_multiple(
                         array_map(fn($r) => ['url' => $r['url'], 'headers' => $r['headers']], $requests),
-                        ['timeout' => 20]
+                        ['timeout' => OEC_Api::TIMEOUT, 'connect_timeout' => 4]
                     );
                 }
             );
+
+            foreach ($req_keys as $rk => $ck) {
+                if (!isset($requests[$rk])) continue;
+                $resp = $responses[$rk] ?? null;
+                if (!($resp instanceof \WpOrg\Requests\Response) || OEC_Api::failed($resp)) OEC_Api::mark_down($ck);
+            }
 
             foreach ($responses as $key => $response) {
                 if (!($response instanceof \WpOrg\Requests\Response) || !$response->success) continue;
@@ -389,6 +403,12 @@ if (!function_exists('oec_get_page_bundle')) {
                 }
             }
         }
+
+        // Lo que no se pudo conseguir (API caída): último dato bueno, aunque esté vencido.
+        if (!$data)            $data            = OEC_Api::stale($key_training);
+        if (!$reviews_data)    $reviews_data    = OEC_Api::stale($key_reviews);
+        if (!$reviews_summary) $reviews_summary = OEC_Api::stale($key_summary);
+        if (!$parents_resolved && $parents === null) $parents = OEC_Api::stale($key_parents);
 
         // "training" no estaba en caché al armar el batch de arriba, así que el
         // color dominante no se pudo pedir en paralelo con nada — se resuelve

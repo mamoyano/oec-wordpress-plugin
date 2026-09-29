@@ -17,6 +17,43 @@ if (!class_exists('OEC_Api')) {
         private static $mem = [];
 
         /**
+         * A PRUEBA DE CAÍDAS DE LA API (2026-09-29): la API de OEC dejó de responder
+         * (los pedidos quedaban colgados hasta el timeout) y como una respuesta
+         * fallida no se guardaba, CADA visita esperaba 20s por pedido. Ahora:
+         *   - timeout de TIMEOUT segundos (antes 20);
+         *   - si un pedido falla, se recuerda DOWN_TTL segundos (transient
+         *     "oec_down_…") y en ese lapso nadie vuelve a salir a la red por él;
+         *   - mientras tanto se sirve el último dato bueno de la caché, AUNQUE
+         *     esté vencido (stale()), en vez de una página vacía.
+         * Con la API sana no cambia nada: los datos se piden y cachean igual que antes.
+         */
+        const TIMEOUT  = 8;
+        const DOWN_TTL = 300;
+
+        /** Último dato bueno guardado para $key, aunque esté vencido (o null). */
+        public static function stale($key) {
+            $c = get_option($key);
+            return (is_array($c) && !empty($c['data'])) ? $c['data'] : null;
+        }
+
+        /** ¿Este pedido falló hace menos de DOWN_TTL segundos? */
+        public static function is_down($key) {
+            return (bool) get_transient('oec_down_' . md5($key));
+        }
+
+        public static function mark_down($key) {
+            set_transient('oec_down_' . md5($key), 1, self::DOWN_TTL);
+        }
+
+        /** Una respuesta de wp_remote_get()/Requests que cuenta como "la API no está". */
+        public static function failed($response) {
+            if (is_wp_error($response)) return true;
+            if ($response instanceof \WpOrg\Requests\Response) return !$response->success && ($response->status_code === 0 || $response->status_code >= 500);
+            $code = (int) wp_remote_retrieve_response_code($response);
+            return $code === 0 || $code >= 500;
+        }
+
+        /**
          * Pide VARIOS endpoints a la vez (un solo lote curl_multi, vía
          * \WpOrg\Requests\Requests::request_multiple) en vez de uno tras otro.
          * Lo usa el prefetch de una página con varios [oec-list] (ver
@@ -53,6 +90,11 @@ if (!class_exists('OEC_Api')) {
                         continue;
                     }
                 }
+                if (self::is_down($key)) {
+                    $empty = ($job['kind'] === 'paginated') ? ['data' => [], 'pagination' => null] : [];
+                    $results[$key] = self::$mem[$key] = self::stale($key) ?? $empty;
+                    continue;
+                }
                 $pending[$key] = $job;
             }
 
@@ -67,14 +109,15 @@ if (!class_exists('OEC_Api')) {
                     'headers' => ['X-API-TOKEN' => $token, 'Accept' => 'application/json'],
                 ];
             }
-            $responses = \WpOrg\Requests\Requests::request_multiple($requests, ['timeout' => 20]);
+            $responses = \WpOrg\Requests\Requests::request_multiple($requests, ['timeout' => self::TIMEOUT, 'connect_timeout' => 4]);
 
             foreach ($pending as $key => $job) {
                 $kind    = $job['kind'];
                 $empty   = ($kind === 'paginated') ? ['data' => [], 'pagination' => null] : [];
                 $resp    = $responses[$key] ?? null;
                 if (!($resp instanceof \WpOrg\Requests\Response) || !$resp->success) {
-                    self::$mem[$key] = $results[$key] = $empty;
+                    if (!($resp instanceof \WpOrg\Requests\Response) || self::failed($resp)) self::mark_down($key);
+                    self::$mem[$key] = $results[$key] = self::stale($key) ?? $empty;
                     continue;
                 }
 
@@ -123,6 +166,10 @@ if (!class_exists('OEC_Api')) {
                 }
             }
 
+            if (self::is_down($cache_key)) {
+                return self::$mem[$cache_key] = self::stale($cache_key) ?? [];
+            }
+
             $token = get_option('oec_token');
             $url   = 'https://oas-api.onlineeducation.center/api-oas/v1/' . $endpoint;
 
@@ -131,12 +178,13 @@ if (!class_exists('OEC_Api')) {
                     'X-API-TOKEN' => $token,
                     'Accept'      => 'application/json',
                 ],
-                'timeout' => 20,
+                'timeout' => self::TIMEOUT,
             ]);
 
-            if (is_wp_error($response)) {
-                error_log('OEC API Error: ' . $response->get_error_message());
-                return [];
+            if (self::failed($response)) {
+                error_log('OEC API Error: ' . (is_wp_error($response) ? $response->get_error_message() : 'HTTP ' . wp_remote_retrieve_response_code($response)) . ' — ' . $endpoint);
+                self::mark_down($cache_key);
+                return self::$mem[$cache_key] = self::stale($cache_key) ?? [];
             }
 
             $body    = wp_remote_retrieve_body($response);
@@ -191,6 +239,10 @@ if (!class_exists('OEC_Api')) {
                 }
             }
 
+            if (self::is_down($cache_key)) {
+                return self::$mem[$cache_key] = self::stale($cache_key) ?? ['data' => [], 'pagination' => null];
+            }
+
             $token = get_option('oec_token');
             $url   = 'https://oas-api.onlineeducation.center/api-oas/v1/' . $endpoint;
 
@@ -199,12 +251,13 @@ if (!class_exists('OEC_Api')) {
                     'X-API-TOKEN' => $token,
                     'Accept'      => 'application/json',
                 ],
-                'timeout' => 20,
+                'timeout' => self::TIMEOUT,
             ]);
 
-            if (is_wp_error($response)) {
-                error_log('OEC API Error: ' . $response->get_error_message());
-                return ['data' => [], 'pagination' => null];
+            if (self::failed($response)) {
+                error_log('OEC API Error: ' . (is_wp_error($response) ? $response->get_error_message() : 'HTTP ' . wp_remote_retrieve_response_code($response)) . ' — ' . $endpoint);
+                self::mark_down($cache_key);
+                return self::$mem[$cache_key] = self::stale($cache_key) ?? ['data' => [], 'pagination' => null];
             }
 
             $decoded = json_decode(wp_remote_retrieve_body($response), true);
