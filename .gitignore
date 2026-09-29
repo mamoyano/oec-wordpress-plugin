@@ -1,3 +1,5 @@
 .DS_Store
 *.zip
 .claude/
+server/zoho/zoho-config.php
+server/zoho/data/

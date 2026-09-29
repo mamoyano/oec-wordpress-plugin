@@ -2107,6 +2107,56 @@ el `?ver=` a todo CSS/JS que no fuera del tema, incluido el plugin — y el plug
 `/plugins/oec-wordpress-plugin/` en el TEMA (repo aparte). Ojo: otros temas/plugins de
 "performance" en sitios de socios pueden hacer lo mismo.
 
+## wp-admin → Estadísticas: embudo y contactos desde Zoho (2026-09-29)
+
+Todo en `includes/class-oec-stats.php` (`OEC_Stats`; `OEC_Admin::page_stats()` solo delega).
+**Decisión de Mario: NO usar `sales-analytics`** (datos internos de OEC) — los números y los contactos
+salen de Zoho, que replica las etapas. Etapas (sin "Leads"): `Cold Prospects`, `More Info Request`,
+`Hot Prospects`, `Orders Not Finished`, `Students - Won`. El usuario, al pedir info, consiente que
+OEC comparta sus datos con el socio educativo.
+
+**Arquitectura** — las claves de Zoho NUNCA van en el plugin (se instala en sitios de socios):
+- `server/zoho/partner-contacts.php` (en este repo, NO va en el zip del plugin) se sube a
+  `onlineeducation.center/connections/zoho/` con un `zoho-config.php` al lado (plantilla
+  `zoho-config.example.php`; el real está en `.gitignore`). Mario no tiene ese sitio en git: lo sube
+  a SiteGround a mano.
+- El plugin le pega desde el SERVIDOR con `X-API-TOKEN` = token de OEC del socio
+  (`OEC_ZOHO_CONTACTS_ENDPOINT` en `oec-main.php`, filtro `oec_zoho_contacts_endpoint`).
+  El endpoint solo responde por formaciones que la API de OEC le lista a ese token (token de socio ≈
+  12 formaciones, 1 pedido; el de oec-test es MAESTRO: ve las 2.216, ~20 s la primera vez, cacheado
+  1 h por token en `data/owners_<sha256>.json`; un uid desconocido no re-escanea si la lista tiene
+  <5 min). Valida `t-[A-Za-z0-9]{14}` / `te-[A-Za-z0-9]{14}` / etapa en lista cerrada (el uid va
+  dentro del `criteria` de Zoho: sin validar, se inyecta).
+- Zoho: conteos con `Deals/actions/count?criteria=` (5 en paralelo, ~1 s; caché 15 min en el
+  endpoint y 15 min en el plugin); contactos con `Deals/search` (200 por página, tope 2.000) +
+  `Contacts?ids=` de a 100. El refresh token actual tiene scope `ZohoCRM.modules.ALL` (sin COQL, sin
+  settings). Al rotar: `ZohoCRM.modules.deals.READ,ZohoCRM.modules.contacts.READ` alcanza.
+- **Por edición**: el Deal tiene `Edition_UID` (`te-…`) = `edition_uid` del DETALLE de la formación en
+  la API de OEC (el listado no lo trae → `OEC_Api::call('trainings/{id}')`, caché 24 h). Sin filtrar,
+  Holway daba 825 alumnos (todas las ediciones); con la edición, 353 (= sales-analytics).
+- Pantalla: formaciones con inscripción abierta o todas (`?ver=todas`), buscador, paginación de la
+  API (30). Números por AJAX de a 4 (`oec_stats_counts`). Cada número >0 abre un `<dialog>` con los
+  contactos (`oec_stats_contacts`; datos insertados con `textContent`), "Copiar emails" y "Descargar
+  CSV" (`admin-post.php?action=oec_stats_csv`, BOM, encabezados `First Name/Last Name/Email/Phone/
+  Country/Stage/Created` para Google Sheets→GMass o Google Contacts; celdas `= + - @` neutralizadas
+  salvo teléfonos). Todo con nonce `oec_stats` + `manage_options`. Meta de alumnos =
+  `Students - Won` / `enrollments_goal` de la API de OEC.
+- Días a cierre/inicio: día calendario de la fecha de la API tal cual (`days_until()`); pasarlo a hora
+  de Argentina corría `…T00:00:00+00:00` al día anterior.
+- **Seguridad pendiente del lado de OEC**: `list-deals.php` (el Thickbox viejo de "Hot Prospects")
+  responde SIN autenticación y el `training_uid` se inyecta en el `criteria` (probado: devolvía 419 Hot
+  Prospects de todas las formaciones). Además imprime el uid sin escapar (XSS). El plugin nuevo ya no
+  lo usa; hay que borrarlo cuando los socios actualicen, o parcharlo antes. Las claves de Zoho de ese
+  archivo quedaron expuestas en la sesión del 2026-09-29: rotarlas después de las pruebas.
+- Probar sin loguearse al navegador: el endpoint se levanta con `php -S` + `zoho-config.php` de prueba,
+  y un mu-plugin temporal con el filtro `oec_zoho_contacts_endpoint`. **Ojo**: `download_csv()` hace
+  `exit` → si se llama desde un script, vuelca el CSV (con datos personales) a la salida; probar
+  `OEC_Stats::write_csv()` sobre `php://memory` y contar filas.
+
+**v1.4.0** (2026-09-29): Estadísticas desde Zoho + íconos alineados en wp-admin → Contáctenos. Gotcha de
+wp-admin: un `.dashicons` dentro de `.button` hereda el `line-height` del botón (34 px) y el glifo se
+dibuja ~8 px más abajo que su caja de 18 px; fijarle `line-height` igual a su alto.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto
@@ -2156,3 +2206,6 @@ el `?ver=` a todo CSS/JS que no fuera del tema, incluido el plugin — y el plug
    de ventas de OEC + monto de la formación) — ver "Sección de Contacto
    — chat anónimo hardcodeado + reglas por precio" para el detalle
    completo y la tabla de verdad.
+7. Estadísticas desde Zoho (ver su sección): subir `server/zoho/partner-contacts.php`
+   + `zoho-config.php` a onlineeducation.center, probar, sacar `list-deals.php` y
+   rotar las claves de Zoho.

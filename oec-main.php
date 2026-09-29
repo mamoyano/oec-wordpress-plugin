@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.3.3
+Version: 1.4.0
 Author: Online Education Center
 */
 
@@ -116,6 +116,11 @@ if (!function_exists('oec_credits_system_enabled')) {
 // "Botmaker — ID de proyecto"; a pedido explícito de Mario se sacó de
 // ahí y se hardcodeó acá.
 // ─────────────────────────────────────────────────────────────────
+// Endpoint en onlineeducation.center que da los números y contactos de Zoho por
+// etapa (server/zoho/partner-contacts.php). Las claves de Zoho viven allá.
+if (!defined('OEC_ZOHO_CONTACTS_ENDPOINT')) {
+    define('OEC_ZOHO_CONTACTS_ENDPOINT', 'https://onlineeducation.center/connections/zoho/partner-contacts.php');
+}
 if (!defined('OEC_BOTMAKER_PROJECT_ID')) {
     define('OEC_BOTMAKER_PROJECT_ID', '6EJESDV1VQ');
 }
@@ -225,6 +230,7 @@ spl_autoload_register(function ($class) {
 // Cargar clases del plugin
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-api.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-admin.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-oec-stats.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-shortcodes.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-ajax.php';
 
@@ -823,6 +829,7 @@ add_filter('the_content', function ($content) {
 // ─────────────────────────────────────────────────────────────────
 if (is_admin()) {
     new OEC_Admin();
+    OEC_Stats::init();
 }
 
 new OEC_Shortcodes();

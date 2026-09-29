@@ -8,6 +8,7 @@ if (!class_exists('OEC_Admin')) {
             // inicial) para que también se cree sola en sitios donde el plugin
             // ya estaba instalado antes de que existiera el sistema de créditos.
             add_action('admin_init', [$this, 'oec_ensure_redeem_confirm_page']);
+
         }
 
         /**
@@ -595,14 +596,14 @@ if (!class_exists('OEC_Admin')) {
                     </div>
 
                     <div style="display: flex; gap: 10px;">
-                        <a href="mailto:<?php echo esc_attr($kam_email); ?>" class="button button-primary" style="display: inline-flex; align-items: center; gap: 5px; height: 35px; padding: 0 15px;">
-                            <span class="dashicons dashicons-email" style="font-size: 18px; width: 18px; height: 18px; margin-top: 2px;"></span>
+                        <a href="mailto:<?php echo esc_attr($kam_email); ?>" class="button button-primary" style="display: inline-flex; align-items: center; gap: 6px; height: 35px; padding: 0 15px;">
+                            <span class="dashicons dashicons-email" style="font-size: 18px; width: 18px; height: 18px; line-height: 18px;"></span>
                             Contactar por Email
                         </a>
 
                         <?php if (!empty($wa_phone)) : ?>
-                            <a href="https://wa.me/<?php echo esc_attr($wa_phone); ?>" target="_blank" class="button" style="display: inline-flex; align-items: center; gap: 5px; height: 35px; padding: 0 15px; background-color: #25D366; color: white; border-color: #128C7E;">
-                                <span class="dashicons dashicons-whatsapp" style="font-size: 18px; width: 18px; height: 18px; margin-top: 2px;"></span>
+                            <a href="https://wa.me/<?php echo esc_attr($wa_phone); ?>" target="_blank" class="button" style="display: inline-flex; align-items: center; gap: 6px; height: 35px; padding: 0 15px; background-color: #25D366; color: white; border-color: #128C7E;">
+                                <span class="dashicons dashicons-whatsapp" style="font-size: 18px; width: 18px; height: 18px; line-height: 18px;"></span>
                                 WhatsApp
                             </a>
                         <?php endif; ?>
@@ -623,157 +624,11 @@ if (!class_exists('OEC_Admin')) {
         }
 
 
-        // Estadísticas
+        // Estadísticas (ver includes/class-oec-stats.php)
         public function page_stats() {
-            $token = get_option('oec_token');
-
-            if (!$token) {
-                echo '<div class="wrap"><h1>Estadísticas</h1><p>Configura tu API Token en la pestaña de Configuración.</p></div>';
-                return;
-            }
-
-            // Cargamos la librería Thickbox nativa de WordPress para el Modal
-            add_thickbox();
-
-            // --- 1. LÓGICA DE PAGINACIÓN Y CACHÉ TOTAL ---
-            $page = isset($_GET['paged']) ? max(1, intval($_GET['paged'])) : 1;
-            $per_page = 6;
-            $stats_cache_key = 'oec_stats_cache_p' . $page;
-            $stats_cache     = get_option($stats_cache_key);
-            $cached_content  = ($stats_cache && isset($stats_cache['expires']) && $stats_cache['expires'] > time())
-                ? $stats_cache['data']
-                : false;
-
-            if (false === $cached_content) {
-                // A. Obtener listado de formaciones
-                $trainings_url = "https://oas-api.onlineeducation.center/api-oas/v1/trainings?relevance=0";
-                $response = wp_remote_get($trainings_url, [
-                    'headers' => ['X-API-TOKEN' => $token, 'Accept' => 'application/json'],
-                    'timeout' => 20
-                ]);
-            
-                $data = json_decode(wp_remote_retrieve_body($response), true);
-                $all_trainings = $data['data'] ?? [];
-                $total_trainings = count($all_trainings);
-            
-                // B. Segmentar para la página actual
-                $offset = ($page - 1) * $per_page;
-                $paged_trainings = array_slice($all_trainings, $offset, $per_page);
-
-                // C. Recolectar estadísticas de cada formación
-                $processed_trainings = [];
-                foreach ($paged_trainings as $t) {
-                    $analytics_url = "https://sales-analytics.onlineeducation.center/v2/global/metrics/trainings/{$t['id']}/edition/{$t['edition_number']}";
-                    $ana_response = wp_remote_get($analytics_url, [
-                        'headers' => ['X-API-TOKEN' => '']
-                    ]);
-                    $stats = json_decode(wp_remote_retrieve_body($ana_response), true);
-
-                    $processed_trainings[] = [
-                        'info'  => $t,
-                        'stats' => $stats ?: []
-                    ];
-                }
-
-                $cached_content = [
-                    'data_list' => $processed_trainings,
-                    'total'     => $total_trainings,
-                    'has_more'  => $total_trainings > ($offset + $per_page)
-                ];
-
-                update_option($stats_cache_key, [
-                    'data'    => $cached_content,
-                    'expires' => time() + 12 * 3600,
-                ], false);
-            }
-            ?>
-
-            <div class="wrap">
-                <h1 class="wp-heading-inline">Estadísticas de Conversión</h1>
-                <hr class="wp-header-end">
-
-                <?php if (empty($cached_content['data_list'])) : ?>
-                    <div class="notice notice-info"><p>No hay formaciones para mostrar en esta página.</p></div>
-                <?php else : ?>
-                
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px; margin-top: 20px;">
-                        <?php foreach ($cached_content['data_list'] as $item) : 
-                            $t = $item['info'];
-                            $stats = $item['stats'];
-                            if (empty($stats)) continue;
-
-                            $funnel = [
-                                ['label' => 'LEADS', 'val' => $stats['Leads.CurrentVal'] ?? 0, 'bg' => '#2271b1', 'w' => '100%'],
-                                ['label' => 'COLD PROSPECTS', 'val' => $stats['Cold Prospects.CurrentVal'] ?? 0, 'bg' => '#3399ff', 'w' => '92%'],
-                                ['label' => 'MORE INFO REQUEST', 'val' => $stats['More Info Request.CurrentVal'] ?? 0, 'bg' => '#ffb900', 'w' => '84%'],
-                                ['label' => 'HOT PROSPECTS', 'val' => $stats['Hot Prospects.CurrentVal'] ?? 0, 'bg' => '#46b450', 'w' => '76%', 'is_hot' => true],
-                                ['label' => 'O.N.F.', 'val' => $stats['Orders Not Finished.CurrentVal'] ?? 0, 'bg' => '#d63638', 'w' => '68%'],
-                                ['label' => 'ALUMNOS', 'val' => $stats['Enrollments.CurrentVal'] ?? 0, 'bg' => '#1d2327', 'w' => '60%', 'is_final' => true],
-                            ];
-                        ?>
-
-                        <div class="card" style="margin: 0; padding: 20px; border-radius: 8px; background: #fff; border: 1px solid #ccd0d4; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
-                            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                                <img src="<?php echo esc_url($t['image']); ?>" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
-                                <div style="flex: 1;">
-                                    <h3 style="margin:0; font-size: 15px; line-height: 1.2;"><?php echo esc_html($t['title']); ?></h3>
-                                    <div style="font-size: 11px; color: #666; margin-top: 6px; background: #f9f9f9; padding: 4px; border-radius: 3px; display: inline-block;">
-                                        Edición: <strong><?php echo $t['edition_number']; ?></strong> | 
-                                        Inicio: <strong><?php echo $stats['Training.DaysToStart'] ?? 0; ?>d</strong> | 
-                                        Cierre: <strong><?php echo $stats['Training.DaysToEnrollmentEnd'] ?? 0; ?>d</strong>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                                <?php foreach ($funnel as $step) : ?>
-                                    <?php 
-                                    // Lógica mejorada para Hot Prospects
-                                    if (isset($step['is_hot'])) : 
-                                        if ($step['val'] > 0) : 
-                                            $zoho_url = "https://onlineeducation.center/connections/zoho/list-deals.php?training_uid=" . $t['id'] . "&TB_iframe=true&width=1000&height=600";
-                                        ?>
-                                            <a href="<?php echo esc_url($zoho_url); ?>" 
-                                            class="thickbox" 
-                                            title="Listado de Hot Prospects - <?php echo esc_attr($t['title']); ?>"
-                                            style="width: <?php echo $step['w']; ?>; background: <?php echo $step['bg']; ?>; color: #fff; padding: 8px 15px; text-decoration: none; border-radius: 2px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s;">
-                                                <span style="font-size: 10px; font-weight: bold;">🔥 <?php echo $step['label']; ?></span>
-                                                <div style="display: flex; align-items: center; gap: 5px;">
-                                                    <strong><?php echo number_format($step['val']); ?></strong>
-                                                    <span class="dashicons dashicons-external" style="font-size: 14px; margin-top: 2px;"></span>
-                                                </div>
-                                            </a>
-                                        <?php else : ?>
-                                            <div style="width: <?php echo $step['w']; ?>; background: <?php echo $step['bg']; ?>; color: #fff; padding: 8px 15px; border-radius: 2px; display: flex; justify-content: space-between; align-items: center; opacity: 0.6; cursor: not-allowed;">
-                                                <span style="font-size: 10px; font-weight: bold;">🔥 <?php echo $step['label']; ?></span>
-                                                <strong>0</strong>
-                                            </div>
-                                        <?php endif; ?>
-                                    <?php else : ?>
-                                        <div style="width: <?php echo $step['w']; ?>; background: <?php echo $step['bg']; ?>; color: #fff; padding: 8px 15px; border-radius: 2px; display: flex; justify-content: space-between; align-items: center;">
-                                            <span style="font-size: 10px; font-weight: bold; <?php echo isset($step['is_final']) ? 'color: #46b450;' : ''; ?>"><?php echo $step['label']; ?></span>
-                                            <strong style="<?php echo isset($step['is_final']) ? 'font-size: 18px;' : ''; ?>"><?php echo number_format($step['val']); ?></strong>
-                                        </div>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-
-                    <div style="margin-top: 40px; text-align: center; padding-bottom: 40px;">
-                        <?php if ($page > 1) : ?>
-                            <a href="<?php echo admin_url('admin.php?page=oec-stats&paged=' . ($page - 1)); ?>" class="button">Anterior</a>
-                        <?php endif; ?>
-                        <span style="margin: 0 15px; color: #666;">Página <?php echo $page; ?></span>
-                        <?php if ($cached_content['has_more']) : ?>
-                            <a href="<?php echo admin_url('admin.php?page=oec-stats&paged=' . ($page + 1)); ?>" class="button">Siguiente</a>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
-            </div>
-            <?php
+            OEC_Stats::render_page();
         }
+
 
 
         // Cuenta contable
