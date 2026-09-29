@@ -2063,6 +2063,22 @@ breadcrumb visible = JSON-LD, 0 errores; tema hostil 0 diferencias (desktop y mo
 Verificado en mobile (375px) en la de Fisiología (2 docentes, bio abierta/cerrada) y en Holway
 (certificados), sin scroll horizontal; tema hostil 0 diferencias. Solo CSS/JS, sin sync a la base.
 
+## v1.3.2 — padding mobile 18px + barra de inscripción que se va al llegar al footer (2026-09-29)
+
+- `@media (max-width: 600px)`: `.oec-container` y `.oec-hero-content` pasaron de 14px a **18px** de
+  padding lateral.
+- `#oec-mobile-bar` se desvanece y baja (`.oec-mobile-bar--away`: opacity 0 + `translateY(100%)` +
+  `visibility:hidden` con demora + `pointer-events:none`) cuando el final de `#oec-bleed-wrapper`
+  sube por encima del borde inferior de la pantalla, es decir, cuando empieza a verse lo que el tema
+  pone debajo (footer). Vuelve al subir. JS al final de `js/oec-frontend.js` (listener de scroll +
+  resize, sin rAF). Si la ficha es lo último de la página, la barra nunca se va. Verificado en 375px:
+  "Términos de uso" del footer quedaba tapado por la barra y ahora recibe el click.
+- **Cómo se publica una versión** (Plugin Update Checker con `enableReleaseAssets()`): subir
+  `Version:` en `oec-main.php`, commit + push a `main`, y un release de GitHub con tag `vX.Y.Z` y el
+  asset `oec-wordpress-plugin.zip` — carpeta `oec-wordpress-plugin/` con los archivos versionados en
+  git MENOS `CLAUDE.md`, `tests/` y `.gitignore` (mismo contenido que el zip de v1.3.1). Los sitios lo
+  ven en Plugins → "Hay una nueva versión".
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

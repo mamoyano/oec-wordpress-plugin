@@ -623,7 +623,11 @@ body.oec-bm-chat-open div:has(> iframe[name="Botmaker"]) { display: flex !import
 
 /* ─── MOBILE BAR — 3 líneas: fecha+countdown / precio en una
    oración / pago (1/3) + botón (2/3) ──────────────────────────── */
-#oec-mobile-bar { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #fff !important; border-top: 1px solid #e5e7eb !important; padding: 8px 14px 10px !important; z-index: 9000; box-shadow: 0 -4px 12px rgba(0,0,0,.08) !important; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important; }
+#oec-mobile-bar { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #fff !important; border-top: 1px solid #e5e7eb !important; padding: 8px 14px 10px !important; z-index: 9000; box-shadow: 0 -4px 12px rgba(0,0,0,.08) !important; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important; transition: opacity .3s ease, transform .3s ease, visibility 0s linear 0s; }
+/* Al llegar al final de la ficha (footer del tema a la vista) la barra se desvanece y baja, para no
+   tapar los links del footer (oec-frontend.js agrega la clase). visibility con demora: queda fuera
+   del foco del teclado recién cuando terminó de desvanecerse. */
+#oec-mobile-bar.oec-mobile-bar--away { opacity: 0; transform: translateY(100%); visibility: hidden; pointer-events: none; transition: opacity .3s ease, transform .3s ease, visibility 0s linear .3s; }
 .oec-mb-date-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; font-size: 11px !important; color: #9ca3af !important; margin-bottom: 4px !important; }
 .oec-mb-date-row .oec-countdown { margin: 0 !important; gap: 3px; }
 .oec-mb-date-row .oec-cd-unit { gap: 1px; }
@@ -778,8 +782,8 @@ body.oec-bm-chat-open div:has(> iframe[name="Botmaker"]) { display: flex !import
     .oec-bullets { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
-    .oec-container { width: 100%; padding: 0 14px !important; }
-    .oec-hero-content { padding: 120px 14px 22px !important; }
+    .oec-container { width: 100%; padding: 0 18px !important; }
+    .oec-hero-content { padding: 120px 18px 22px !important; }
     .oec-mini-bullets { padding: 12px 16px !important; }
     .oec-card-pad { padding: 16px !important; }
     .oec-reviews-top { padding: 14px 16px !important; }

@@ -284,3 +284,22 @@ document.addEventListener('DOMContentLoaded', function() {
         carousel.addEventListener('touchend', () => { paused = false; });
     }
 });
+// Barra fija de inscripción (mobile, #oec-mobile-bar): se desvanece cuando termina la ficha y
+// empieza a verse lo que el tema pone debajo (footer), para no tapar sus links. Vuelve a
+// aparecer al subir. Si la ficha es lo último de la página (no hay nada debajo), no se esconde.
+(function(){
+    function init() {
+        var bar  = document.getElementById('oec-mobile-bar');
+        var wrap = document.getElementById('oec-bleed-wrapper');
+        if (!bar || !wrap) return;
+        function update() {
+            var away = wrap.getBoundingClientRect().bottom < window.innerHeight - 2;
+            bar.classList.toggle('oec-mobile-bar--away', away);
+        }
+        window.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+        update();
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
