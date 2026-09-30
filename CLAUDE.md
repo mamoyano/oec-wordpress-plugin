@@ -2157,6 +2157,38 @@ OEC comparta sus datos con el socio educativo.
 wp-admin: un `.dashicons` dentro de `.button` hereda el `line-height` del botón (34 px) y el glifo se
 dibuja ~8 px más abajo que su caja de 18 px; fijarle `line-height` igual a su alto.
 
+## v1.4.1 — "¿estamos en la comunidad?" compara solo el dominio (2026-09-30)
+
+`inCommunity` (Twig de la ficha) decide: link de inscripción `data.register_url` (propia comunidad)
+vs `data.register`, "Organiza: …" debajo del título, y el ítem "¿Quién organiza esta formación?"
+(este además necesita `organization.short_description`). Antes era
+`data.community in extra.current_url`: buscar la URL de la comunidad como TEXTO dentro de la URL de
+la página → en `nuevo.g-se.com` daba falso (no contiene `https://g-se.com`), igual con `www.` o
+barra final. Ahora:
+- `oec_is_community_site($community_url)` (`oec-main.php`): compara solo el host de `data.community`
+  con el de `home_url()`, sin `www.`/protocolo/puerto/ruta, aceptando subdominios (`nuevo.g-se.com`
+  = `g-se.com`; `notg-se.com` y `g-se.com.ar` NO). Probado con 10 casos.
+- La ficha recibe `extra.in_community`; el Twig usa
+  `extra.in_community is defined ? extra.in_community : (…comparación vieja…)`.
+- **Compatibilidad con plantillas ya pegadas**: `render_content()` reemplaza al vuelo
+  `data.community in extra.current_url` por `extra.in_community` antes de renderizar → los sitios
+  quedan bien con solo actualizar el plugin, sin volver a pegar la plantilla. Probado con la
+  plantilla vieja y la nueva en la base local.
+- Mismo criterio en el email/página de confirmación de canje (`class-oec-ajax.php`, antes
+  `str_contains(home_url(), community)`) y en el ejemplo de wp-admin.
+- **Link a la organización** (`extra.org_url`, `organization_url()` en `class-oec-shortcodes.php`):
+  `{página "organizacion"}?slug={data.organization.data.slug}` — la landing que arma `oec-wp-theme`
+  (`page-organizacion.php`; 404 si el slug no existe). Solo si el sitio tiene PUBLICADA una página con
+  slug `organizacion`; si no, `""` y "Organiza:" usa el link de antes (`{community}/es/socio/{facebook_app_id}`,
+  nueva pestaña). Con org_url: "Organiza:" enlaza ahí (misma pestaña) y "¿Quién organiza esta
+  formación?" suma un botón discreto `.oec-org-more` "Conocer más sobre {org}" (`display:flex` +
+  `fit-content`: la descripción de la API a veces termina en texto suelto y el botón quedaba pegado a
+  la última palabra). OJO: esto SÍ requiere volver a pegar la plantilla — el reemplazo al vuelo solo
+  cubre la condición de comunidad, no el link ni el botón. Tema hostil: 0/0 en 1.577 elementos.
+- Para probar en local como si el sitio fuera la comunidad: mu-plugin temporal con
+  `add_filter('pre_option_home', fn() => 'https://nuevo.g-se.com/es')` + `remove_action('template_redirect',
+  'redirect_canonical')` activado por un query param; borrarlo al terminar.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

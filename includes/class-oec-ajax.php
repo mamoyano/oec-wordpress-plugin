@@ -431,7 +431,7 @@ if (!class_exists('OEC_Ajax')) {
             $training_url = home_url('/formacion/?id=' . $training_uid);
             $training_data = class_exists('OEC_Api') ? OEC_Api::call('trainings/' . $training_uid) : null;
             if (!empty($training_data['community'])) {
-                $in_community = str_contains(home_url(), $training_data['community']);
+                $in_community = function_exists('oec_is_community_site') && oec_is_community_site($training_data['community']);
                 $register_link = $in_community ? ($training_data['register_url'] ?? '') : ($training_data['register'] ?? '');
                 if ($register_link) $training_url = $register_link;
             }

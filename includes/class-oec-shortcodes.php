@@ -587,6 +587,13 @@ if (!class_exists('OEC_Shortcodes')) {
             $current_url = strtok($full_url, '?');
             $brand_color = get_option('oec_brand_color', '#a435f0');
 
+            // Plantillas pegadas antes de 1.4.1 deciden "¿es la comunidad dueña?" buscando la
+            // URL de la comunidad como texto dentro de la URL de la página, y eso falla con
+            // subdominios (nuevo.g-se.com no contiene "https://g-se.com"). Se reemplaza al
+            // vuelo por extra.in_community (solo dominio, oec_is_community_site()), así los
+            // sitios quedan bien con solo actualizar el plugin, sin volver a pegar la plantilla.
+            $content = preg_replace('/data\.community\s+in\s+extra\.current_url/', 'extra.in_community', (string) $content);
+
             // Formación + reviews + resumen + color dominante: todo sale de acá,
             // compartido con la metadata de SEO de wp_head (oec_get_page_bundle(),
             // en oec-main.php). Esa función memoiza el resultado dentro del mismo
@@ -630,6 +637,10 @@ if (!class_exists('OEC_Shortcodes')) {
                 'similar' => $similar,
                 'extra' => [
                     'current_url'         => $current_url,
+                    // ¿Estamos en la comunidad dueña de la formación? (solo dominio, ver oec_is_community_site()).
+                    'in_community'        => function_exists('oec_is_community_site') && oec_is_community_site($data['community'] ?? ''),
+                    // Landing de la organización en ESTE sitio (vacío si el sitio no la tiene, ver organization_url()).
+                    'org_url'             => $this->organization_url($data),
                     'brand_color'         => $brand_color,
                     'detail_url'          => get_site_url() . '/formacion/',
                     'equipo_oec'          => get_option('oec_equipo_ventas', '1') === '1',
@@ -663,6 +674,21 @@ if (!class_exists('OEC_Shortcodes')) {
          * los que tengan un dígito alcanza para encontrar la temática sin
          * mantener una lista hardcodeada de campañas.
          */
+        /**
+         * URL de la landing de la organización que dicta la formación, en ESTE sitio:
+         * {página "organizacion"}?slug={organization.data.slug} (la arma oec-wp-theme,
+         * page-organizacion.php). El plugin también se instala en sitios sin ese tema, así
+         * que solo se devuelve si el sitio tiene publicada una página con slug "organizacion";
+         * si no, "" y la plantilla usa el link de antes ({comunidad}/es/socio/{id}).
+         */
+        private function organization_url($data) {
+            $slug = sanitize_title($data['organization']['data']['slug'] ?? '');
+            if ($slug === '') return '';
+            $page = get_page_by_path('organizacion');
+            if (!$page || $page->post_status !== 'publish') return '';
+            return add_query_arg('slug', $slug, get_permalink($page));
+        }
+
         private function extract_subject_id($wpgroup) {
             if (empty($wpgroup)) return null;
             foreach (preg_split('/\s+/', trim($wpgroup)) as $token) {

@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.4.0
+Version: 1.4.1
 Author: Online Education Center
 */
 
@@ -279,6 +279,31 @@ if (!function_exists('oec_build_color_thumb_url')) {
  * tal cual porque esa SÍ necesita el formato "de origen" para el análisis
  * de color de OEC_Api::compute_dominant_color_from_bytes().
  */
+/**
+ * ¿Este sitio es la comunidad dueña de la formación? Compara SOLO el dominio de
+ * `data.community` (ej. "https://g-se.com") con el de este sitio (home_url()):
+ * ignora protocolo, "www.", puerto y ruta, y acepta subdominios — así
+ * "nuevo.g-se.com" o "www.g-se.com/es" cuentan como "g-se.com". Antes se buscaba
+ * la URL de la comunidad como texto dentro de la URL de la página, y fallaba con
+ * cualquier subdominio. Decide el link de inscripción (register_url vs register) y
+ * lo que solo se muestra en la propia comunidad ("Organiza:", "¿Quién organiza…?").
+ */
+if (!function_exists('oec_is_community_site')) {
+    function oec_is_community_site($community_url) {
+        $host = function ($url) {
+            $url = trim((string) $url);
+            if ($url === '') return '';
+            if (!preg_match('#^[a-z][a-z0-9+.-]*://#i', $url)) $url = 'https://' . $url;
+            $h = strtolower((string) wp_parse_url($url, PHP_URL_HOST));
+            return preg_replace('/^www\./', '', rtrim($h, '.'));
+        };
+        $community = $host($community_url);
+        $site      = $host(home_url());
+        if ($community === '' || $site === '') return false;
+        return $site === $community || substr($site, -strlen('.' . $community)) === '.' . $community;
+    }
+}
+
 if (!function_exists('oec_build_display_image_url')) {
     function oec_build_display_image_url($image, $width = 1200, $quality = 89) {
         $parts    = explode('/', $image);

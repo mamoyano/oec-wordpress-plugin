@@ -286,6 +286,14 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-ac-btn .icon-close { font-size: 20px !important; color: #9ca3af !important; display: none; }
 .oec-ac-item.is-active .icon-open  { display: none; }
 .oec-ac-item.is-active .icon-close { display: block; }
+/* Botón discreto "Conocer más sobre {organización}" al pie de "¿Quién organiza esta formación?" —
+   vive dentro de .oec-prose (HTML de la API), por eso el selector lleva .oec-ac-body delante.
+   display:flex (no inline-flex): la descripción a veces termina en texto suelto, sin <p>, y el
+   botón quedaba pegado a la última palabra. */
+.oec-ac-body .oec-org-more { display: flex; width: fit-content; max-width: 100%; align-items: center; gap: 6px; margin: 16px 0 0 !important; padding: 6px 14px !important; border: 1px solid #d1d5db !important; border-radius: 20px !important; background: #fff !important; color: var(--oec-brand) !important; font-size: 13px !important; font-weight: 600 !important; line-height: 1.2 !important; text-decoration: none !important; transition: border-color .2s, background .2s; }
+.oec-ac-body .oec-org-more:hover { border-color: var(--oec-brand) !important; background: color-mix(in srgb, var(--oec-brand) 6%, #fff) !important; }
+.oec-ac-body .oec-org-more i { font-size: 12px !important; transition: transform .2s; }
+.oec-ac-body .oec-org-more:hover i { transform: translateX(2px); }
 .oec-ac-body { max-height: 0; overflow: hidden; transition: all .35s cubic-bezier(.4,0,.2,1); background: #fafafa !important; font-size: 14px !important; line-height: 1.65 !important; color: #374151 !important; }
 .oec-ac-body ul, .oec-prose ul { list-style: none !important; padding: 0 !important; margin: 8px 0 !important; }
 .oec-ac-body ul li, .oec-prose ul li { position: relative; padding-left: 16px !important; margin-bottom: 5px !important; }

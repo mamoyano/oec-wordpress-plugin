@@ -542,7 +542,7 @@ if (!class_exists('OEC_Admin')) {
         <p class="description">
             {{ data.short_description|raw }}
         </p>
-        {% set enrollmentLink = data.community in extra.current_url ? data.register_url : data.register %}
+        {% set enrollmentLink = extra.in_community ? data.register_url : data.register %}
         <a class="enroll-button" href="{{ enrollmentLink }}">INICIAR INSCRIPCIÓN</a>
     [/oec-content]';
                                     echo esc_html($example_code); 

@@ -3,7 +3,9 @@
 {# ══════════════════════════════════════════════════════════════
    VARIABLES TWIG
 ══════════════════════════════════════════════════════════════ #}
-{% if data.community in extra.current_url %}
+{# extra.in_community (plugin ≥ 1.4.1) compara solo el dominio: nuevo.g-se.com cuenta como g-se.com.
+   Si el plugin es más viejo, cae a la comparación de antes. #}
+{% if extra.in_community is defined ? extra.in_community : (data.community in extra.current_url) %}
     {% set inCommunity = true %}
     {% set enrollmentLink = data.register_url %}
 {% else %}
@@ -333,8 +335,12 @@
                         </div>
                     {% endif %}
                     {% if inCommunity %}
+                        {# Con landing de la organización en este sitio (extra.org_url, plugin ≥ 1.4.1) se
+                           enlaza ahí, en la misma pestaña; si no, al perfil de socio en la comunidad. #}
                         <div class="oec-organizer">Organiza:
-                            {% if data.organization.data.facebook_app_id %}
+                            {% if extra.org_url is defined and extra.org_url %}
+                                <a href="{{ extra.org_url }}">{{ organizacion_name }}</a>
+                            {% elseif data.organization.data.facebook_app_id %}
                                 <a href="{{ data.community }}/es/socio/{{ data.organization.data.facebook_app_id }}" target="_blank">{{ organizacion_name }}</a>
                             {% else %}{{ organizacion_name }}{% endif %}
                         </div>
@@ -992,6 +998,9 @@
                             <h4 style="font-weight:700 !important;margin:0 !important">{{ organizacion_name }}</h4>
                         </div>
                         {{ data.organization.data.short_description|fix_orphan_li|raw }}
+                        {% if extra.org_url is defined and extra.org_url %}
+                            <a class="oec-org-more" href="{{ extra.org_url }}">Conocer más sobre {{ organizacion_name }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                        {% endif %}
                     </div>
                 </div>
             {% endif %}
