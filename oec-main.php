@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.4.1
+Version: 1.4.2
 Author: Online Education Center
 */
 
@@ -517,6 +517,7 @@ if (!function_exists('oec_seo_and_stars_metadata')) {
         echo "<meta name='twitter:description' content='{$desc}'>\n\n";
 
         oec_breadcrumb_jsonld($data, $url);
+        oec_course_jsonld($data, oec_get_page_bundle()['summary'] ?? null);
     }
 }
 
@@ -558,6 +559,139 @@ if (!function_exists('oec_breadcrumb_jsonld')) {
         ];
 
         echo "<script type='application/ld+json'>" . wp_json_encode($jsonld, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "</script>\n\n";
+    }
+}
+
+/**
+ * Texto plano de un campo HTML de la API ("</p><p>" sin espacio en el medio → se agrega uno antes
+ * de sacar las etiquetas, para no pegar palabras), cortado en una palabra a $max caracteres.
+ */
+if (!function_exists('oec_jsonld_text')) {
+    function oec_jsonld_text($html, $max = 0) {
+        $text = preg_replace('/<\/(p|div|li|h[1-6])\s*>|<br\s*\/?>/i', ' ', (string) $html);
+        $text = html_entity_decode(wp_strip_all_tags($text), ENT_QUOTES, 'UTF-8');
+        $text = trim(preg_replace('/\s+/u', ' ', $text));
+        if ($max && mb_strlen($text) > $max) {
+            $cut  = mb_substr($text, 0, $max - 1);
+            $sp   = mb_strrpos($cut, ' ');
+            $text = rtrim($sp ? mb_substr($cut, 0, $sp) : $cut, " ,.;:-") . '…';
+        }
+        return $text;
+    }
+}
+
+/**
+ * JSON-LD Course de la ficha (en el <head>, con wp_json_encode). Antes vivía en el Twig armado a
+ * mano; [oec-content] saca ese bloque viejo de las plantillas ya pegadas (render_content), así que
+ * alcanza con actualizar el plugin en cada sitio.
+ * Campos que Google pide para "Course info": name, description, provider, offers con category, y
+ * hasCourseInstance con courseMode + courseWorkload (o courseSchedule). El resto (certificado,
+ * programa por módulo, requisitos, qué se aprende, inscriptos) es lo que usan los asistentes de IA
+ * para responder sobre la formación. Todo sale de datos que la ficha muestra.
+ */
+if (!function_exists('oec_course_jsonld')) {
+    function oec_course_jsonld($data, $summary = null) {
+        $url   = oec_get_current_training_canonical();
+        $today = current_time('Y-m-d');
+        // Las fechas de la API son días de calendario: la parte AAAA-MM-DD es el día (ver normalize_dates()).
+        $day   = fn($v) => $v ? substr((string) $v, 0, 10) : '';
+        $open  = $day($data['enrollment_end'] ?? '') >= $today;
+        $sync  = in_array($data['synchronicity'] ?? '', ['SYNC', 'MIXED'], true);
+        $mod   = (string) ($data['modality'] ?? '');
+        $mode  = $mod === 'ONLINE' ? 'online' : (strpos($mod, 'BLEND') !== false ? 'blended' : 'onsite');
+        $hours = (int) ($data['lecture_hours'] ?? 0);
+
+        $in_community = function_exists('oec_is_community_site') && oec_is_community_site($data['community'] ?? '');
+        $enroll_url   = $in_community ? ($data['register_url'] ?? '') : ($data['register'] ?? '');
+        $price        = (float) ($data['prices']['total'] ?? 0);
+
+        $instructors = [];
+        foreach ($data['teachers']['data'] ?? [] as $t) {
+            $name = trim(($t['first_name'] ?? '') . ' ' . ($t['last_name'] ?? ''));
+            if ($name === '') continue;
+            $instructors[] = array_filter([
+                '@type'       => 'Person',
+                'name'        => $name,
+                'description' => oec_jsonld_text($t['origin'] ?? '', 200) ?: null,
+            ]);
+        }
+
+        $credentials = [];
+        foreach ($data['certificates']['data'] ?? [] as $c) {
+            if (empty($c['name'])) continue;
+            $credentials[] = array_filter([
+                '@type'              => 'EducationalOccupationalCredential',
+                'name'               => $c['name'],
+                'credentialCategory' => 'certificate',
+                'recognizedBy'       => !empty($c['organization_name']) ? ['@type' => 'Organization', 'name' => $c['organization_name']] : null,
+            ]);
+        }
+
+        $syllabus = [];
+        foreach ($data['modules']['data'] ?? [] as $i => $m) {
+            $subjects = array_filter(array_map(fn($a) => trim((string) ($a['name'] ?? '')), $m['subjects']['data'] ?? []));
+            $syllabus[] = array_filter([
+                '@type'        => 'Syllabus',
+                'name'         => 'Módulo ' . ($m['number'] ?? ($i + 1)),
+                'description'  => $subjects ? oec_jsonld_text(implode('. ', $subjects), 500) : null,
+                'timeRequired' => !empty($m['lecture_hours']) ? 'PT' . (int) $m['lecture_hours'] . 'H' : null,
+            ]);
+        }
+
+        $offer = null;
+        if (empty($data['force_contact'])) {
+            $offer = array_filter([
+                '@type'         => 'Offer',
+                'category'      => $price > 0 ? 'Paid' : 'Free',
+                'price'         => $price,
+                'priceCurrency' => $data['prices']['currency'] ?? null,
+                // Inscripción cerrada: OutOfStock en vez de omitir la oferta ("sin cupo por ahora").
+                'availability'  => $open ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+                'validThrough'  => $open ? ($day($data['enrollment_end'] ?? '') ?: null) : null,
+                'url'           => $open && $enroll_url ? $enroll_url : $url,
+            ], fn($v) => $v !== null && $v !== '');
+        }
+
+        $count  = (int) ($summary['count'] ?? 0);
+        $course = array_filter([
+            '@context'                     => 'https://schema.org',
+            '@type'                        => 'Course',
+            '@id'                          => $url . '#course',
+            'name'                         => $data['name'] ?? ($data['title'] ?? ''),
+            'description'                  => oec_jsonld_text($data['short_description'] ?? '', 500) ?: ($data['title'] ?? null),
+            'url'                          => $url,
+            'image'                        => !empty($data['image']) ? oec_build_display_image_url($data['image']) : null,
+            'inLanguage'                   => 'es',
+            'provider'                     => array_filter([
+                '@type' => 'Organization',
+                'name'  => $data['organization']['data']['name'] ?? null,
+                'url'   => $data['community'] ?? null,
+            ]),
+            'teaches'                      => oec_jsonld_text($data['objetives'] ?? '', 600) ?: null,
+            'coursePrerequisites'          => oec_jsonld_text($data['requirements'] ?? '', 400) ?: null,
+            'educationalCredentialAwarded' => $credentials ?: null,
+            'totalHistoricalEnrollment'    => (int) ($data['total_students'] ?? 0) ?: null,
+            'syllabusSections'             => $syllabus ?: null,
+            'aggregateRating'              => $count > 0 ? [
+                '@type'       => 'AggregateRating',
+                'ratingValue' => round((float) ($summary['average'] ?? 0), 2),
+                'reviewCount' => $count,
+                'bestRating'  => 5,
+                'worstRating' => 1,
+            ] : null,
+            'offers'                       => $offer ?: null,
+            'hasCourseInstance'            => array_filter([
+                '@type'          => 'CourseInstance',
+                'courseMode'     => $mode,
+                // "Horas cátedra" de la API, tal cual las muestra la ficha.
+                'courseWorkload' => $hours ? 'PT' . $hours . 'H' : null,
+                'startDate'      => $sync ? ($day($data['start'] ?? '') ?: null) : null,
+                'endDate'        => $sync ? ($day($data['end'] ?? '') ?: null) : null,
+                'instructor'     => $instructors ?: null,
+            ]),
+        ], fn($v) => $v !== null && $v !== '' && $v !== []);
+
+        echo "<script type='application/ld+json'>" . wp_json_encode($course, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) . "</script>\n\n";
     }
 }
 

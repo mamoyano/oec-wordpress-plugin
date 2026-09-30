@@ -225,7 +225,7 @@ resumir reviews por afuera) quedan a criterio de Mario.
 Ya implementado (`oec-main.php`):
 - Meta tags clásicos (title, description, canonical, Open Graph,
   `twitter:title`/`description`, `og:locale`) vía `oec_seo_and_stars_metadata()`.
-- JSON-LD `Course` + `FAQPage` (en el propio Twig de la ficha),
+- JSON-LD `Course` (desde v1.4.2 en PHP, `oec_course_jsonld()` — ver su sección) + `FAQPage` (en el propio Twig de la ficha),
   `BreadcrumbList` y `Organization`/`WebSite` (en `oec-main.php`, todas las
   páginas). El `Course` declara `offers` con `availability: OutOfStock`
   cuando la formación tiene inscripción cerrada, en vez de omitir `offers`
@@ -2188,6 +2188,33 @@ barra final. Ahora:
 - Para probar en local como si el sitio fuera la comunidad: mu-plugin temporal con
   `add_filter('pre_option_home', fn() => 'https://nuevo.g-se.com/es')` + `remove_action('template_redirect',
   'redirect_canonical')` activado por un query param; borrarlo al terminar.
+
+## v1.4.2 — `Course` en PHP, completo para Google y para IA (2026-09-30)
+
+Origen: auditoría de performance/SEO hecha desde el tema antes de pasar nuevo.g-se.com a g-se.com.
+El `Course` que armaba el Twig a mano era JSON válido, pero le faltaban dos campos que Google pide
+para "Course info": `offers.category` y, en `hasCourseInstance`, `courseWorkload` (o `courseSchedule`).
+
+- **Ahora sale del `<head>`**: `oec_course_jsonld($data, $summary)` en `oec-main.php`, llamado desde
+  `oec_seo_and_stars_metadata()` después del breadcrumb, con `wp_json_encode` (+ `JSON_HEX_TAG`, así un
+  `</script>` en un texto de la API no puede cortar el bloque). Ayudante `oec_jsonld_text()`: HTML de
+  la API → texto plano (espacio en los cierres de bloque, como la meta description), cortado en palabra.
+- **Plantillas ya pegadas**: `render_content()` saca del HTML renderizado el bloque `Course` viejo del
+  Twig (regex sobre `"@type": "Course"`), así no hay dos `Course` en la página y alcanza con actualizar
+  el plugin, sin volver a pegar la plantilla en cada sitio. `page-formacion-testing.html` y
+  `page-formacion.txt` ya no lo traen (quedó un comentario Twig).
+- **Campos nuevos**: `@id` (`{canonical}#course`), `offers.category` (Paid/Free según `prices.total`),
+  `courseWorkload` (`PT{lecture_hours}H`: son las "horas cátedra" que muestra la ficha, tal cual),
+  `educationalCredentialAwarded` (certificados, con `recognizedBy` = organización que lo otorga),
+  `syllabusSections` (un `Syllabus` por módulo: asignaturas + horas), `teaches` (`objetives`),
+  `coursePrerequisites` (`requirements`), `totalHistoricalEnrollment` (`total_students`). Todo se ve
+  en la ficha (contenidos, "Más información"), como pide Google.
+- **Se mantiene** la lógica de antes: `force_contact` → sin `offers`; inscripción cerrada → `OutOfStock`
+  con la URL de la propia ficha; abierta → `InStock` + `validThrough` + link de inscripción
+  (`register_url` si `oec_is_community_site()`, si no `register`); fechas de inicio/fin solo si es
+  sincrónica/mixta. Las fechas se toman como día de calendario (`AAAA-MM-DD` del valor de la API).
+- Verificado en local con 8 formaciones abiertas y 3 cerradas: un solo `Course` por página, JSON
+  válido, `BreadcrumbList` + `Course` + `FAQPage`.
 
 ## Pendientes abiertos (a retomar)
 

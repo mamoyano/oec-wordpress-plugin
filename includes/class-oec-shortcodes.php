@@ -663,6 +663,11 @@ if (!class_exists('OEC_Shortcodes')) {
                 ]);
             });
 
+            // El JSON-LD Course ahora sale del <head> (oec_course_jsonld(), oec-main.php, con
+            // wp_json_encode). Las plantillas pegadas antes de v1.4.2 todavía traen el suyo armado
+            // en Twig: se saca acá para no declarar dos Course distintos en la misma página.
+            $output = preg_replace('#<script type="application/ld\+json">\s*\{\s*"@context":\s*"https://schema\.org",\s*"@type":\s*"Course".*?</script>#s', '', (string) $output, 1);
+
             return $this->full_bleed_wrap($output, $dominant_color_css);
         }
 

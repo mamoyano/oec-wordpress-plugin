@@ -187,74 +187,9 @@
 {% set showFloatWhatsapp = showWhatsappBlock %}
 {% set showFloatBotmaker = extra.equipo_oec and extra.botmaker_id and (data.prices.total < 200 or not openEnrollment) %}
 
-{# ══════════════════════════════════════════════════════════════
-   SCHEMA.ORG JSON-LD — para Google y agentes de IA
-══════════════════════════════════════════════════════════════ #}
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Course",
-  "name": "{{ data.name|e('js') }}",
-  "description": "{{ data.short_description|replace({'</p>':' ','<br>':' ','<br/>':' ','<br />':' ','</div>':' ','</li>':' '})|striptags|slice(0,300)|e('js') }}",
-  "url": "{{ data.canonical|default(extra.current_url) }}",
-  "image": "https://imgrsize.oe-img.center/campus/capacitacion/imagen/{{ t_image_last }}?w=1200&q=89&format=webp",
-  "inLanguage": "es",
-  "provider": {
-    "@type": "Organization",
-    "name": "{{ organizacion_name|e('js') }}",
-    "url": "{{ data.community }}"
-  },
-  {% if reviews.summary.count is defined and reviews.summary.count > 0 %}
-  "aggregateRating": {
-    "@type": "AggregateRating",
-    "ratingValue": "{{ reviews.summary.average|number_format(2,'.','') }}",
-    "reviewCount": "{{ reviews.summary.count }}",
-    "bestRating": "5",
-    "worstRating": "1"
-  },
-  {% endif %}
-  {% if openEnrollment and not force_contact %}
-  "offers": {
-    "@type": "Offer",
-    "price": "{{ data.prices.total }}",
-    "priceCurrency": "{{ data.prices.currency }}",
-    "availability": "https://schema.org/InStock",
-    "validThrough": "{{ data.enrollment_end|date('Y-m-d') }}",
-    "url": "{{ enrollmentLink }}"
-  },
-  {% elseif not force_contact %}
-  {# Inscripciones cerradas: en vez de omitir "offers" (que le deja a Google
-     la duda de si esto dejó de tener oferta para siempre), declaramos
-     explícitamente OutOfStock — mismo patrón que e-commerce usa para
-     "temporalmente sin stock". La URL apunta a la propia ficha (no tiene
-     sentido mandar a un checkout cerrado). #}
-  "offers": {
-    "@type": "Offer",
-    "price": "{{ data.prices.total }}",
-    "priceCurrency": "{{ data.prices.currency }}",
-    "availability": "https://schema.org/OutOfStock",
-    "url": "{{ data.canonical|default(extra.current_url) }}"
-  },
-  {% endif %}
-  "hasCourseInstance": {
-    "@type": "CourseInstance",
-    "courseMode": "{% if modality == 'ONLINE' %}online{% elseif modality == 'ONSITE' %}onsite{% else %}blended{% endif %}",
-    {% if synchronic %}
-    "startDate": "{{ data.start|date('Y-m-d') }}",
-    "endDate": "{{ data.end|date('Y-m-d') }}",
-    {% endif %}
-    "instructor": [
-      {% for docente in data.teachers.data %}
-      {
-        "@type": "Person",
-        "name": "{{ docente.first_name|e('js') }} {{ docente.last_name|e('js') }}"{% if docente.origin %},
-        "description": "{{ docente.origin|striptags|e('js') }}"{% endif %}
-      }{% if not loop.last %},{% endif %}
-      {% endfor %}
-    ]
-  }
-}
-</script>
+{# JSON-LD Course: lo imprime el plugin en el <head> (oec_course_jsonld(), oec-main.php)
+   con los mismos datos. Si una plantilla vieja todavía trae su bloque Course,
+   render_content() lo saca para que no queden dos. #}
 
 {# ══════════════════════════════════════════════════════════════
    CSS — todo lo estático vive en css/oec-formacion.css (encolado desde
