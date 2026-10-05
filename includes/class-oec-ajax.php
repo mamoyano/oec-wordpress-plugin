@@ -31,9 +31,34 @@ if (!class_exists('OEC_Ajax')) {
          * y scrapers genéricos que le peguen directo al endpoint.
          */
         private function check_nonce() {
-            if (!check_ajax_referer('oec_ajax', 'nonce', false)) {
-                wp_send_json_error('Sesión inválida, recarga la página e intenta de nuevo.');
+            $sent = isset($_REQUEST['nonce']) ? sanitize_text_field(wp_unslash($_REQUEST['nonce'])) : '';
+            for ($days_ago = 0; $days_ago <= self::TOKEN_DAYS; $days_ago++) {
+                if ($sent !== '' && hash_equals(self::token($days_ago), $sent)) {
+                    return;
+                }
             }
+            // Páginas generadas antes de este cambio (nonce de WordPress).
+            if (check_ajax_referer('oec_ajax', 'nonce', false)) {
+                return;
+            }
+            wp_send_json_error('Sesión inválida, recarga la página e intenta de nuevo.');
+        }
+
+        /**
+         * Código que va embebido en la ficha (extra.ajax_nonce) en lugar de un
+         * nonce de WordPress: la ficha queda hasta 1 día en la caché de
+         * Cloudflare (+1 día sirviéndose mientras se renueva) y un nonce vence
+         * en 12-24 h — la página cacheada mostraba "Sesión inválida" y
+         * recargar no lo arreglaba. Este dura TOKEN_DAYS días: es el mismo para
+         * todos los visitantes de un día (las páginas son públicas y anónimas
+         * igual), y cumple la misma función que antes: frenar bots que le
+         * pegan directo a admin-ajax.php sin haber cargado una ficha.
+         */
+        const TOKEN_DAYS = 3;
+
+        public static function token($days_ago = 0) {
+            $day = (int) floor(time() / DAY_IN_SECONDS) - (int) $days_ago;
+            return substr(hash_hmac('sha256', 'oec_ajax|' . $day, wp_salt('nonce')), 0, 20);
         }
 
         /**

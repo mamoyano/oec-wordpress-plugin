@@ -650,7 +650,7 @@ if (!class_exists('OEC_Shortcodes')) {
                     'ventas_email'        => get_option('oec_ventas_email', ''),
                     'dominant_color'      => $dominant_color,
                     'dominant_color_css'  => $dominant_color_css,
-                    'ajax_nonce'          => wp_create_nonce('oec_ajax'),
+                    'ajax_nonce'          => class_exists('OEC_Ajax') ? OEC_Ajax::token() : wp_create_nonce('oec_ajax'), // dura días: ver OEC_Ajax::token()
                     'credits_enabled'     => function_exists('oec_credits_system_enabled') && oec_credits_system_enabled(),
                     'botmaker_id'         => defined('OEC_BOTMAKER_PROJECT_ID') ? OEC_BOTMAKER_PROJECT_ID : '',
                     // Mismos ítems que el BreadcrumbList JSON-LD (oec-main.php): el hero los muestra visibles.
