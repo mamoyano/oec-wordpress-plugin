@@ -255,8 +255,9 @@
                 </div>
                 {% endif %}
                 <h1 id="oec-training-title" class="oec-h1{% if data.name|length > 80 %} l{% elseif data.name|length > 120 %} m{% endif %}" itemprop="name">{{ data.name }}</h1>
-                {% set oa_text = data.description_oa|default('')|striptags|trim %}
-                {% if oa_text and oa_text|length > 0 and oa_text|length <= 200 %}<p class="oec-hero-subtitle">{{ oa_text }}</p>{% endif %}
+                {# Bajada del título: "headline" de la API; si viene vacío, "description_oa" (solo si es corta). #}
+                {% set headline_text = data.headline|default('')|striptags|replace({'&nbsp;':' '})|trim %}{% set oa_text = headline_text ?: data.description_oa|default('')|striptags|trim %}
+                {% if oa_text and (headline_text or oa_text|length <= 200) %}<p class="oec-hero-subtitle">{{ oa_text }}</p>{% endif %}
                 <div>
                     {# El promedio + cantidad completo vive también en el ring 1 de
                        ".oec-hero-rings", a la derecha del hero — acá van las estrellas
@@ -426,6 +427,13 @@
                         {% endif %}
                     </p>
                 </div>
+                {% else %}
+                {# force_contact: esta formación no se vende online — en vez de inscribir, se invita a
+                   pedir información (lleva al formulario de Contacto). #}
+                <div class="oec-hero-cta">
+                    <a class="oec-hero-cta-btn oec-enroll-arrow scroll-link" where="oec-contacto" href="#oec-contacto">SOLICITAR INFORMACIÓN <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                    <p class="oec-hero-cta-price">Te contamos precios, fechas y cómo inscribirte.</p>
+                </div>
                 {% endif %}
             </div>
             {% endif %}
@@ -584,11 +592,11 @@
     </section>
     {% endset %}
 
-    {# BLOQUE PRESENTACIÓN — a veces trae un <iframe> de Vimeo pegado antes
-       del texto; en ese caso arma 2 columnas (video + texto), si no, la
+    {# BLOQUE PRESENTACIÓN — con video (data.video_url, o un <iframe> de Vimeo pegado
+       antes del texto en datos viejos) arma 2 columnas (video + texto); si no, la
        misma columna única de siempre. #}
     {% set bloque_presentacion %}
-    {% set pres = data.short_description|split_vimeo_intro %}
+    {% set pres = data.short_description|split_vimeo_intro(data.video_url|default('')) %}
     <section class="oec-card oec-card-pad" aria-label="Presentación del curso">
         <h2 class="oec-section-title" id="oec-presentacion">Presentación</h2>
         {% if pres.iframe %}
@@ -1340,6 +1348,14 @@
             <p class="oec-pay-label">Se puede pagar con</p>
             <div class="oec-pay-grid" id="oec-po_span"></div>
         </div>
+    </div>
+
+    {% elseif openEnrollment %}
+    {# force_contact con inscripción abierta: sin precios ni botón de compra — se invita a
+       pedir información (lleva al formulario de Contacto, que ahí pide también teléfono). #}
+    <div class="oec-rc-body" id="oec-right-column">
+        <p class="oec-rc-contact-text">Para inscribirte en esta formación, déjanos tus datos y te contactamos para contarte precios, fechas y cómo inscribirte.</p>
+        <a class="oec-btn-enroll oec-enroll-arrow scroll-link" where="oec-contacto" href="#oec-contacto" role="button">SOLICITAR INFORMACIÓN <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
     </div>
 
     {% elseif not openEnrollment %}

@@ -502,6 +502,8 @@ h1.oec-h1.m { font-size: 22px !important; }
    Tarjetas horizontales compactas para la columna derecha (~360px) —
    versión chica de las tarjetas de [oec-list], que son de grilla y no
    entran acá. Mismo criterio de color de marca. ─────────────────── */
+/* force_contact con inscripción abierta: texto que invita a pedir información, arriba del botón. */
+.oec-rc-contact-text { font-size: 13.5px !important; color: #4b5563 !important; line-height: 1.5 !important; margin: 0 !important; }
 .oec-similar-intro { font-size: 13px !important; color: #4b5563 !important; line-height: 1.5 !important; margin: 0 0 14px !important; }
 .oec-similar-list  { display: flex; flex-direction: column; gap: 10px; }
 .oec-similar-card  { display: flex; gap: 10px; text-decoration: none !important; color: inherit !important; background: #f8fafc !important; border: 1px solid #e5e7eb !important; border-radius: 10px !important; padding: 8px !important; transition: border-color .2s, box-shadow .2s; }

@@ -59,15 +59,21 @@ if (!class_exists('OEC_Shortcodes')) {
                 return $truncated . $separator;
             }));
 
-            // 3. FILTRO: split_vimeo_intro
-            // Cuando "Presentación" viene con un <iframe> de Vimeo pegado ANTES del
-            // texto (así carga la data quien arma la formación), separa el iframe
-            // del resto del HTML para poder armar un layout de 2 columnas
-            // (video + texto) en el Twig sin tener que parsear HTML ahí. Si no hay
-            // iframe de Vimeo al principio, "iframe" vuelve null y "rest" es el
-            // HTML original intacto — el Twig cae al layout de una sola columna.
-            $this->twig->addFilter(new \Twig\TwigFilter('split_vimeo_intro', function ($html) {
-                $html = trim((string) $html);
+            // 3. FILTRO: split_vimeo_intro(video_url)
+            // Video + texto de "Presentación" para el layout de 2 columnas. Desde 2026-10
+            // la API manda el video aparte, en data.video_url: si viene, el iframe se arma
+            // con esa URL (video_embed_iframe()) y "rest" es el texto entero. Si no viene,
+            // se sigue buscando como antes un <iframe> de Vimeo pegado AL PRINCIPIO de
+            // short_description y se lo separa del resto. Sin video, "iframe" es null y
+            // "rest" el HTML intacto: el Twig cae al layout de una sola columna.
+            $this->twig->addFilter(new \Twig\TwigFilter('split_vimeo_intro', function ($html, $video_url = '') {
+                $html  = trim((string) $html);
+                $embed = self::video_embed_iframe($video_url);
+                if ($embed) {
+                    // Si además quedó un iframe viejo pegado al principio del texto, no se duplica.
+                    $rest = preg_replace('/^<iframe\b[^>]*>.*?<\/iframe>\s*/is', '', $html, 1);
+                    return ['iframe' => $embed, 'rest' => trim((string) $rest)];
+                }
                 if (preg_match('/^(<iframe\b[^>]*\bsrc=["\'][^"\']*vimeo[^"\']*["\'][^>]*>.*?<\/iframe>)\s*(.*)$/is', $html, $m)) {
                     $iframe = $m[1];
                     // El embed de Vimeo que llega del CMS no trae loading="lazy" — sin
@@ -587,12 +593,8 @@ if (!class_exists('OEC_Shortcodes')) {
             $current_url = strtok($full_url, '?');
             $brand_color = get_option('oec_brand_color', '#a435f0');
 
-            // Plantillas pegadas antes de 1.4.1 deciden "¿es la comunidad dueña?" buscando la
-            // URL de la comunidad como texto dentro de la URL de la página, y eso falla con
-            // subdominios (nuevo.g-se.com no contiene "https://g-se.com"). Se reemplaza al
-            // vuelo por extra.in_community (solo dominio, oec_is_community_site()), así los
-            // sitios quedan bien con solo actualizar el plugin, sin volver a pegar la plantilla.
-            $content = preg_replace('/data\.community\s+in\s+extra\.current_url/', 'extra.in_community', (string) $content);
+            // Plantillas pegadas con versiones anteriores del plugin: se ponen al día al vuelo.
+            $content = $this->upgrade_template($content);
 
             // Formación + reviews + resumen + color dominante: todo sale de acá,
             // compartido con la metadata de SEO de wp_head (oec_get_page_bundle(),
@@ -875,6 +877,54 @@ if (!class_exists('OEC_Shortcodes')) {
             }
             return $value;
         }
+
+        /**
+         * <iframe> del video de "Presentación" a partir de data.video_url — el mismo que antes
+         * venía pegado en short_description (loading="lazy" + src del player), así la ficha se
+         * ve igual. Acepta Vimeo (vimeo.com/ID, vimeo.com/ID/hash, player.vimeo.com/video/ID)
+         * y YouTube (watch?v=, youtu.be/, /embed/, /shorts/). Cualquier otra URL → "" (no se
+         * embebe una página cualquiera que llegue por la API).
+         */
+        public static function video_embed_iframe($url) {
+            $url = trim(html_entity_decode((string) $url, ENT_QUOTES, 'UTF-8'));
+            if ($url === '') return '';
+            if (preg_match('#^https?://(?:www\.)?player\.vimeo\.com/video/(\d+)(?:\?([^\s"\'<>]*))?#i', $url, $m)) {
+                $src = 'https://player.vimeo.com/video/' . $m[1] . (!empty($m[2]) ? '?' . $m[2] : '');
+            } elseif (preg_match('#^https?://(?:www\.)?vimeo\.com/(?:video/)?(\d+)(?:/([0-9a-f]+))?#i', $url, $m)) {
+                $src = 'https://player.vimeo.com/video/' . $m[1] . (!empty($m[2]) ? '?h=' . $m[2] : '');
+            } elseif (preg_match('#^https?://(?:www\.|m\.)?(?:youtube\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/)|youtu\.be/)([A-Za-z0-9_-]{11})#i', $url, $m)) {
+                $src = 'https://www.youtube-nocookie.com/embed/' . $m[1];
+            } else {
+                return '';
+            }
+            return '<iframe loading="lazy" src="' . esc_url($src) . '" title="Video de presentación" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+        }
+
+        /**
+         * Pone al día una plantilla de la ficha pegada con una versión anterior del plugin, para
+         * que cada sitio quede bien con solo actualizar el plugin, sin volver a pegarla. Cada
+         * reemplazo apunta a un texto EXACTO de la plantilla vieja: en la actual no matchea nada.
+         */
+        private function upgrade_template($content) {
+            $content = (string) $content;
+            // < 1.4.1: "¿es la comunidad dueña?" buscaba la URL de la comunidad como texto dentro
+            // de la URL de la página → falla con subdominios (nuevo.g-se.com). Ahora: solo dominio.
+            $content = preg_replace('/data\.community\s+in\s+extra\.current_url/', 'extra.in_community', $content);
+            // < 1.4.3: la bajada salía de description_oa (si tenía hasta 200 caracteres); ahora sale
+            // de headline, y description_oa queda de respaldo con el mismo tope.
+            $old_sub = "{% set oa_text = data.description_oa|default('')|striptags|trim %}";
+            if (strpos($content, $old_sub) !== false) {
+                $content = str_replace($old_sub, self::SUBTITLE_TWIG, $content);
+                $content = str_replace('{% if oa_text and oa_text|length > 0 and oa_text|length <= 200 %}', '{% if oa_text and (headline_text or oa_text|length <= 200) %}', $content);
+            }
+            // < 1.4.3: el video de "Presentación" solo se buscaba pegado en short_description;
+            // ahora también llega aparte en video_url.
+            $content = preg_replace('/split_vimeo_intro(?!\s*\()/', "split_vimeo_intro(data.video_url|default(''))", $content);
+            return $content;
+        }
+
+        /** Bajada del título: headline (sin HTML) o, si viene vacío, description_oa. */
+        const SUBTITLE_TWIG = "{% set headline_text = data.headline|default('')|striptags|replace({'&nbsp;':' '})|trim %}{% set oa_text = headline_text ?: data.description_oa|default('')|striptags|trim %}";
 
         /** "17 de Septiembre de 2026" (o sin año), en la hora del sitio. Filtro Twig format_date y tarjetas de [oec-list]. */
         public static function format_date_es($date, $includeYear = true) {

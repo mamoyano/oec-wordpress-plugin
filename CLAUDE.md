@@ -2216,6 +2216,27 @@ para "Course info": `offers.category` y, en `hasCourseInstance`, `courseWorkload
 - Verificado en local con 8 formaciones abiertas y 3 cerradas: un solo `Course` por página, JSON
   válido, `BreadcrumbList` + `Course` + `FAQPage`.
 
+## v1.4.3 — force_contact completo, bajada desde `headline`, video desde `video_url` (2026-10-05)
+
+- **`force_contact: true`** = no se vende online: nunca "INICIAR INSCRIPCIÓN", se invita a contactar.
+  Revisado lugar por lugar (simulado: ninguna formación abierta lo tenía): hero, caja fija de la
+  columna derecha, sticky, barra mobile, formulario de Contacto (pide teléfono, botón "SOLICITAR
+  INFORMACIÓN") y JSON-LD (`oec_course_jsonld()` omite `offers`). Había dos huecos: el hero quedaba
+  sin llamado a la acción y la caja fija `.oec-rc` quedaba VACÍA con inscripción abierta (sus ramas
+  eran "abierta y sin force_contact" / "cerrada"). Ahora los dos muestran "SOLICITAR INFORMACIÓN"
+  (`scroll-link` a `#oec-contacto`); la caja suma `.oec-rc-contact-text`.
+- **Bajada del título**: sale de `data.headline` (viene con `<p>`: se le sacan las etiquetas, sin tope de
+  largo); si viene vacío, de `description_oa` como antes (solo si tiene ≤200 caracteres).
+- **Video de "Presentación"**: la API manda el texto en `short_description` y el video aparte en
+  `video_url`. `split_vimeo_intro(video_url)` arma el iframe con `OEC_Shortcodes::video_embed_iframe()`
+  (mismo `<iframe loading="lazy" src=…>` que venía pegado + `allow`/`allowfullscreen`/`title`; acepta
+  Vimeo y YouTube, cualquier otra URL no se embebe). Sin `video_url` sigue buscando el iframe pegado al
+  principio del texto (datos viejos); con los dos, no lo duplica.
+- **`upgrade_template()`** (`class-oec-shortcodes.php`) junta los reemplazos "al vuelo" para plantillas
+  ya pegadas con versiones viejas (comunidad por dominio de 1.4.1 + bajada y video de 1.4.3): cada sitio
+  queda bien con solo actualizar el plugin. Lo de force_contact (hero y caja) SÍ está en la plantilla:
+  para eso hay que volver a pegarla.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto
