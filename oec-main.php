@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.4.5
+Version: 1.4.6
 Author: Online Education Center
 */
 
@@ -502,7 +502,7 @@ if (!function_exists('oec_seo_and_stars_metadata')) {
         echo "\n\n";
         echo "<meta name='description' content='{$desc}'>\n";
         echo "<meta property='og:type' content='website'>\n";
-        echo "<meta property='og:locale' content='es_ES'>\n";
+        echo "<meta property='og:locale' content='" . esc_attr(get_locale()) . "'>\n"; // el idioma del sitio (es_AR en g-se.com), no fijo
         echo "<meta property='og:site_name' content='" . esc_attr(get_bloginfo('name')) . "'>\n";
         echo "<meta property='og:url' content='{$url}'>\n";
         echo "<meta property='og:title' content='{$title}'>\n";
