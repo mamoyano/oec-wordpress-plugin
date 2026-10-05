@@ -628,6 +628,9 @@ function getRegPrices(id,total,country,currency){
         jQuery('.just-price').text(`${cur} ${formatOecMoney(Math.round(data.total*100)/100)}`);
         // Un módulo que vale 0 se muestra como GRATIS (igual que .just-price con total 0), no "ARS 0".
         if(data.modules) jQuery.each(data.modules,(i,v)=>jQuery(`.price-module-${i}`).text(v.amount>0 ? `${cur} ${formatOecMoney(Math.round(v.amount*100)/100)}` : 'GRATIS'));
+        // force_contact: la formación no se vende online → no se muestran formas de pago (ni en la
+        // caja sticky, que en plantillas pegadas antes de 1.4.4 trae el bloque igual, oculto).
+        if(OEC_CONFIG.force_contact) return;
         const poDivEl = document.getElementById('oec-po_div');
         if(poDivEl) poDivEl.style.display='block';
         const stickyPayWrapEl = document.getElementById('oec-sticky-pay-wrap');
@@ -999,6 +1002,9 @@ jQuery(document).ready(function($){
 
     // Bios de docentes: convierte listas de enlaces sociales en botones — no depende
     // de ningún fetch, corre apenas el DOM está listo
+    // force_contact: el botón de la caja sticky ya es "SOLICITAR INFORMACIÓN" — el link "¿O necesitas
+    // más información?" lleva al mismo lugar. Plantillas pegadas antes de 1.4.4 lo traen igual: se saca.
+    if (OEC_CONFIG.force_contact) $('.oec-sticky-more').remove();
     oecSafe('initTeacherSocialLinks', initTeacherSocialLinks);
     oecSafe('initBotmakerChat', initBotmakerChat);
     oecSafe('initAddToCalendar', initAddToCalendar);

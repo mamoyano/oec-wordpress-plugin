@@ -1437,11 +1437,15 @@
     {% else %}
         <a class="oec-btn-enroll oec-sticky-enroll scroll-link" where="oec-contacto">SOLICITAR INFORMACIÓN</a>
     {% endif %}
+    {% if not force_contact %}{# force_contact: no se vende online → sin formas de pago #}
     <div id="oec-sticky-pay-wrap" style="display:none">
         <p class="oec-pay-label">Se puede pagar con</p>
         <div class="oec-pay-grid" id="oec-sticky-pay"></div>
     </div>
+    {% endif %}
+    {% if not force_contact %}{# con force_contact el botón ya es "SOLICITAR INFORMACIÓN": sería repetir el mismo destino #}
     <a class="oec-sticky-more scroll-link" where="oec-contacto">¿O necesitas más información?</a>
+    {% endif %}
 </div>
 {% endif %}
 

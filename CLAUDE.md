@@ -2237,6 +2237,16 @@ para "Course info": `offers.category` y, en `hasCourseInstance`, `courseWorkload
   queda bien con solo actualizar el plugin. Lo de force_contact (hero y caja) SÍ está en la plantilla:
   para eso hay que volver a pegarla.
 
+**v1.4.4** (2026-10-05): con `force_contact` tampoco se muestran las formas de pago ("Se puede pagar
+con"). La caja sticky (`#oec-sticky-pay-wrap`) las traía ocultas y `getRegPrices()` las hacía visibles
+igual: ahora el Twig no genera ese bloque con `force_contact` y el JS no muestra ni llena ninguna caja
+de pago si `OEC_CONFIG.force_contact` (cubre plantillas ya pegadas sin volver a pegarlas). La caja fija,
+la barra mobile y el bullet de pago ya estaban condicionados. Probado con la plantilla de 1.4.3 y la
+nueva (force_contact simulado en ND2, que tiene 3 medios de pago) y sin force_contact (siguen apareciendo).
+También se saca el link "¿O necesitas más información?" (`.oec-sticky-more`) de la caja sticky: con
+force_contact el botón ya es "SOLICITAR INFORMACIÓN" y llevaba al mismo lugar (Twig + `remove()` en el JS
+para plantillas ya pegadas).
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto
