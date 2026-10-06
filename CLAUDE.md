@@ -2303,6 +2303,24 @@ el nombre de la organización que dicta (una universidad) → dato contradictori
 `@id` = `{url}#organization`, el mismo que imprime esa landing), solo si la organización está en el catálogo
 (`OEC_AI_Catalog::get_organization`); si no (o en otro tema), `provider` queda solo con el nombre.
 
+## v1.4.11 — opiniones dentro del Course y sin microdatos sueltos (2026-10-06)
+
+El Rich Results Test marcaba 20 "Fragmentos de reseñas" inválidos por ficha: la plantilla tenía
+microdatos (`itemscope`/`itemtype`/`itemprop`) sueltos — cada opinión era un `Review` sin
+`itemReviewed` (crítico) y con `author` sin tipo; también había `ImageObject` en el hero (con el título
+como nombre), `Person` de docentes, `Syllabus` y `educationalCredentialAwarded` fuera de cualquier Course.
+- **Opiniones en el JSON-LD**: `oec_course_jsonld($data, $summary, $reviews)` suma `review` con las
+  opiniones de la primera página de la API (`oec_get_page_bundle()['reviews']['reviews']`, la misma lista
+  que muestra la ficha como `reviews.all`): autor `Person` (prefijo + nombre + apellido), `reviewRating`
+  (1–5), `reviewBody` y `datePublished`. Se saltean las que no tienen nombre, texto o puntaje.
+- **Sin microdatos**: `render_content()` quita todos los `itemscope`/`itemtype`/`itemprop` del HTML
+  renderizado (sirve para plantillas ya pegadas); `page-formacion-testing.html` / `.txt` ya no los traen
+  (siguen idénticas). Ningún CSS/JS los usaba. El JSON-LD del Course es la única fuente.
+- **Cómo lo muestra Google** (para no confundirse al revisar): en "Fragmentos de reseñas" lista el
+  elemento reseñado (el Course, con todos sus datos) una vez por cada opinión, más uno por el
+  `aggregateRating`; la opinión aparece anidada en `review`, después de `syllabusSections`. Ej.: ficha
+  con 3 opiniones → 4 elementos válidos, todos titulados con el nombre del curso.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto
