@@ -689,6 +689,17 @@ if (!class_exists('OEC_Shortcodes')) {
             $output = preg_replace('/<a href="javascript:void\(0\)"(?=[^>]*\boec-botmaker-trigger\b)/', '<a href="#chat" role="button"', $output);
             $output = preg_replace_callback('/<a\b(?![^>]*\bhref=)([^>]*\bscroll-link\b[^>]*\bwhere="([a-z0-9_-]+)"[^>]*)>/i', fn($m) => '<a href="#' . $m[2] . '"' . $m[1] . '>', $output);
 
+            // Las cuentas regresivas (.oec-countdown) arrancan ocultas y updateCountdowns()
+            // (oec-formacion.js) las muestra si faltan 15 días o menos: en la barra fija de
+            // celular eso la hacía crecer una fila al cargar (CLS ~0,05 en Lighthouse). Con la
+            // fecha en el HTML ya se sabe acá: salen visibles de entrada. Si una versión cacheada
+            // queda "oculta" y entretanto cruza los 15 días, el JS la muestra como antes.
+            $output = preg_replace_callback('/<div class="oec-countdown([^"]*)" date="([^"]+)"/', function ($m) {
+                $end = strtotime(html_entity_decode($m[2]));
+                if (!$end || floor(max(0, $end - time()) / DAY_IN_SECONDS) > 15) return $m[0];
+                return '<div class="oec-countdown' . $m[1] . '" style="display:flex" date="' . $m[2] . '"';
+            }, $output);
+
             return $this->full_bleed_wrap($output, $dominant_color_css);
         }
 

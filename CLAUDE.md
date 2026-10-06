@@ -2280,6 +2280,21 @@ PageSpeed de una ficha (móvil) marcaba TBT 830 ms y 5,2 s de hilo principal; `o
 - Probado en Chrome headless (412 px): fuera de pantalla 0 llamadas a rAF; en pantalla avanza; al
   salir, 0 de nuevo; sin errores de consola.
 
+## v1.4.9 — la barra fija de celular ya no crece al cargar (2026-10-06)
+
+Lighthouse móvil marcaba CLS ~0,054 en las fichas con inscripción abierta, siempre en `#oec-mobile-bar`
+(es `position: fixed; bottom: 0`: si gana alto, su borde de arriba sube y cuenta como salto).
+Medido con un PerformanceObserver de layout-shift en Chrome headless (412 px): la barra pasaba de 121
+a 143 px porque `.oec-mb-price-line` arranca con "···" y, cuando el JS trae los precios de la región
+("ARS 172.000"), el texto con dos precios ("Inicia con el módulo 1 (…) o los 3 con 20% off (…)") pasa a
+dos renglones. Los precios dependen de la región del visitante: no se pueden poner del lado del servidor.
+- CSS: `@media (max-width: 480px) { .oec-mb-price-line:has(.total-price) { min-height: 2lh } }`.
+- Además, `render_content()` deja visibles de entrada (`style="display:flex"`) las `.oec-countdown`
+  a las que les faltan ≤ 15 días (el mismo criterio que `updateCountdowns()`), para que tampoco salten
+  al aparecer. Con HTML cacheado que cruza los 15 días, el JS las muestra igual que antes.
+- Resultado: la barra no cambia de alto (143 px en 412; 153 en 360); queda ~0,01 de reacomodo del texto
+  del precio a lo ancho.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

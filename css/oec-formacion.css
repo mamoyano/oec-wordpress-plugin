@@ -645,6 +645,12 @@ body.oec-bm-chat-open div:has(> iframe[name="Botmaker"]) { display: flex !import
 .oec-cd-prefix { font-size: 11px !important; color: #9ca3af !important; line-height: 1.2 !important; }
 .oec-mb-price-line { margin: 0 0 8px !important; font-size: 13px !important; font-weight: 600 !important; color: #374151 !important; }
 .oec-mb-price-line span { font-weight: 800 !important; color: var(--oec-brand) !important; }
+/* Con dos precios ("Inicia con el módulo 1 (…) o los 3 con 20% off (…)") la línea arranca con "···"
+   y pasa a dos renglones cuando el JS trae los precios de la región: la barra crecía al cargar (CLS
+   ~0,05 en Lighthouse). En celulares se reservan los dos renglones desde el principio. */
+@media (max-width: 480px) {
+    .oec-mb-price-line:has(.total-price) { min-height: 2lh; }
+}
 .oec-mb-row3 { display: flex; align-items: center; gap: 10px; }
 .oec-mb-pay { flex: 0 0 28%; min-width: 0 !important; display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(to right, #000 82%, transparent 100%); mask-image: linear-gradient(to right, #000 82%, transparent 100%); }
 .oec-mb-pay::-webkit-scrollbar { display: none; }
