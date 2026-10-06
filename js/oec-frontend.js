@@ -239,21 +239,42 @@ document.addEventListener('DOMContentLoaded', function() {
         carousel.style.scrollBehavior = 'unset';
 
         let paused = false, isDragging = false, startX, startScroll, frameCount = 0, manuallyPaused = false;
+        let visible = false, rafId = 0, waitId = 0;
 
-        // Sin duplicación — mostramos las reviews únicas y el scroll se detiene al final
+        // Sin duplicación — mostramos las reviews únicas y el scroll se detiene al final.
+        // El bucle corre SOLO mientras el carrusel está en pantalla y todavía no llegó al
+        // final: antes era un requestAnimationFrame infinito que movía el scroll (y forzaba
+        // maquetado/pintado) toda la visita, aunque nadie lo estuviera mirando.
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const atEnd = () => carousel.scrollLeft + carousel.clientWidth >= carousel.scrollWidth - 1;
         function step() {
-            if (!paused && !isDragging && !manuallyPaused && !window.OEC_STOP_REVIEWS_AUTOSCROLL) {
+            rafId = 0;
+            if (!visible || manuallyPaused) return;
+            // initLiveSessionsMarquee (oec-formacion.js) la deja en true hasta saber si hay
+            // sesiones en vivo: se vuelve a mirar cada medio segundo, sin mover nada.
+            if (window.OEC_STOP_REVIEWS_AUTOSCROLL) { waitId = setTimeout(run, 500); return; }
+            if (atEnd() && (carousel.scrollLeft > 0 || carousel.scrollWidth <= carousel.clientWidth + 1)) return;
+            if (!paused && !isDragging) {
                 frameCount++;
                 if (frameCount % 3 === 0) {
                     carousel.scrollLeft += 1;
                 }
             }
-            requestAnimationFrame(step);
+            rafId = requestAnimationFrame(step);
         }
-        requestAnimationFrame(step);
+        function run() {
+            clearTimeout(waitId);
+            if (!rafId && !reduceMotion) rafId = requestAnimationFrame(step);
+        }
+        if ('IntersectionObserver' in window) {
+            new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible) run(); }).observe(carousel);
+        } else {
+            visible = true;
+            run();
+        }
 
         carousel.addEventListener('mouseenter', () => { if (!manuallyPaused) paused = true; });
-        carousel.addEventListener('mouseleave', () => { if (!manuallyPaused) paused = false; });
+        carousel.addEventListener('mouseleave', () => { if (!manuallyPaused) { paused = false; run(); } });
 
         carousel.addEventListener('mousedown', e => {
             e.preventDefault();
@@ -281,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
         carousel.addEventListener('touchmove', e => {
             carousel.scrollLeft = startScroll - (e.touches[0].pageX - startX);
         }, { passive: true });
-        carousel.addEventListener('touchend', () => { paused = false; });
+        carousel.addEventListener('touchend', () => { paused = false; run(); });
     }
 });
 // Barra fija de inscripción (mobile, #oec-mobile-bar): se desvanece cuando termina la ficha y

@@ -2266,6 +2266,20 @@ Auditoría post-lanzamiento en g-se.com (Lighthouse móvil de la ficha: 72, LCP 
 - A/B en local (ficha móvil): SEO 92 → 100, accesibilidad 91 → 95, 3 → 2 recursos bloqueantes, una
   sola descarga de la imagen del hero. Sin errores de consola; scroll-links y chat probados.
 
+## v1.4.8 — el carrusel de opiniones ya no anima fuera de pantalla (2026-10-06)
+
+PageSpeed de una ficha (móvil) marcaba TBT 830 ms y 5,2 s de hilo principal; `oec-frontend.js` sumaba
+~1,2 s de trabajo con solo ~140 ms de JS propio. Causa: el auto-scroll de `#oec-rev-carousel` era un
+`requestAnimationFrame` infinito que escribía `scrollLeft` cada 3 cuadros durante toda la visita
+(forzando maquetado/pintado), aunque el carrusel estuviera fuera de pantalla o ya al final.
+- Ahora corre solo mientras el carrusel está visible (`IntersectionObserver`), se corta al llegar al
+  final (si ya se movió, o si no hay nada que desplazar) y respeta `prefers-reduced-motion`.
+- `OEC_STOP_REVIEWS_AUTOSCROLL` (la pone `initLiveSessionsMarquee` mientras resuelve si hay sesiones en
+  vivo, y la deja en `true` si las hay): mientras esté en `true` se re-chequea cada 500 ms con
+  `setTimeout`, sin mover nada; cuando pasa a `false`, arranca. Hover/touch siguen pausando igual.
+- Probado en Chrome headless (412 px): fuera de pantalla 0 llamadas a rAF; en pantalla avanza; al
+  salir, 0 de nuevo; sin errores de consola.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto
