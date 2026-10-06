@@ -620,7 +620,7 @@ function formatOecMoney(n){
 }
 function getRegPrices(id,total,country,currency){
     if(total<=0){ jQuery('.just-price').text('GRATIS'); return; }
-    fetch(`${OEC_API.prices}/${id}/prices?country=${country}&currency=${currency}`,{cache:'force-cache'})
+    fetch(`${OEC_API.prices}/${id}/prices?country=${country}&currency=${currency}`)
     .then(r=>r.json())
     .then(data=>{
         const t=data.discountPercent?data.toPriceDiscount:data.total, cur=data.currency;
@@ -645,10 +645,19 @@ function getRegPrices(id,total,country,currency){
         checkPayOpts(['oec-po_span','oec-sticky-pay','oec-mb-pay'],id,country);
     }).catch(console.error);
 }
+// País y moneda del visitante. Sin "force-cache" (v1.4.12): con ese modo el navegador reusaba la
+// respuesta guardada sin preguntar, así que al cambiar de red/VPN seguía viendo el país anterior, y los
+// precios (la API pide revalidar: max-age=0, must-revalidate) podían quedar viejos.
 function setCountryCurrency(){
-    fetch(OEC_API.initPrefs,{cache:'force-cache'}).then(r=>r.json())
+    fetch(OEC_API.initPrefs,{cache:'no-store'}).then(r=>r.json())
     .then(data=>{
-        const c=qsp('country')||data.country||'AR', cur=qsp('currency')||data.currency||'ARS';
+        const c=String(qsp('country')||data.country||'AR').toUpperCase();
+        let cur=String(qsp('currency')||data.currency||'ARS').toUpperCase();
+        // El país detectado puede no estar entre los 16 fijos de la plantilla: sin esto el <select>
+        // quedaba vacío y la etiqueta decía "Argentina" (pasó con NL). La moneda, en cambio, tiene que
+        // ser una de las del selector — la API de precios solo cotiza esas (con otra responde error).
+        oecEnsureCountryOption(c);
+        if(!jQuery(`#oec-currencies_select option[value="${cur}"]`).length) cur='USD';
         jQuery('#oec-countries_select, #c_country').val(c);
         jQuery('#oec-currencies_select').val(cur);
         jQuery('.oec-more-info-form').attr('data-country',c);
@@ -658,7 +667,18 @@ function setCountryCurrency(){
 }
 
 // ─── SELECTOR REGIONAL (país / moneda) — imita el checkout ────
-const OEC_ALL_COUNTRIES_ES=["Afganistán","Åland","Albania","Alemania","Andorra","Angola","Anguila","Antigua y Barbuda","Antártida","Arabia Saudita","Argelia","Argentina","Armenia","Aruba","Australia","Austria","Azerbaiyán","Bahamas","Bahréin","Bangladés","Barbados","Bélgica","Belice","Benín","Bermudas","Bielorrusia","Birmania","Bolivia","Bosnia y Herzegovina","Botsuana","Brasil","Brunéi","Bulgaria","Burkina Faso","Burundi","Bután","Cabo Verde","Camboya","Camerún","Canadá","Catar","Chad","Chequia","Chile","China","Chipre","Ciudad del Vaticano","Colombia","Comoras","Corea del Norte","Corea del Sur","Costa de Marfil","Costa Rica","Croacia","Cuba","Curazao","Dinamarca","Dominica","Ecuador","Egipto","El Salvador","Emiratos Árabes Unidos","Eritrea","Eslovaquia","Eslovenia","España","Estados Unidos","Estonia","Etiopía","Filipinas","Finlandia","Fiyi","Francia","Gabón","Gambia","Georgia","Ghana","Gibraltar","Granada","Grecia","Groenlandia","Guadalupe","Guam","Guatemala","Guayana Francesa","Guernsey","Guinea","Guinea-Bisáu","Guinea Ecuatorial","Guyana","Haití","Honduras","Hong Kong","Hungría","India","Indonesia","Irak","Irán","Irlanda","Isla de Man","Islandia","Islas Caimán","Islas Cook","Islas Feroe","Islas Malvinas","Islas Marshall","Islas Salomón","Islas Turcas y Caicos","Islas Vírgenes Británicas","Islas Vírgenes de EE. UU.","Israel","Italia","Jamaica","Japón","Jersey","Jordania","Kazajistán","Kenia","Kirguistán","Kiribati","Kuwait","Laos","Lesoto","Letonia","Líbano","Liberia","Libia","Liechtenstein","Lituania","Luxemburgo","Macao","Macedonia del Norte","Madagascar","Malasia","Malaui","Maldivas","Malí","Malta","Marruecos","Martinica","Mauricio","Mauritania","Mayotte","México","Micronesia","Moldavia","Mónaco","Mongolia","Montenegro","Montserrat","Mozambique","Namibia","Nauru","Nepal","Nicaragua","Níger","Nigeria","Niue","Noruega","Nueva Caledonia","Nueva Zelanda","Omán","Países Bajos","Pakistán","Palaos","Palestina","Panamá","Papúa Nueva Guinea","Paraguay","Perú","Polinesia Francesa","Polonia","Portugal","Puerto Rico","Reino Unido","República Centroafricana","República del Congo","República Democrática del Congo","República Dominicana","Reunión","Ruanda","Rumanía","Rusia","Samoa","Samoa Americana","San Cristóbal y Nieves","San Marino","San Vicente y las Granadinas","Santa Elena","Santa Lucía","Santo Tomé y Príncipe","Senegal","Serbia","Seychelles","Sierra Leona","Singapur","Siria","Somalia","Sri Lanka","Suazilandia","Sudáfrica","Sudán","Sudán del Sur","Suecia","Suiza","Surinam","Tailandia","Taiwán","Tanzania","Tayikistán","Timor Oriental","Togo","Tonga","Trinidad y Tobago","Túnez","Turkmenistán","Turquía","Tuvalu","Ucrania","Uganda","Uruguay","Uzbekistán","Vanuatu","Venezuela","Vietnam","Yemen","Yibuti","Zambia","Zimbabue"];
+// Todos los países (ISO 3166-1). El nombre en español sale de Intl.DisplayNames: así cada país del
+// panel tiene su CÓDIGO real. Antes era una lista de nombres sin código y, si el país no estaba entre
+// los 16 fijos, se mandaba "XX" (Otros Países), que la API cotiza distinto y sin medios de pago.
+const OEC_ALL_COUNTRY_CODES='AF AX AL DE AD AO AI AG AQ SA DZ AR AM AW AU AT AZ BS BH BD BB BE BZ BJ BM BY BO BQ BA BW BR BN BG BF BI BT CV KH CM CA QA TD CZ CL CN CY VA CO KM CG CD KP KR CI CR HR CU CW DK DM EC EG SV AE ER SK SI ES US EE SZ ET PH FI FJ FR GA GM GE GH GI GD GR GL GP GU GT GF GG GN GW GQ GY HT HN HK HU IN ID IQ IR IE BV IM CX NF IS KY CC CK FO GS HM FK MP MH UM PN SB TC VG VI IL IT JM JP JE JO KZ KE KG KI XK KW LA LS LV LB LR LY LI LT LU MO MK MG MY MW MV ML MT MA MQ MU MR YT MX FM MD MC MN ME MS MZ MM NA NR NP NI NE NG NU NO NC NZ OM NL PK PW PS PA PG PY PE PF PL PT PR GB CF DO RE RW RO RU EH WS AS BL KN SM MF PM VC SH LC ST SN RS SC SL SG SX SY SO LK ZA SD SS SE CH SR SJ TH TW TZ TJ IO TF TL TG TK TO TT TN TM TR TV UA UG UY UZ VU VE VN WF YE DJ ZM ZW'.split(' ');
+const oecRegionNames=(()=>{ try{ return new Intl.DisplayNames(['es'],{type:'region'}); }catch(e){ return null; } })();
+function oecCountryName(code){ try{ return (oecRegionNames && oecRegionNames.of(code)) || code; }catch(e){ return code; } }
+// Agrega al <select> oculto el país que no esté entre los fijos de la plantilla.
+function oecEnsureCountryOption(code){
+    const $sel=jQuery('#oec-countries_select');
+    if(!code || !$sel.length || $sel.find(`option[value="${code}"]`).length) return;
+    $sel.append(jQuery('<option>').val(code).text(oecCountryName(code)));
+}
 
 let oecCountryOverrideName=null, oecFreqNameToCode={};
 
@@ -672,6 +692,8 @@ function updateOecRegionUI(){
     jQuery(`#oec-currency-list li[data-value="${currencyCode}"]`).attr('aria-selected','true');
     jQuery('#oec-country-freq li').attr('aria-selected','false');
     if(!oecCountryOverrideName) jQuery(`#oec-country-freq li[data-value="${$cSel.val()}"]`).attr('aria-selected','true');
+    jQuery('#oec-country-all li').attr('aria-selected','false');
+    jQuery(`#oec-country-all li[data-code="${$cSel.val()}"]`).attr('aria-selected','true');
 }
 
 function positionOecRegionPanel($panel){
@@ -720,7 +742,9 @@ function initOecRegionSelector(){
         oecFreqNameToCode[name.trim().toLowerCase()]=val;
         $freq.append(`<li data-value="${val}" role="option"><span>${name}</span><i class="bi bi-check-lg"></i></li>`);
     });
-    OEC_ALL_COUNTRIES_ES.forEach(name=>{ $all.append(`<li data-name="${name}" role="option"><span>${name}</span><i class="bi bi-check-lg"></i></li>`); });
+    OEC_ALL_COUNTRY_CODES.map(code=>[code, oecCountryName(code)])
+        .sort((a,b)=>a[1].localeCompare(b[1],'es'))
+        .forEach(([code,name])=>{ $all.append(jQuery(`<li role="option"><span></span><i class="bi bi-check-lg"></i></li>`).attr('data-code',code).find('span').text(name).end()); });
     jQuery('#oec-currencies_select option').each(function(){
         const val=jQuery(this).val(), name=jQuery(this).text();
         $cur.append(`<li data-value="${val}" role="option"><span>${name}</span><i class="bi bi-check-lg"></i></li>`);
@@ -754,9 +778,11 @@ function initOecRegionSelector(){
         jQuery('#oec-country-panel').prop('hidden',true); openOecRegionPanel('oec-region-panel');
     });
     $all.on('click','li',function(){
-        const name=jQuery(this).data('name'), code=oecFreqNameToCode[String(name).trim().toLowerCase()];
-        if(code){ jQuery('#oec-countries_select').val(code); oecCountryOverrideName=null; }
-        else { jQuery('#oec-countries_select').val('XX'); oecCountryOverrideName=name; }
+        // Siempre el código real del país (antes, fuera de los 16 fijos, iba "XX" → otros precios).
+        const code=String(jQuery(this).attr('data-code')||'');
+        if(!code) return;
+        oecEnsureCountryOption(code);
+        jQuery('#oec-countries_select').val(code); oecCountryOverrideName=null;
         updateOecRegionUI();
         jQuery('#oec-country-panel').prop('hidden',true); openOecRegionPanel('oec-region-panel');
     });

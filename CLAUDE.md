@@ -2321,6 +2321,26 @@ como nombre), `Person` de docentes, `Syllabus` y `educationalCredentialAwarded` 
   `aggregateRating`; la opinión aparece anidada en `review`, después de `syllabusSections`. Ej.: ficha
   con 3 opiniones → 4 elementos válidos, todos titulados con el nombre del curso.
 
+## v1.4.12 — detector de país/moneda (2026-10-06)
+
+Mario lo probó con VPN desde varios países y no andaba bien. Probado desde NL (la API
+`api.g-se.com/v2/initialPreferences` detecta bien: `{"country":"NL","currency":"USD"}`, sin caché de
+CDN). Tres problemas, todos en `js/oec-formacion.js` (no hace falta volver a pegar la plantilla):
+- **País detectado fuera de los 16 fijos** del `<select>` oculto (`#oec-countries_select`): el select
+  quedaba vacío y la etiqueta decía "Argentina" (los precios sí se pedían con NL). Ahora
+  `oecEnsureCountryOption()` agrega la opción con el nombre de `Intl.DisplayNames('es')`.
+- **País elegido a mano fuera de esos 16**: el panel mandaba `XX` ("Otros Países") al "Aplicar" →
+  la API cotiza XX distinto (ND2: USD 600 vs 674,64 de NL/ES) y SIN medios de pago. Ahora "Todos los
+  países" se arma desde los códigos ISO (`OEC_ALL_COUNTRY_CODES`, nombre con `Intl.DisplayNames`) y
+  manda siempre el código real. `OEC_ALL_COUNTRIES_ES` (lista de nombres sin código) se eliminó.
+- **`cache:'force-cache'`** en `initialPreferences` y en `/prices`: el navegador reusaba lo guardado
+  sin preguntar → al cambiar de red/VPN seguía el país viejo, y los precios podían quedar viejos (la
+  API manda `max-age=0, must-revalidate`). Ahora `no-store` para la detección y default para precios.
+- La API de precios solo cotiza las 6 monedas del selector (EUR, USD, ARS, MXN, COP, CLP); con otra
+  (BRL, PEN, UYU, GBP) responde 400. Si la detección/URL trae otra moneda, se usa USD.
+- Probado en local: NL → "Países Bajos · USD" + precio y medios de pago de la zona; Alemania elegida a
+  mano → `?country=DE` (no XX); AR/ARS igual que antes; `?currency=BRL` → USD. Sin errores de consola.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto
