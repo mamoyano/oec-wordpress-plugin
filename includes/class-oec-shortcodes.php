@@ -165,6 +165,11 @@ if (!class_exists('OEC_Shortcodes')) {
                 if (!is_page('formacion')) return;
 
                 wp_enqueue_script('jquery');
+                // Al pie: en el <head> bloqueaba el render (~30 KB) y lo usan solo los scripts de la
+                // ficha, que ya van al pie. Si otro plugin pone en el <head> algo que dependa de
+                // jQuery, WordPress lo vuelve a subir solo.
+                wp_script_add_data('jquery', 'group', 1);
+                wp_script_add_data('jquery-core', 'group', 1);
 
                 // CSS/JS de la ficha de formación solo se cargan en esa página. El
                 // HTML/Twig de data/page-formacion-testing.html (pegado a mano en el
@@ -669,6 +674,20 @@ if (!class_exists('OEC_Shortcodes')) {
             // wp_json_encode). Las plantillas pegadas antes de v1.4.2 todavía traen el suyo armado
             // en Twig: se saca acá para no declarar dos Course distintos en la misma página.
             $output = preg_replace('#<script type="application/ld\+json">\s*\{\s*"@context":\s*"https://schema\.org",\s*"@type":\s*"Course".*?</script>#s', '', (string) $output, 1);
+
+            // Plantillas pegadas antes de v1.4.7 (no hace falta volver a pegarlas):
+            // - el preload del hero lo imprime oec_hero_preload() en el <head>; el del Twig elegía
+            //   otra variante que la que pinta el CSS y la imagen se bajaba dos veces.
+            $output = preg_replace('#<link rel="preload" as="image"\s+href="https://imgrsize\.oe-img\.center/campus/capacitacion/imagen/[^"]*"\s+imagesrcset="[^"]*"\s+imagesizes="[^"]*">\s*#', '', $output, 1);
+            // - preconnect a jsdelivr solo si los íconos salen de ahí (con oec-wp-theme van en el sitio).
+            $bi = wp_styles()->registered['bootstrap-icons'] ?? null;
+            if (!$bi || false === strpos((string) $bi->src, 'jsdelivr')) {
+                $output = preg_replace('#<link rel="preconnect" href="https://cdn\.jsdelivr\.net">\s*#', '', $output, 1);
+            }
+            // - enlaces rastreables: los botones de chat eran href="javascript:void(0)" y los atajos
+            //   del hero (.scroll-link) no tenían href. El JS ya cancela la navegación en los dos.
+            $output = preg_replace('/<a href="javascript:void\(0\)"(?=[^>]*\boec-botmaker-trigger\b)/', '<a href="#chat" role="button"', $output);
+            $output = preg_replace_callback('/<a\b(?![^>]*\bhref=)([^>]*\bscroll-link\b[^>]*\bwhere="([a-z0-9_-]+)"[^>]*)>/i', fn($m) => '<a href="#' . $m[2] . '"' . $m[1] . '>', $output);
 
             return $this->full_bleed_wrap($output, $dominant_color_css);
         }

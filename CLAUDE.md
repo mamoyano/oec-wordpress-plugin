@@ -2247,6 +2247,25 @@ También se saca el link "¿O necesitas más información?" (`.oec-sticky-more`)
 force_contact el botón ya es "SOLICITAR INFORMACIÓN" y llevaba al mismo lugar (Twig + `remove()` en el JS
 para plantillas ya pegadas).
 
+## v1.4.7 — LCP de la ficha y enlaces rastreables (2026-10-06)
+
+Auditoría post-lanzamiento en g-se.com (Lighthouse móvil de la ficha: 72, LCP 6,5 s; SEO 92).
+- **Preload del hero en el `<head>`**: `oec_hero_preload()` (`oec-main.php`, `wp_head` prioridad 1), dos
+  `<link rel="preload" as="image" fetchpriority="high">` con `media` (`max-width: 600px` → `w=700&q=82`,
+  `min-width: 601px` → `w=1400&q=89`): las MISMAS URLs que `--oec-hero-bg-url(-mobile)` en
+  `css/oec-formacion.css` (corte en 600px). El del Twig usaba `imagesrcset`+`imagesizes`: en un celular
+  de pantalla densa elegía la de 1400, el CSS pintaba la de 700 y se bajaban las dos.
+- **jQuery al pie** en la ficha (`wp_script_add_data(… 'group', 1)`): era el único JS en el `<head>`.
+- **Enlaces rastreables** (Lighthouse "Links are not crawlable" + `aria-prohibited-attr`): los
+  `.oec-botmaker-trigger` pasan de `href="javascript:void(0)"` a `href="#chat" role="button"`, y los
+  `<a class="… scroll-link" where="X">` sin href reciben `href="#X"`. Los dos handlers ya hacían
+  `preventDefault`, así que no cambia el comportamiento.
+- **Plantillas ya pegadas**: `render_content()` aplica todo eso al HTML renderizado (saca el preload
+  viejo, el preconnect a jsdelivr si los íconos no salen de ahí, y corrige los enlaces): no hace falta
+  volver a pegarlas. `page-formacion-testing.html` / `.txt` ya vienen corregidas (siguen idénticas).
+- A/B en local (ficha móvil): SEO 92 → 100, accesibilidad 91 → 95, 3 → 2 recursos bloqueantes, una
+  sola descarga de la imagen del hero. Sin errores de consola; scroll-links y chat probados.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

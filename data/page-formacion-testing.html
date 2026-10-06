@@ -79,19 +79,12 @@
 {% set cd_daysLeft = cd_todayObj >= cd_targetObj ? 0 : cd_todayObj.diff(cd_targetObj).days %}
 
 {# ══════════════════════════════════════════════════════════════
-   RESOURCE HINTS — precarga de la imagen del hero (es el elemento
-   LCP de la página; como fondo se pinta vía CSS background-image,
-   el preload scanner del navegador no la descubre sola hasta que
-   se resuelven estilos, así que la adelantamos acá) + preconnect a
-   los dominios a los que el JS del navegador pega directo (precios,
-   opciones de pago, reviews) y al CDN de íconos.
+   RESOURCE HINTS — preconnect a los dominios a los que el JS del
+   navegador pega directo (precios, opciones de pago, reviews). La
+   precarga de la imagen del hero (LCP) la imprime el plugin en el
+   <head>: oec_hero_preload(), oec-main.php.
 ══════════════════════════════════════════════════════════════ #}
-<link rel="preload" as="image"
-    href="https://imgrsize.oe-img.center/campus/capacitacion/imagen/{{ t_image_last }}?w=1400&amp;q=89&amp;format=webp"
-    imagesrcset="https://imgrsize.oe-img.center/campus/capacitacion/imagen/{{ t_image_last }}?w=700&amp;q=82&amp;format=webp 700w, https://imgrsize.oe-img.center/campus/capacitacion/imagen/{{ t_image_last }}?w=1400&amp;q=89&amp;format=webp 1400w"
-    imagesizes="(max-width: 600px) 100vw, 1400px">
 <link rel="preconnect" href="https://imgrsize.oe-img.center">
-<link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="preconnect" href="https://api.onlineeducation.center">
 <link rel="preconnect" href="https://api.g-se.com">
 <link rel="preconnect" href="https://player.vimeo.com">
@@ -266,8 +259,8 @@
                     {% if reviews.summary.count is defined and reviews.summary.count > 0 %}
                         {% set rpx = (reviews.summary.average * 22)|round %}
                         <div class="oec-hero-rating-row">
-                            <a class="oec-sprite scroll-link" where="oec-opiniones" style="cursor:pointer !important" aria-label="Ver opiniones"><div class="oec-sprite-fill" style="width:{{ rpx }}px"></div></a>
-                            <a class="oec-hero-rating-avg scroll-link" where="oec-opiniones">{{ reviews.summary.average|number_format(1,',','') }}</a>
+                            <a href="#oec-opiniones" class="oec-sprite scroll-link" where="oec-opiniones" style="cursor:pointer !important" aria-label="Ver opiniones"><div class="oec-sprite-fill" style="width:{{ rpx }}px"></div></a>
+                            <a href="#oec-opiniones" class="oec-hero-rating-avg scroll-link" where="oec-opiniones">{{ reviews.summary.average|number_format(1,',','') }}</a>
                         </div>
                     {% endif %}
                     {% if inCommunity %}
@@ -299,7 +292,7 @@
                 {% if data.great_certification and data.certificates.data is not empty %}
                 <div class="oec-hero-certs" role="region" aria-label="Certificaciones destacadas">
                     {% for cert in data.certificates.data %}
-                        <a class="oec-hero-cert-badge scroll-link" where="oec-masinformacion" title="{{ cert.name }}">
+                        <a href="#oec-masinformacion" class="oec-hero-cert-badge scroll-link" where="oec-masinformacion" title="{{ cert.name }}">
                             <i class="bi bi-patch-check-fill"></i>
                             {{ cert.name }}{% if cert.organization_name %} · {{ cert.organization_name }}{% endif %}
                         </a>
@@ -321,7 +314,7 @@
                            en publish_start y se va vaciando hasta quedar en 0 el día de
                            la fecha objetivo. #}
                         {% set ring0_offset = (oec_ring_c * (cd_percent / 100))|round(2) %}
-                        <a class="oec-hero-ring scroll-link{% if cd_daysLeft <= 7 %} oec-hero-ring--urgent{% endif %}" where="oec-fechas">
+                        <a href="#oec-fechas" class="oec-hero-ring scroll-link{% if cd_daysLeft <= 7 %} oec-hero-ring--urgent{% endif %}" where="oec-fechas">
                             <div class="oec-hero-ring-circle">
                                 <svg viewBox="0 0 80 80">
                                     <circle class="oec-hero-ring-edge" cx="40" cy="40" r="39"></circle>
@@ -337,7 +330,7 @@
 
                     {% if showReviewRing %}
                         {% set ring1_offset = (oec_ring_c * (1 - reviews.summary.average / 5))|round(2) %}
-                        <a class="oec-hero-ring scroll-link" where="oec-opiniones">
+                        <a href="#oec-opiniones" class="oec-hero-ring scroll-link" where="oec-opiniones">
                             <div class="oec-hero-ring-circle">
                                 <svg viewBox="0 0 80 80">
                                     <circle class="oec-hero-ring-edge" cx="40" cy="40" r="39"></circle>
@@ -355,7 +348,7 @@
                         {% set ring2_val    = onlinePercent > 0 ? onlinePercent : offlinePercent %}
                         {% set ring2_label  = onlinePercent > 0 ? 'online<br>EN VIVO' : 'offline<br>GRABADO' %}
                         {% set ring2_offset = (oec_ring_c * (1 - ring2_val / 100))|round(2) %}
-                        <a class="oec-hero-ring scroll-link" where="oec-pierdealgo">
+                        <a href="#oec-pierdealgo" class="oec-hero-ring scroll-link" where="oec-pierdealgo">
                             <div class="oec-hero-ring-circle">
                                 <svg viewBox="0 0 80 80">
                                     <circle class="oec-hero-ring-edge" cx="40" cy="40" r="39"></circle>
@@ -371,7 +364,7 @@
 
                     {% if showDiscRing %}
                         {% set ring3_offset = (oec_ring_c * (1 - discRing_pct / 100))|round(2) %}
-                        <a class="oec-hero-ring scroll-link" where="oec-fechas" id="oec-hero-ring-discount"{% if discRing_pct == 0 %} style="display:none"{% endif %}>
+                        <a href="#oec-fechas" class="oec-hero-ring scroll-link" where="oec-fechas" id="oec-hero-ring-discount"{% if discRing_pct == 0 %} style="display:none"{% endif %}>
                             <div class="oec-hero-ring-circle">
                                 <svg viewBox="0 0 80 80">
                                     <circle class="oec-hero-ring-edge" cx="40" cy="40" r="39"></circle>
@@ -503,7 +496,7 @@
                 </span>
             {% endif %}
             {# + al final — enlace a los bullets #}
-            <a class="oec-mini-bullet oec-mini-bullet-more scroll-link" where="oec-bullets" aria-label="Ver todas las características">
+            <a href="#oec-bullets" class="oec-mini-bullet oec-mini-bullet-more scroll-link" where="oec-bullets" aria-label="Ver todas las características">
                 <i class="bi bi-plus-circle" style="font-size:20px !important;color:#9ca3af !important"></i>
             </a>
         </div>
@@ -524,13 +517,13 @@
                         <div class="oec-rev-text">{{ review.comment }}</div>
                     </div>
                 {% endfor %}
-                <a class="oec-rev-more-btn scroll-link" where="oec-opiniones" title="Ver todas las opiniones" aria-label="Ver todas las opiniones">
+                <a href="#oec-opiniones" class="oec-rev-more-btn scroll-link" where="oec-opiniones" title="Ver todas las opiniones" aria-label="Ver todas las opiniones">
                     <i class="bi bi-plus-circle"></i>
                 </a>
             </div>
         </div>
         {% if reviews.pagination.total is defined and reviews.pagination.total >= 1 %}
-            <a class="oec-mas-op scroll-link" where="oec-opiniones">Ver todas las opiniones <i class="bi bi-chevron-down"></i></a>
+            <a href="#oec-opiniones" class="oec-mas-op scroll-link" where="oec-opiniones">Ver todas las opiniones <i class="bi bi-chevron-down"></i></a>
         {% endif %}
         {% endif %}
 
@@ -1120,7 +1113,7 @@
                 <div class="oec-contact-block oec-contact-block--chat">
                     <h3 class="oec-contact-block-title"><i class="bi bi-chat-dots-fill"></i> Por chat directo</h3>
                     <p class="oec-contact-sub">Te responde al instante nuestro asistente, sin que tengas que dejar tus datos. Cuando quieras, puedes pedir hablar con un asesor pedagógico.</p>
-                    <a href="javascript:void(0)" id="oec-botmaker-cta" class="oec-contact-cta oec-contact-cta--chat oec-botmaker-trigger" data-msg="{{ chat_message }}">
+                    <a href="#chat" role="button" id="oec-botmaker-cta" class="oec-contact-cta oec-contact-cta--chat oec-botmaker-trigger" data-msg="{{ chat_message }}">
                         <i class="bi bi-chat-dots-fill"></i> Iniciar chat
                     </a>
                 </div>
@@ -1270,7 +1263,7 @@
             {% if module_count > 1 %}
                 {% for modulo in data.modules.data %}
                     <div class="oec-price-row">
-                        <span><a class="scroll-link" where="oec-contenidos">Módulo {{ modulo.number }}</a>{% if synchronic %} <span class="oec-price-date"><span class="oec-price-date-long">({{ modulo.start|format_date }})</span><span class="oec-price-date-short">({{ modulo.start|format_date_short }})</span></span>{% endif %}</span>
+                        <span><a href="#oec-contenidos" class="scroll-link" where="oec-contenidos">Módulo {{ modulo.number }}</a>{% if synchronic %} <span class="oec-price-date"><span class="oec-price-date-long">({{ modulo.start|format_date }})</span><span class="oec-price-date-short">({{ modulo.start|format_date_short }})</span></span>{% endif %}</span>
                         <span class="oec-price-val price-module-{{ modulo.number }}">···</span>
                     </div>
                 {% endfor %}
@@ -1380,9 +1373,9 @@
                     </a>
                 {% endfor %}
             </div>
-            <p class="oec-similar-cta">¿Ninguna te sirve? <a class="scroll-link" where="oec-contacto">Contáctanos</a> y te avisamos apenas se reabra esta formación.</p>
+            <p class="oec-similar-cta">¿Ninguna te sirve? <a href="#oec-contacto" class="scroll-link" where="oec-contacto">Contáctanos</a> y te avisamos apenas se reabra esta formación.</p>
         {% else %}
-            <p style="color:#6b7280 !important;font-size:14px !important;margin-bottom:0 !important">¿Te interesa? <a class="scroll-link" where="oec-contacto">Contáctanos</a> para conocer alternativas disponibles.</p>
+            <p style="color:#6b7280 !important;font-size:14px !important;margin-bottom:0 !important">¿Te interesa? <a href="#oec-contacto" class="scroll-link" where="oec-contacto">Contáctanos</a> para conocer alternativas disponibles.</p>
         {% endif %}
     </div>
     {% endif %}
@@ -1435,7 +1428,7 @@
         <a onclick="oec_metaAddToCart();" class="oec-btn-enroll oec-sticky-enroll oec-enroll-arrow" href="{{ enrollmentLink }}">INICIAR INSCRIPCIÓN <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
         <div class="oec-rc-note">Campus virtual de <strong>{% if data.mkp_only %}{{ organizacion_name }}{% else %}Online Education Center{% endif %}</strong></div>
     {% else %}
-        <a class="oec-btn-enroll oec-sticky-enroll scroll-link" where="oec-contacto">SOLICITAR INFORMACIÓN</a>
+        <a href="#oec-contacto" class="oec-btn-enroll oec-sticky-enroll scroll-link" where="oec-contacto">SOLICITAR INFORMACIÓN</a>
     {% endif %}
     {% if not force_contact %}{# force_contact: no se vende online → sin formas de pago #}
     <div id="oec-sticky-pay-wrap" style="display:none">
@@ -1444,7 +1437,7 @@
     </div>
     {% endif %}
     {% if not force_contact %}{# con force_contact el botón ya es "SOLICITAR INFORMACIÓN": sería repetir el mismo destino #}
-    <a class="oec-sticky-more scroll-link" where="oec-contacto">¿O necesitas más información?</a>
+    <a href="#oec-contacto" class="oec-sticky-more scroll-link" where="oec-contacto">¿O necesitas más información?</a>
     {% endif %}
 </div>
 {% endif %}
@@ -1462,16 +1455,16 @@
 ══════════════════════════════════════════════════════════════ #}
 <nav id="oec-menu-sticky" role="navigation" aria-label="Navegación de secciones">
     <div class="oec-sticky-inner">
-        <a class="oec-sticky-title scroll-link" where="oec-hero" title="{{ data.name }}">{{ data.name }}</a>
+        <a href="#oec-hero" class="oec-sticky-title scroll-link" where="oec-hero" title="{{ data.name }}">{{ data.name }}</a>
         <div class="oec-sticky-links">
-            <a class="scroll-link" where="oec-fechas">Fechas y precios</a>
-            <a class="scroll-link" where="oec-presentacion">Presentación</a>
-            <a class="scroll-link" where="oec-docentes">Docentes</a>
-            <a class="scroll-link" where="oec-contenidos">Contenidos</a>
-            {% if reviews.all|length > 0 %}<a class="scroll-link" where="oec-opiniones">Opiniones</a>{% endif %}
-            <a class="scroll-link" where="oec-bullets">Por qué elegir</a>
-            <a class="scroll-link" where="oec-masinformacion">Más información</a>
-            <a class="scroll-link" where="oec-contacto">Contáctanos</a>
+            <a href="#oec-fechas" class="scroll-link" where="oec-fechas">Fechas y precios</a>
+            <a href="#oec-presentacion" class="scroll-link" where="oec-presentacion">Presentación</a>
+            <a href="#oec-docentes" class="scroll-link" where="oec-docentes">Docentes</a>
+            <a href="#oec-contenidos" class="scroll-link" where="oec-contenidos">Contenidos</a>
+            {% if reviews.all|length > 0 %}<a href="#oec-opiniones" class="scroll-link" where="oec-opiniones">Opiniones</a>{% endif %}
+            <a href="#oec-bullets" class="scroll-link" where="oec-bullets">Por qué elegir</a>
+            <a href="#oec-masinformacion" class="scroll-link" where="oec-masinformacion">Más información</a>
+            <a href="#oec-contacto" class="scroll-link" where="oec-contacto">Contáctanos</a>
         </div>
     </div>
 </nav>
@@ -1523,7 +1516,7 @@
             <a onclick="oec_metaAddToCart();" class="oec-mb-enroll oec-enroll-arrow" href="{{ enrollmentLink }}">INICIAR INSCRIPCIÓN <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
         </div>
     {% else %}
-        <a class="oec-mb-enroll oec-mb-enroll-solo scroll-link" where="oec-contacto">SOLICITAR INFORMACIÓN</a>
+        <a href="#oec-contacto" class="oec-mb-enroll oec-mb-enroll-solo scroll-link" where="oec-contacto">SOLICITAR INFORMACIÓN</a>
     {% endif %}
 </div>
 {% endif %}
@@ -1542,7 +1535,7 @@
 </a>
 {% endif %}
 {% if showFloatBotmaker %}
-<a href="javascript:void(0)" id="oec-float-botmaker" class="oec-float-botmaker oec-botmaker-trigger{% if not openEnrollment %} oec-float-botmaker--no-mobile-bar{% endif %}" aria-label="Chatear con nosotros" title="Chatear con nosotros" data-msg="{{ chat_message }}">
+<a href="#chat" role="button" id="oec-float-botmaker" class="oec-float-botmaker oec-botmaker-trigger{% if not openEnrollment %} oec-float-botmaker--no-mobile-bar{% endif %}" aria-label="Chatear con nosotros" title="Chatear con nosotros" data-msg="{{ chat_message }}">
     <i class="bi bi-chat-dots-fill"></i>
 </a>
 {% endif %}

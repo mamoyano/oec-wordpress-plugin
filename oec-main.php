@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.4.6
+Version: 1.4.7
 Author: Online Education Center
 */
 
@@ -475,6 +475,28 @@ if (!function_exists('oec_get_current_training_data')) {
         return oec_get_page_bundle()['data'];
     }
 }
+
+/**
+ * Preload de la imagen del hero (es el LCP de la ficha y se pinta como background CSS, que el
+ * navegador no descubre hasta aplicar los estilos). Uno por breakpoint, con la MISMA URL que usa
+ * css/oec-formacion.css en cada uno (--oec-hero-bg-url / --oec-hero-bg-url-mobile, corte en
+ * 600px). Antes iba en el Twig con imagesrcset + sizes: en un celular de pantalla densa elegía la
+ * de 1400 px, el CSS pintaba la de 700 y se bajaban las dos (la que se ve, recién al final).
+ */
+if (!function_exists('oec_hero_preload')) {
+    function oec_hero_preload() {
+        if (!is_page('formacion')) return;
+        $data = oec_get_current_training_data();
+        if (!$data || empty($data['image'])) return;
+        printf(
+            "<link rel=\"preload\" as=\"image\" href=\"%s\" media=\"(max-width: 600px)\" fetchpriority=\"high\">\n" .
+            "<link rel=\"preload\" as=\"image\" href=\"%s\" media=\"(min-width: 601px)\" fetchpriority=\"high\">\n",
+            esc_url(oec_build_display_image_url($data['image'], 700, 82)),
+            esc_url(oec_build_display_image_url($data['image'], 1400, 89))
+        );
+    }
+}
+add_action('wp_head', 'oec_hero_preload', 1);
 
 if (!function_exists('oec_seo_and_stars_metadata')) {
     function oec_seo_and_stars_metadata() {
