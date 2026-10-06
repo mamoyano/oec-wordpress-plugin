@@ -689,6 +689,12 @@ if (!class_exists('OEC_Shortcodes')) {
             $output = preg_replace('/<a href="javascript:void\(0\)"(?=[^>]*\boec-botmaker-trigger\b)/', '<a href="#chat" role="button"', $output);
             $output = preg_replace_callback('/<a\b(?![^>]*\bhref=)([^>]*\bscroll-link\b[^>]*\bwhere="([a-z0-9_-]+)"[^>]*)>/i', fn($m) => '<a href="#' . $m[2] . '"' . $m[1] . '>', $output);
 
+            // Microdatos (itemscope/itemtype/itemprop) de la plantilla: estaban sueltos (Review sin
+            // itemReviewed, Person/Syllabus fuera de un Course, ImageObject con el título) y el Rich
+            // Results Test los marcaba inválidos. Todo eso ya lo declara el JSON-LD del Course
+            // (oec_course_jsonld), que es la única fuente.
+            $output = preg_replace('/\s(?:itemscope(?:="[^"]*")?|itemtype="[^"]*"|itemprop="[^"]*")/', '', $output);
+
             // Las cuentas regresivas (.oec-countdown) arrancan ocultas y updateCountdowns()
             // (oec-formacion.js) las muestra si faltan 15 días o menos: en la barra fija de
             // celular eso la hacía crecer una fila al cargar (CLS ~0,05 en Lighthouse). Con la

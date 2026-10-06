@@ -210,7 +210,7 @@
 {# ══════════════════════════════════════════════════════════════
    HERO
 ══════════════════════════════════════════════════════════════ #}
-<div id="oec-hero" itemscope="" itemtype="https://schema.org/ImageObject">
+<div id="oec-hero">
     <div class="oec-hero-bg-wrap" style="background-color: {{ extra.dominant_color_css }}">
         <div class="oec-hero-bg" style="--oec-hero-bg-url:url(https://imgrsize.oe-img.center/campus/capacitacion/imagen/{{ t_image_last }}?w=1400&amp;q=89&amp;format=webp); --oec-hero-bg-url-mobile:url(https://imgrsize.oe-img.center/campus/capacitacion/imagen/{{ t_image_last }}?w=700&amp;q=82&amp;format=webp)"></div>
         <div class="oec-hero-overlay"></div>
@@ -247,7 +247,7 @@
                     {% if data.supports.data|length >= 1 %}<span class="oec-tip{% if data.supports.data|length > 2 %} destacado{% endif %}">{{ supports_phrase }}</span>{% endif %}
                 </div>
                 {% endif %}
-                <h1 id="oec-training-title" class="oec-h1{% if data.name|length > 80 %} l{% elseif data.name|length > 120 %} m{% endif %}" itemprop="name">{{ data.name }}</h1>
+                <h1 id="oec-training-title" class="oec-h1{% if data.name|length > 80 %} l{% elseif data.name|length > 120 %} m{% endif %}">{{ data.name }}</h1>
                 {# Bajada del título: "headline" de la API; si viene vacío, "description_oa" (solo si es corta). #}
                 {% set headline_text = data.headline|default('')|striptags|replace({'&nbsp;':' '})|trim %}{% set oa_text = headline_text ?: data.description_oa|default('')|striptags|trim %}
                 {% if oa_text and (headline_text or oa_text|length <= 200) %}<p class="oec-hero-subtitle">{{ oa_text }}</p>{% endif %}
@@ -558,13 +558,13 @@
             {% for docente in data.teachers.data %}
                 {% set ti = docente.image|split('/') %}{% set ti_last = ti|last %}
                 {% set docente_img = docente.image is empty ? 'https://imgrsize.oe-img.center/img/user-default.jpg?w=300&amp;q=89&amp;format=webp' : 'https://imgrsize.oe-img.center/usuario/' ~ ti_last ~ '?w=300&amp;q=89&amp;format=webp' %}
-                <div class="oec-ac-item" itemprop="instructor" itemscope="" itemtype="https://schema.org/Person">
+                <div class="oec-ac-item">
                     <button class="oec-ac-btn{% if docente.biography is empty %} fake{% endif %}" aria-expanded="false">
                         <div class="oec-teacher-row">
                             <div class="oec-teacher-img" style="background-image:url('{{ docente_img }}')" role="img" aria-label="{{ docente.first_name }} {{ docente.last_name }}"></div>
                             <div>
-                                <div class="oec-teacher-name" itemprop="name">{{ docente.first_name }} {{ docente.last_name }}</div>
-                                {% if docente.origin %}<div class="oec-teacher-org" itemprop="description">{{ docente.origin|raw }}</div>{% endif %}
+                                <div class="oec-teacher-name">{{ docente.first_name }} {{ docente.last_name }}</div>
+                                {% if docente.origin %}<div class="oec-teacher-org">{{ docente.origin|raw }}</div>{% endif %}
                                 {% if docente.background %}<div class="oec-teacher-org">{{ docente.background|raw }}</div>{% endif %}
                             </div>
                         </div>
@@ -574,7 +574,7 @@
                         {% endif %}
                     </button>
                     {% if docente.biography is not empty %}
-                        <div class="oec-ac-body oec-prose" itemprop="description">{{ docente.biography|fix_orphan_li|raw }}</div>
+                        <div class="oec-ac-body oec-prose">{{ docente.biography|fix_orphan_li|raw }}</div>
                     {% endif %}
                 </div>
             {% endfor %}
@@ -596,13 +596,13 @@
             <div class="oec-presentacion-cols">
                 <div class="oec-presentacion-video">{{ pres.iframe|raw }}</div>
                 <div class="oec-collapsible oec-presentacion-textwrap">
-                    <div class="oec-col-inner collapsed oec-prose" itemprop="description">{{ pres.rest|fix_orphan_li|raw }}</div>
+                    <div class="oec-col-inner collapsed oec-prose">{{ pres.rest|fix_orphan_li|raw }}</div>
                     <span class="oec-col-toggle" role="button" aria-label="Leer más"></span>
                 </div>
             </div>
         {% else %}
             <div class="oec-collapsible">
-                <div class="oec-col-inner collapsed oec-prose" itemprop="description">{{ data.short_description|fix_orphan_li|raw }}</div>
+                <div class="oec-col-inner collapsed oec-prose">{{ data.short_description|fix_orphan_li|raw }}</div>
                 <span class="oec-col-toggle" role="button" aria-label="Leer más"></span>
             </div>
         {% endif %}
@@ -633,10 +633,10 @@
         <div class="oec-col-inner collapsed">
         <div class="oec-ac">
             {% for modulo in data.modules.data %}
-                <div class="oec-ac-item" itemscope="" itemtype="https://schema.org/Syllabus">
+                <div class="oec-ac-item">
                     <button class="oec-ac-btn" aria-expanded="false">
                         <div style="flex:1">
-                            <h3 itemprop="name">Módulo {{ modulo.number }}</h3>
+                            <h3>Módulo {{ modulo.number }}</h3>
                             <div class="oec-module-meta"><strong>{{ modulo.lecture_hours }} horas cátedra</strong>{% if synchronic %} · {{ modulo.start|format_date }} → {{ modulo.end|format_date }}{% endif %}</div>
                         </div>
                         <i class="bi bi-plus-circle-fill icon-open" aria-hidden="true"></i>
@@ -720,14 +720,14 @@
                     {% elseif comment_len < 150 %}{% set rf_size = "oec-rf-text--l" %}
                     {% elseif comment_len < 300 %}{% set rf_size = "oec-rf-text--m" %}
                     {% else %}{% set rf_size = "oec-rf-text--s" %}{% endif %}
-                    <div class="oec-review-full" itemprop="review" itemscope="" itemtype="https://schema.org/Review">
+                    <div class="oec-review-full">
                         <img src="{{ rimg }}" class="oec-rf-avatar" alt="{{ rname }}" loading="lazy">
                         <div class="oec-rf-meta">
-                            <div class="oec-rf-name" itemprop="author">{{ rname }}</div>
+                            <div class="oec-rf-name">{{ rname }}</div>
                             <div class="oec-rf-sprite"><div class="oec-rf-fill" style="width:{{ rpx }}px"></div></div>
                         </div>
                         <div class="oec-rf-body">
-                            <div class="oec-rf-text {{ rf_size }}" itemprop="reviewBody">{{ review.comment }}</div>
+                            <div class="oec-rf-text {{ rf_size }}">{{ review.comment }}</div>
                             <div class="oec-rf-date">{{ review.date|date("d/m/Y") }}</div>
                         </div>
                     </div>
@@ -957,7 +957,7 @@
                     <button class="oec-ac-btn" aria-expanded="false"><span class="oec-ac-ico" aria-hidden="true"><i class="bi bi-award-fill"></i></span><h3>{{ faq_q.certs }}</h3><i class="bi bi-plus-circle-fill icon-open"></i><i class="bi bi-dash-circle-fill icon-close"></i></button>
                     <div class="oec-ac-body">
                         {% for cert in data.certificates.data %}{% set ci = cert.thumb|split('/') %}{% set ci_last = ci|last %}
-                            <div class="oec-cert" itemprop="educationalCredentialAwarded">
+                            <div class="oec-cert">
                                 {% if cert.thumb %}<img src="https://imgrsize.oe-img.center/campus/certificado/thumbs/{{ ci_last }}?w=300&amp;q=89&amp;format=webp" alt="{{ cert.name }}" loading="lazy">{% endif %}
                                 <div class="oec-cert-info"><h4>{{ cert.name }}</h4><ul><li><strong>Otorga:</strong> {{ cert.organization_name }}</li><li><strong>Formato:</strong> {{ cert.type }}</li></ul>{% if cert.description %}<p style="font-size:13px !important;color:#6b7280 !important;margin-top:8px !important">{{ cert.description }}</p>{% endif %}</div>
                             </div>

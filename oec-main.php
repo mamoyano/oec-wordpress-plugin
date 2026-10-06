@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.4.10
+Version: 1.4.11
 Author: Online Education Center
 */
 
@@ -539,7 +539,7 @@ if (!function_exists('oec_seo_and_stars_metadata')) {
         echo "<meta name='twitter:description' content='{$desc}'>\n\n";
 
         oec_breadcrumb_jsonld($data, $url);
-        oec_course_jsonld($data, oec_get_page_bundle()['summary'] ?? null);
+        oec_course_jsonld($data, oec_get_page_bundle()['summary'] ?? null, oec_get_page_bundle()['reviews']['reviews'] ?? []);
     }
 }
 
@@ -612,7 +612,7 @@ if (!function_exists('oec_jsonld_text')) {
  * para responder sobre la formación. Todo sale de datos que la ficha muestra.
  */
 if (!function_exists('oec_course_jsonld')) {
-    function oec_course_jsonld($data, $summary = null) {
+    function oec_course_jsonld($data, $summary = null, $reviews = []) {
         $url   = oec_get_current_training_canonical();
         $today = current_time('Y-m-d');
         // Las fechas de la API son días de calendario: la parte AAAA-MM-DD es el día (ver normalize_dates()).
@@ -688,6 +688,25 @@ if (!function_exists('oec_course_jsonld')) {
             'url'   => $org_url ?: null,
         ]);
 
+        // Las opiniones que la ficha muestra (primera página de la API, la misma lista que
+        // "reviews.all" del Twig), dentro del Course: así cada Review tiene de qué es
+        // (itemReviewed implícito). Antes iban como microdatos sueltos en el HTML y el
+        // Rich Results Test las marcaba inválidas (sin itemReviewed, autor sin tipo).
+        $review_nodes = [];
+        foreach ((array) $reviews as $r) {
+            $a    = $r['author'] ?? [];
+            $name = trim(implode(' ', array_filter([$a['prefix'] ?? '', $a['first_name'] ?? '', $a['last_name'] ?? ''])));
+            $body = oec_jsonld_text($r['comment'] ?? '', 1000);
+            if ($name === '' || $body === '' || !isset($r['rating'])) continue;
+            $review_nodes[] = array_filter([
+                '@type'         => 'Review',
+                'author'        => ['@type' => 'Person', 'name' => $name],
+                'reviewRating'  => ['@type' => 'Rating', 'ratingValue' => (float) $r['rating'], 'bestRating' => 5, 'worstRating' => 1],
+                'reviewBody'    => $body,
+                'datePublished' => !empty($r['date']) ? (substr((string) $r['date'], 0, 10) ?: null) : null,
+            ]);
+        }
+
         $count  = (int) ($summary['count'] ?? 0);
         $course = array_filter([
             '@context'                     => 'https://schema.org',
@@ -711,6 +730,7 @@ if (!function_exists('oec_course_jsonld')) {
                 'bestRating'  => 5,
                 'worstRating' => 1,
             ] : null,
+            'review'                       => $review_nodes ?: null,
             'offers'                       => $offer ?: null,
             'hasCourseInstance'            => array_filter([
                 '@type'          => 'CourseInstance',
