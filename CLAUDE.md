@@ -2295,6 +2295,14 @@ dos renglones. Los precios dependen de la región del visitante: no se pueden po
 - Resultado: la barra no cambia de alto (143 px en 412; 153 en 360); queda ~0,01 de reacomodo del texto
   del precio a lo ancho.
 
+## v1.4.10 — `provider` del Course con la organización, no la comunidad (2026-10-06)
+
+Revisión de schema del sitio: `provider.url` del `Course` era `data.community` (p. ej. https://g-se.com) con
+el nombre de la organización que dicta (una universidad) → dato contradictorio. Ahora `provider` lleva
+`url` y `@id` de la landing de la organización en el sitio (`oec_organizacion_url($slug)` de oec-wp-theme,
+`@id` = `{url}#organization`, el mismo que imprime esa landing), solo si la organización está en el catálogo
+(`OEC_AI_Catalog::get_organization`); si no (o en otro tema), `provider` queda solo con el nombre.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

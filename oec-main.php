@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.4.9
+Version: 1.4.10
 Author: Online Education Center
 */
 
@@ -674,6 +674,20 @@ if (!function_exists('oec_course_jsonld')) {
             ], fn($v) => $v !== null && $v !== '');
         }
 
+        // Quien organiza la formación. Antes su url era data.community (la comunidad, p. ej.
+        // https://g-se.com), no la organización. Ahora: la landing de la organización en este sitio
+        // (la arma oec-wp-theme) con el mismo @id que usa su JSON-LD, así Google une las dos
+        // entidades; solo si esa landing existe (la organización está en el catálogo). Si no, sin url.
+        $org_slug = sanitize_title($data['organization']['data']['slug'] ?? '');
+        $org_url  = ($org_slug && function_exists('oec_organizacion_url') && class_exists('OEC_AI_Catalog')
+            && OEC_AI_Catalog::get_organization($org_slug)) ? oec_organizacion_url($org_slug) : '';
+        $provider = array_filter([
+            '@type' => 'Organization',
+            '@id'   => $org_url ? $org_url . '#organization' : null,
+            'name'  => $data['organization']['data']['name'] ?? null,
+            'url'   => $org_url ?: null,
+        ]);
+
         $count  = (int) ($summary['count'] ?? 0);
         $course = array_filter([
             '@context'                     => 'https://schema.org',
@@ -684,11 +698,7 @@ if (!function_exists('oec_course_jsonld')) {
             'url'                          => $url,
             'image'                        => !empty($data['image']) ? oec_build_display_image_url($data['image']) : null,
             'inLanguage'                   => 'es',
-            'provider'                     => array_filter([
-                '@type' => 'Organization',
-                'name'  => $data['organization']['data']['name'] ?? null,
-                'url'   => $data['community'] ?? null,
-            ]),
+            'provider'                     => $provider,
             'teaches'                      => oec_jsonld_text($data['objetives'] ?? '', 600) ?: null,
             'coursePrerequisites'          => oec_jsonld_text($data['requirements'] ?? '', 400) ?: null,
             'educationalCredentialAwarded' => $credentials ?: null,
