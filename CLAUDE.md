@@ -2341,6 +2341,36 @@ CDN). Tres problemas, todos en `js/oec-formacion.js` (no hace falta volver a peg
 - Probado en local: NL → "Países Bajos · USD" + precio y medios de pago de la zona; Alemania elegida a
   mano → `?country=DE` (no XX); AR/ARS igual que antes; `?currency=BRL` → USD. Sin errores de consola.
 
+## v1.4.13 — ficha incrustada (`/formacion-incrustada/`) para iframes de socios (2026-10-07)
+
+Socios cuyo sitio no es WordPress muestran la ficha en un `<iframe>` apuntando a
+`{sitio}/es/formacion-incrustada/{slug}-t-XXXXXXXXXXXXXX` (ej. akd.org.ar/curso-anual.aspx, con un
+iframe de `height: calc(100vh - 170px)` que scrollea por dentro). Hasta 1.4.12 esa URL andaba "de
+casualidad": no existía y WordPress la redirigía (301, adivinanza de 404) a `/formacion/…` completa,
+con encabezado y pie del tema.
+- **No es una página aparte**: regla de reescritura `^formacion-incrustada/…(t-…)` →
+  `pagename=formacion&oec_embed=1`. Misma página "Formación" y misma plantilla Twig → nada nuevo que
+  pegar ni que mantener dos veces. `oec_is_embed()` (`oec-main.php`). Todo lo que mira
+  `is_page('formacion')` (assets, preload, canonical, título) sigue andando solo.
+- Las reglas se regeneran solas cuando cambia `OEC_REWRITE_VERSION` (opción `oec_rewrite_version`,
+  por sitio): ya no hace falta "guardar" Enlaces permanentes al actualizar.
+- `templates/oec-embed.php` (vía `template_include`): HTML mínimo con `wp_head()`/`the_content()`/
+  `wp_footer()`, sin `get_header()`/`get_footer()` → sin encabezado ni pie, con cualquier tema.
+  Body sin margen/padding y fondo blanco; sin barra de admin.
+- En `render_content()`, con `$embed`: `in_community` = false (→ `enrollmentLink = data.register`, el
+  checkout del socio; además no sale "Organiza:" ni "¿Quién organiza…?"), `breadcrumb` vacío,
+  `credits_enabled` = false, `detail_url` → `/formacion-incrustada/` (las fichas enlazadas, ej.
+  alternativas o "incluida en", siguen dentro del iframe), y `extra.embedded` = true.
+- Cabeceras: se quita `X-Frame-Options` y se manda `Content-Security-Policy: frame-ancestors *`.
+  `noindex, follow` (wp_robots + Yoast + Rank Math); el canonical sigue siendo el de la ficha real.
+- JS (`oec-frontend.js`, solo con `window.OEC_EMBED`): todo enlace que sale de la ficha (inscripción,
+  WhatsApp, organización…) abre en otra pestaña (`target=_blank`, decidido al click, delegado);
+  anclas `#…` y otras fichas incrustadas quedan adentro. La barra de compartir se oculta
+  (`body.oec-embed .oec-share`): la URL que vería el visitante es la del socio, que no conocemos.
+- Probado en local dentro de un iframe como el de AKD (1366 y 375 px): sin header/footer/breadcrumb,
+  links de inscripción = `register` con `target=_blank`, sticky de secciones y de precios andando
+  dentro del iframe, barra mobile al pie del iframe, sin scroll horizontal, sin errores de consola.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

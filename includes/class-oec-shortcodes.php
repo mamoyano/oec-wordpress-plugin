@@ -226,6 +226,9 @@ if (!class_exists('OEC_Shortcodes')) {
                 // URL de admin-ajax de ESTE sitio: con una ruta fija "/wp-admin/admin-ajax.php", en un
                 // multisite por subcarpeta (/es/) los formularios caían en el sitio raíz de la red.
                 wp_add_inline_script('oec-formacion', 'window.OEC_AJAX_URL = ' . wp_json_encode(admin_url('admin-ajax.php')) . ';', 'before');
+                if (function_exists('oec_is_embed') && oec_is_embed()) {
+                    wp_add_inline_script('oec-formacion', 'window.OEC_EMBED = true;', 'before');
+                }
                 // Agregar defer para no bloquear el render
                 add_filter('script_loader_tag', function($tag, $handle) {
                     if ($handle === 'oec-frontend' || $handle === 'oec-formacion') {
@@ -638,28 +641,33 @@ if (!class_exists('OEC_Shortcodes')) {
                 && date('Ymd', strtotime($data['enrollment_end'])) >= date('Ymd');
             $similar = $openEnrollment ? [] : $this->get_similar_open_trainings($data);
 
-            $output = oec_debug_time('Shortcode: render Twig', function () use ($content, $data, $current_url, $brand_color, $dominant_color, $dominant_color_css, $reviews_top, $reviews_data, $reviews_summary, $similar) {
+            // Ficha incrustada en el sitio de un socio (ver oec_is_embed()): inscripción con el link
+            // del socio (data.register), sin breadcrumb, y las demás fichas también incrustadas.
+            $embed = function_exists('oec_is_embed') && oec_is_embed();
+
+            $output = oec_debug_time('Shortcode: render Twig', function () use ($embed, $content, $data, $current_url, $brand_color, $dominant_color, $dominant_color_css, $reviews_top, $reviews_data, $reviews_summary, $similar) {
                 return $this->process_twig($content, [
                 'data'    => $data,
                 'similar' => $similar,
                 'extra' => [
                     'current_url'         => $current_url,
                     // ¿Estamos en la comunidad dueña de la formación? (solo dominio, ver oec_is_community_site()).
-                    'in_community'        => function_exists('oec_is_community_site') && oec_is_community_site($data['community'] ?? ''),
+                    'in_community'        => !$embed && function_exists('oec_is_community_site') && oec_is_community_site($data['community'] ?? ''),
+                    'embedded'            => $embed,
                     // Landing de la organización en ESTE sitio (vacío si el sitio no la tiene, ver organization_url()).
                     'org_url'             => $this->organization_url($data),
                     'brand_color'         => $brand_color,
-                    'detail_url'          => get_site_url() . '/formacion/',
+                    'detail_url'          => get_site_url() . ($embed ? '/formacion-incrustada/' : '/formacion/'),
                     'equipo_oec'          => get_option('oec_equipo_ventas', '1') === '1',
                     'ventas_whatsapp'     => get_option('oec_ventas_whatsapp', ''),
                     'ventas_email'        => get_option('oec_ventas_email', ''),
                     'dominant_color'      => $dominant_color,
                     'dominant_color_css'  => $dominant_color_css,
                     'ajax_nonce'          => class_exists('OEC_Ajax') ? OEC_Ajax::token() : wp_create_nonce('oec_ajax'), // dura días: ver OEC_Ajax::token()
-                    'credits_enabled'     => function_exists('oec_credits_system_enabled') && oec_credits_system_enabled(),
+                    'credits_enabled'     => !$embed && function_exists('oec_credits_system_enabled') && oec_credits_system_enabled(),
                     'botmaker_id'         => defined('OEC_BOTMAKER_PROJECT_ID') ? OEC_BOTMAKER_PROJECT_ID : '',
                     // Mismos ítems que el BreadcrumbList JSON-LD (oec-main.php): el hero los muestra visibles.
-                    'breadcrumb'          => function_exists('oec_training_breadcrumb_items') ? oec_training_breadcrumb_items($data) : [],
+                    'breadcrumb'          => !$embed && function_exists('oec_training_breadcrumb_items') ? oec_training_breadcrumb_items($data) : [],
                 ],
                 'reviews' => [
                     'top'        => $reviews_top,

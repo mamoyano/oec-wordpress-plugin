@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.4.12
+Version: 1.4.13
 Author: Online Education Center
 */
 
@@ -238,12 +238,81 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-oec-ajax.php';
 // ─────────────────────────────────────────────────────────────────
 // 1. REGLAS DE REESCRITURA (URLs Amigables)
 // ─────────────────────────────────────────────────────────────────
+// Versión de las reglas de abajo: si cambia, se regeneran solas (una vez por sitio).
+if (!defined('OEC_REWRITE_VERSION')) define('OEC_REWRITE_VERSION', '2');
+
 add_action('init', function () {
     add_rewrite_rule(
         '^formacion/.*(t-[a-zA-Z0-9]{14})/?$',
         'index.php?pagename=formacion',
         'top'
     );
+    // Ficha "incrustada" (para un <iframe> en sitios de socios que no son WordPress): la MISMA
+    // página "Formación" y la misma plantilla, sin encabezado/pie del tema (ver oec_embed_*).
+    add_rewrite_rule(
+        '^formacion-incrustada/.*(t-[a-zA-Z0-9]{14})/?$',
+        'index.php?pagename=formacion&oec_embed=1',
+        'top'
+    );
+    if (get_option('oec_rewrite_version') !== OEC_REWRITE_VERSION) {
+        flush_rewrite_rules(false);
+        update_option('oec_rewrite_version', OEC_REWRITE_VERSION);
+    }
+}, 20);
+
+add_filter('query_vars', function ($vars) {
+    $vars[] = 'oec_embed';
+    return $vars;
+});
+
+
+// ─────────────────────────────────────────────────────────────────
+// 1b. FICHA INCRUSTADA (/formacion-incrustada/{slug}-t-XXXXXXXXXXXXXX/)
+// Para socios cuyo sitio no es WordPress: la ponen en un <iframe>. Diferencias con /formacion/:
+// sin encabezado, pie ni breadcrumb; el link de inscripción es siempre el del socio
+// (data.register, ver render_content()); los enlaces que salen de la ficha abren en otra
+// pestaña; no se indexa (canonical a la ficha real) y se puede incrustar desde cualquier dominio.
+// ─────────────────────────────────────────────────────────────────
+if (!function_exists('oec_is_embed')) {
+    function oec_is_embed() {
+        return (bool) get_query_var('oec_embed') && is_page('formacion');
+    }
+}
+
+add_action('template_redirect', function () {
+    if (!oec_is_embed()) return;
+    // Un plugin de seguridad puede mandar X-Frame-Options: SAMEORIGIN. Con frame-ancestors en
+    // la CSP los navegadores ignoran X-Frame-Options.
+    header_remove('X-Frame-Options');
+    header('Content-Security-Policy: frame-ancestors *');
+    show_admin_bar(false);
+    // Sin esto, WordPress podría "corregir" la URL hacia el permalink de la página.
+    remove_action('template_redirect', 'redirect_canonical');
+}, 1);
+
+add_filter('template_include', function ($template) {
+    if (!oec_is_embed()) return $template;
+    $embed = plugin_dir_path(__FILE__) . 'templates/oec-embed.php';
+    return file_exists($embed) ? $embed : $template;
+}, 999);
+
+add_filter('wp_robots', function ($robots) {
+    if (oec_is_embed()) {
+        $robots['noindex'] = true;
+        $robots['follow']  = true;
+        unset($robots['max-image-preview']);
+    }
+    return $robots;
+}, 999);
+add_filter('wpseo_robots', fn($r) => oec_is_embed() ? 'noindex, follow' : $r, 999);
+add_filter('rank_math/frontend/robots', function ($r) {
+    if (oec_is_embed()) { $r['index'] = 'noindex'; $r['follow'] = 'follow'; }
+    return $r;
+}, 999);
+
+add_filter('body_class', function ($classes) {
+    if (oec_is_embed()) $classes[] = 'oec-embed';
+    return $classes;
 });
 
 

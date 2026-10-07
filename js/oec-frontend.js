@@ -324,3 +324,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
 })();
+// Ficha incrustada en un <iframe> (window.OEC_EMBED, ver oec_is_embed() en oec-main.php): todo
+// enlace que sale de la ficha (inscripción, WhatsApp, organización…) abre en otra pestaña en vez
+// de cargarse dentro del iframe del socio. Se deciden al hacer click (delegado), así cubre también
+// los enlaces que se arman después por JS. Quedan adentro las anclas (#…) y las otras fichas
+// incrustadas (/formacion-incrustada/).
+(function(){
+    if (!window.OEC_EMBED) return;
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a[href]');
+        if (!a || a.target) return;
+        var href = a.getAttribute('href') || '';
+        if (href.charAt(0) === '#' || /^javascript:/i.test(href)) return;
+        if (a.pathname && a.pathname.indexOf('/formacion-incrustada/') !== -1 && a.host === location.host) return;
+        a.target = '_blank';
+        a.rel = 'noopener';
+    }, true);
+})();

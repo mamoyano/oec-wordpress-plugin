@@ -849,6 +849,9 @@ body.oec-bm-chat-open div:has(> iframe[name="Botmaker"]) { display: flex !import
 .oec-botmaker-trigger.oec-bm-loading { cursor: progress; opacity: .7; }
 
 /* ─── BARRA DE COMPARTIR (hero) — mismo set que los artículos del tema, versión para fondo oscuro ─── */
+/* Ficha incrustada (iframe en el sitio de un socio): la URL de esta página no es la que ve el
+   visitante (es la del socio, que no conocemos), así que no se ofrece compartir. */
+body.oec-embed .oec-share { display: none !important; }
 .oec-share { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 14px 0 0 !important; }
 .oec-share-label { font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: .08em !important; line-height: 1.2 !important; color: rgba(255,255,255,.75) !important; margin-right: 2px !important; }
 .oec-share-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50% !important; border: 1px solid rgba(255,255,255,.35) !important; background: rgba(255,255,255,.08) !important; color: #fff !important; font-size: 15px !important; line-height: 1 !important; padding: 0 !important; cursor: pointer; text-decoration: none !important; box-shadow: none !important; transition: background .2s, border-color .2s, transform .2s; }
