@@ -370,7 +370,7 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-bullet.is-visible { opacity: 1; transform: translateY(0); }
 @media (prefers-reduced-motion: reduce) { .oec-bullet { opacity: 1; transform: none; transition: none; } }
 .oec-bullet-icon { font-size: 19px !important; color: var(--oec-brand) !important; flex-shrink: 0; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--oec-brand) 10%, #fff) !important; border-radius: 10px !important; }
-.oec-bullet-text h4 { font-size: 12px !important; font-weight: 700 !important; color: #111827 !important; margin: 0 0 3px !important; text-transform: uppercase !important; letter-spacing: .4px !important; }
+.oec-bullet-text :is(h3, h4) { font-size: 12px !important; font-weight: 700 !important; color: #111827 !important; margin: 0 0 3px !important; text-transform: uppercase !important; letter-spacing: .4px !important; }
 .oec-bullet-text p  { font-size: 13px !important; color: #6b7280 !important; margin: 0 !important; line-height: 1.5 !important; }
 
 /* ─── SELECTOR REGIONAL ──────────────────────────────────────── */
@@ -496,7 +496,7 @@ h1.oec-h1.m { font-size: 22px !important; }
 .preciotachado   { text-decoration: line-through !important; color: #9ca3af !important; font-weight: 400 !important; }
 .oec-btn-enroll  { display: block; width: 100%; box-sizing: border-box; background: var(--checkout-blue) !important; color: #fff !important; border: none !important; border-radius: 8px !important; padding: 14px !important; font-size: 15px !important; font-weight: 700 !important; text-align: center !important; cursor: pointer; margin-top: 16px !important; letter-spacing: .3px !important; transition: background .15s; }
 .oec-btn-enroll:hover { background: var(--checkout-blue-hover) !important; color: #fff !important; }
-.oec-rc-note     { font-size: 11px !important; color: #9ca3af !important; text-align: center !important; margin: 8px 0 0 !important; }
+.oec-rc-note     { font-size: 11px !important; color: #6b7280 !important; text-align: center !important; margin: 8px 0 0 !important; }
 
 /* ─── ALTERNATIVAS (formaciones similares, inscripción cerrada) ──
    Tarjetas horizontales compactas para la columna derecha (~360px) —
@@ -542,7 +542,7 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-coupon-action a:hover { background: var(--oec-brand) !important; color: #fff !important; }
 .oec-coupon-action p { margin: 0 !important; font-size: 11.5px !important; color: #9ca3af !important; }
 #oec-po_div          { margin-top: 12px !important; padding-top: 12px !important; border-top: 1px solid #f3f4f6 !important; }
-.oec-pay-label   { font-size: 10px !important; font-weight: 700 !important; letter-spacing: .04em !important; text-transform: uppercase !important; color: #9ca3af !important; margin: 0 0 6px !important; text-align: center !important; line-height: 1.2 !important; }
+.oec-pay-label   { font-size: 10px !important; font-weight: 700 !important; letter-spacing: .04em !important; text-transform: uppercase !important; color: #6b7280 !important; margin: 0 0 6px !important; text-align: center !important; line-height: 1.2 !important; }
 .oec-pay-grid    { display: grid; grid-template-columns: repeat(auto-fit, minmax(38px, 1fr)); gap: 5px; max-width: 260px; margin: 0 auto !important; }
 .oec-pay-tile    { display: flex; align-items: center; justify-content: center; height: 36px; background: #fff !important; border: 1px solid #e5e7eb !important; border-radius: 6px !important; padding: 6px 2px !important; transition: box-shadow .2s, border-color .2s; }
 .oec-pay-tile:hover { border-color: #d1d5db !important; box-shadow: 0 2px 8px rgba(0,0,0,.06) !important; }

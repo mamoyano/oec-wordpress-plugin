@@ -507,9 +507,9 @@
             <div class="oec-reviews-carousel" id="oec-rev-carousel">
                 {% for review in reviews.top %}
                     {% set rpx = (review.rating * 22 * 88 / 110)|round %}
-                    {% set rimg = review.author.image starts with 'http' ? review.author.image : 'https://imgrsize.oe-img.center' ~ review.author.image ~ '?w=100&amp;q=90' %}
+                    {% set rimg = review.author.image starts with 'http' ? review.author.image : 'https://imgrsize.oe-img.center' ~ review.author.image ~ '?w=80&amp;q=85&amp;format=webp' %}
                     <div class="oec-rev-card">
-                        <img src="{{ rimg }}" class="oec-rev-avatar" alt="{{ review.author.first_name }}" loading="lazy">
+                        <img src="{{ rimg }}" class="oec-rev-avatar" width="36" height="36" alt="{{ review.author.first_name }}" loading="lazy">
                         <div class="oec-rev-head">
                             <div class="oec-rev-name">{{ review.author.first_name }} {{ review.author.last_name }}</div>
                             <div class="oec-rev-sprite"><div class="oec-rev-sprite-fill" style="width:{{ rpx }}px"></div></div>
@@ -651,7 +651,7 @@
                                     {% for d in asignatura.teachers.data %}
                                         {% set di = d.image|split('/') %}{% set di_last = di|last %}
                                         <span class="oec-subj-teacher">
-                                            <img src="{% if d.image is empty %}https://imgrsize.oe-img.center/img/user-default.jpg?w=50&amp;q=89{% else %}https://imgrsize.oe-img.center/usuario/{{ di_last }}?w=50&amp;q=89{% endif %}" class="oec-subj-img" loading="lazy" alt="{{ d.first_name }}">
+                                            <img src="{% if d.image is empty %}https://imgrsize.oe-img.center/img/user-default.jpg?w=50&amp;q=89{% else %}https://imgrsize.oe-img.center/usuario/{{ di_last }}?w=50&amp;q=89{% endif %}" class="oec-subj-img" width="18" height="18" loading="lazy" alt="{{ d.first_name }}">
                                             {{ d.first_name }} {{ d.last_name }}
                                         </span>
                                     {% endfor %}
@@ -712,7 +712,7 @@
                 <div class="oec-reviews-full-list">
                 {% for review in reviews.all %}
                     {% set rpx = (review.rating * 22 * 88 / 110)|round %}
-                    {% set rimg = review.author.image starts with 'http' ? review.author.image : 'https://imgrsize.oe-img.center' ~ review.author.image ~ '?w=200&amp;q=90' %}
+                    {% set rimg = review.author.image starts with 'http' ? review.author.image : 'https://imgrsize.oe-img.center' ~ review.author.image ~ '?w=80&amp;q=85&amp;format=webp' %}
                     {% set rname = review.author.prefix ? review.author.prefix ~ ' ' ~ review.author.first_name ~ ' ' ~ review.author.last_name : review.author.first_name ~ ' ' ~ review.author.last_name %}
                     {% set comment_len = review.comment|length %}
                     {% if comment_len < 30 %}{% set rf_size = "oec-rf-text--xxl" %}
@@ -721,7 +721,7 @@
                     {% elseif comment_len < 300 %}{% set rf_size = "oec-rf-text--m" %}
                     {% else %}{% set rf_size = "oec-rf-text--s" %}{% endif %}
                     <div class="oec-review-full">
-                        <img src="{{ rimg }}" class="oec-rf-avatar" alt="{{ rname }}" loading="lazy">
+                        <img src="{{ rimg }}" class="oec-rf-avatar" width="40" height="40" alt="{{ rname }}" loading="lazy">
                         <div class="oec-rf-meta">
                             <div class="oec-rf-name">{{ rname }}</div>
                             <div class="oec-rf-sprite"><div class="oec-rf-fill" style="width:{{ rpx }}px"></div></div>
@@ -753,28 +753,28 @@
             {# MODALIDAD — siempre #}
             <div class="oec-bullet">
                 <div class="oec-bullet-icon"><i class="bi {{ modality_icon }} cm_main_color"></i></div>
-                <div class="oec-bullet-text"><h4>{{ modality_title }}</h4><p>{{ modality_text }}</p></div>
+                <div class="oec-bullet-text"><h3>{{ modality_title }}</h3><p>{{ modality_text }}</p></div>
             </div>
 
             {# SINCRONICIDAD — si no es ONSITE #}
             {% if modality != "ONSITE" and not data.mkp_only %}
             <div class="oec-bullet">
                 <div class="oec-bullet-icon"><i class="bi {{ synchronicity_icon }} cm_main_color"></i></div>
-                <div class="oec-bullet-text"><h4>{{ synchronicity_title }}</h4><p>{{ synchronicity_text }}</p></div>
+                <div class="oec-bullet-text"><h3>{{ synchronicity_title }}</h3><p>{{ synchronicity_text }}</p></div>
             </div>
             {% endif %}
 
             {# HORAS CÁTEDRA — siempre #}
             <div class="oec-bullet">
                 <div class="oec-bullet-icon"><i class="bi bi-stopwatch cm_main_color"></i></div>
-                <div class="oec-bullet-text"><h4>{{ data.lecture_hours }} HORAS CÁTEDRA</h4><p>{{ module_phrase }} · {{ teachers_phrase }}.</p></div>
+                <div class="oec-bullet-text"><h3>{{ data.lecture_hours }} HORAS CÁTEDRA</h3><p>{{ module_phrase }} · {{ teachers_phrase }}.</p></div>
             </div>
 
             {# ACCESO EXTENDIDO — si no es ONSITE ni externo #}
             {% if modality != "ONSITE" and not data.mkp_only %}
             <div class="oec-bullet">
                 <div class="oec-bullet-icon"><i class="bi bi-calendar3-range cm_main_color"></i></div>
-                <div class="oec-bullet-text"><h4>ACCESO EXTENDIDO</h4><p>{{ access_text }}</p></div>
+                <div class="oec-bullet-text"><h3>ACCESO EXTENDIDO</h3><p>{{ access_text }}</p></div>
             </div>
             {% endif %}
 
@@ -782,7 +782,7 @@
             {% if not data.mkp_only %}
             <div class="oec-bullet">
                 <div class="oec-bullet-icon"><i class="bi bi-bank cm_main_color"></i></div>
-                <div class="oec-bullet-text"><h4>100% SEGURO</h4><p>Si no cumplimos con lo publicitado, devolvemos el 100% de tu dinero.</p></div>
+                <div class="oec-bullet-text"><h3>100% SEGURO</h3><p>Si no cumplimos con lo publicitado, devolvemos el 100% de tu dinero.</p></div>
             </div>
             {% endif %}
 
@@ -790,7 +790,7 @@
             {% if data.mkp_only %}
             <div class="oec-bullet">
                 <div class="oec-bullet-icon"><i class="bi bi-building-up cm_main_color"></i></div>
-                <div class="oec-bullet-text"><h4>CAMPUS EXTERNO</h4><p>Esta formación se cursa en el campus virtual de <strong>{{ organizacion_name }}</strong>, no en OEC.</p></div>
+                <div class="oec-bullet-text"><h3>CAMPUS EXTERNO</h3><p>Esta formación se cursa en el campus virtual de <strong>{{ organizacion_name }}</strong>, no en OEC.</p></div>
             </div>
             {% endif %}
 
@@ -799,11 +799,11 @@
             <div class="oec-bullet">
                 <div class="oec-bullet-icon"><i class="bi bi-database cm_main_color"></i></div>
                 <div class="oec-bullet-text">
-                    <h4>
+                    <h3>
                         <a href="https://about.ebsco.com/es/productos/bases-de-datos/sportdiscus-full-text" target="_blank" rel="noopener">
                             <img src="https://imgrsize.oe-img.center/campus/capacitacion/imagen/12410_1_FbAd_69cc46aebdb99.png?w=200&amp;q=89&amp;format=webp" alt="SportDiscus with Full Text" style="height:28px !important;max-width:140px !important;object-fit:contain !important;vertical-align:middle !important">
                         </a>
-                    </h4>
+                    </h3>
                     <p>Acceso a SPORT Discus with Full text en el campus virtual. <a href="https://about.ebsco.com/es/productos/bases-de-datos/sportdiscus-full-text" target="_blank" rel="noopener" class="cm_main_color" style="font-size:12px !important">Ver base de datos →</a></p>
                 </div>
             </div>
@@ -814,7 +814,7 @@
             <div class="oec-bullet">
                 <div class="oec-bullet-icon"><i class="bi bi-person-badge cm_main_color"></i></div>
                 <div class="oec-bullet-text">
-                    <h4>DOCENTES DESTACADOS</h4>
+                    <h3>DOCENTES DESTACADOS</h3>
                     <p>{% for d in data.teachers.data %}{{ d.first_name }} {{ d.last_name }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
                 </div>
             </div>
@@ -824,7 +824,7 @@
             {% if data.great_organizer %}
             <div class="oec-bullet">
                 <div class="oec-bullet-icon"><i class="bi bi-building-check cm_main_color"></i></div>
-                <div class="oec-bullet-text"><h4>ORGANIZADOR DESTACADO</h4><p>{{ organizacion_name }} es referente en su área.</p></div>
+                <div class="oec-bullet-text"><h3>ORGANIZADOR DESTACADO</h3><p>{{ organizacion_name }} es referente en su área.</p></div>
             </div>
             {% endif %}
 
@@ -832,7 +832,7 @@
             {% if data.great_topic %}
             <div class="oec-bullet">
                 <div class="oec-bullet-icon"><i class="bi bi-lightbulb cm_main_color"></i></div>
-                <div class="oec-bullet-text"><h4>TEMÁTICA INÉDITA</h4><p>Una de las pocas formaciones disponibles sobre esta temática en el mercado hispanohablante.</p></div>
+                <div class="oec-bullet-text"><h3>TEMÁTICA INÉDITA</h3><p>Una de las pocas formaciones disponibles sobre esta temática en el mercado hispanohablante.</p></div>
             </div>
             {% endif %}
 
@@ -840,7 +840,7 @@
             {% if data.great_price %}
             <div class="oec-bullet">
                 <div class="oec-bullet-icon"><i class="bi bi-tags cm_main_color"></i></div>
-                <div class="oec-bullet-text"><h4>PRECIO ACCESIBLE</h4><p>Una formación de esta calidad a un precio notablemente reducido respecto al mercado.</p></div>
+                <div class="oec-bullet-text"><h3>PRECIO ACCESIBLE</h3><p>Una formación de esta calidad a un precio notablemente reducido respecto al mercado.</p></div>
             </div>
             {% endif %}
 
@@ -849,7 +849,7 @@
             <div class="oec-bullet">
                 <div class="oec-bullet-icon"><i class="bi bi-patch-check cm_main_color"></i></div>
                 <div class="oec-bullet-text">
-                    <h4>AVALES INTERNACIONALES</h4>
+                    <h3>AVALES INTERNACIONALES</h3>
                     <p>{% for aval in data.supports.data %}{{ aval.name }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
                 </div>
             </div>
@@ -859,13 +859,13 @@
             {% if data.total_students > 500 %}
             <div class="oec-bullet">
                 <div class="oec-bullet-icon"><i class="bi bi-people cm_main_color"></i></div>
-                <div class="oec-bullet-text"><h4>+{{ data.total_students }} PROFESIONALES</h4><p>Una comunidad de más de {{ data.total_students }} profesionales ya eligieron esta formación.</p></div>
+                <div class="oec-bullet-text"><h3>+{{ data.total_students }} PROFESIONALES</h3><p>Una comunidad de más de {{ data.total_students }} profesionales ya eligieron esta formación.</p></div>
             </div>
             {% endif %}
             {% if reviews.summary.count is defined and reviews.summary.count > 100 %}
             <div class="oec-bullet">
                 <div class="oec-bullet-icon"><i class="bi bi-star-half cm_main_color"></i></div>
-                <div class="oec-bullet-text"><h4>{{ reviews.summary.average|number_format(1,',','') }} / 5 EN OPINIONES</h4><p>Calificado con {{ reviews.summary.average|number_format(1,',','') }} sobre 5 por {{ reviews.summary.count }} alumnos verificados.</p></div>
+                <div class="oec-bullet-text"><h3>{{ reviews.summary.average|number_format(1,',','') }} / 5 EN OPINIONES</h3><p>Calificado con {{ reviews.summary.average|number_format(1,',','') }} sobre 5 por {{ reviews.summary.count }} alumnos verificados.</p></div>
             </div>
             {% endif %}
 
@@ -874,7 +874,7 @@
             <div class="oec-bullet" id="oec-bullet-pay">
                 <div class="oec-bullet-icon"><i class="bi bi-credit-card cm_main_color"></i></div>
                 <div class="oec-bullet-text">
-                    <h4>FACILIDADES DE PAGO</h4>
+                    <h3>FACILIDADES DE PAGO</h3>
                     <p>Paga en tu moneda local con múltiples métodos disponibles.</p>
                     <div id="oec-po_bullet" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"></div>
                 </div>
@@ -885,7 +885,7 @@
             {% if data.edition_number > 5 %}
             <div class="oec-bullet">
                 <div class="oec-bullet-icon"><i class="bi bi-trophy cm_main_color"></i></div>
-                <div class="oec-bullet-text"><h4>{{ data.edition_number }}ª EDICIÓN</h4><p>Una formación con trayectoria probada. {{ data.edition_number }} ediciones avalan su calidad.</p></div>
+                <div class="oec-bullet-text"><h3>{{ data.edition_number }}ª EDICIÓN</h3><p>Una formación con trayectoria probada. {{ data.edition_number }} ediciones avalan su calidad.</p></div>
             </div>
             {% endif %}
 
@@ -958,7 +958,7 @@
                     <div class="oec-ac-body">
                         {% for cert in data.certificates.data %}{% set ci = cert.thumb|split('/') %}{% set ci_last = ci|last %}
                             <div class="oec-cert">
-                                {% if cert.thumb %}<img src="https://imgrsize.oe-img.center/campus/certificado/thumbs/{{ ci_last }}?w=300&amp;q=89&amp;format=webp" alt="{{ cert.name }}" loading="lazy">{% endif %}
+                                {% if cert.thumb %}<img src="https://imgrsize.oe-img.center/campus/certificado/thumbs/{{ ci_last }}?w=300&amp;q=89&amp;format=webp" width="300" height="212" alt="{{ cert.name }}" loading="lazy">{% endif %}
                                 <div class="oec-cert-info"><h4>{{ cert.name }}</h4><ul><li><strong>Otorga:</strong> {{ cert.organization_name }}</li><li><strong>Formato:</strong> {{ cert.type }}</li></ul>{% if cert.description %}<p style="font-size:13px !important;color:#6b7280 !important;margin-top:8px !important">{{ cert.description }}</p>{% endif %}</div>
                             </div>
                         {% endfor %}
@@ -1084,7 +1084,7 @@
             <div class="oec-contact-block oec-contact-block--email">
                 <h3 class="oec-contact-block-title"><i class="bi bi-envelope-fill"></i> Por Email</h3>
                 <div class="oec-contact-kam">
-                    <img src="https://imgrsize.oe-img.center/usuario/{{ comercial_image_last }}?w=200&amp;q=89&amp;format=webp" loading="lazy" alt="{{ data.salesman.full_name }}">
+                    <img src="https://imgrsize.oe-img.center/usuario/{{ comercial_image_last }}?w=200&amp;q=89&amp;format=webp" width="52" height="52" loading="lazy" alt="{{ data.salesman.full_name }}">
                     <div>
                         <div class="oec-contact-kam-name">{{ data.salesman.full_name }}</div>
                         <div class="oec-contact-kam-role">Customer Success Manager</div>
@@ -1250,7 +1250,7 @@
                     <p class="oec-cal-label">{% if "now"|date("Ymd") > data.end|date("Ymd") %}Finalizó el {{ data.end|format_date }}{% else %}Inició el {{ data.start|format_date }}{% endif %}</p>
                     <p class="oec-cal-date">INSCRIPCIONES CERRADAS</p>
                 {% else %}
-                    <p class="oec-cal-date">{% if openEnrollment %}COMIENCE CUANDO QUIERA{% else %}INSCRIPCIONES CERRADAS{% endif %}</p>
+                    <p class="oec-cal-date">{% if openEnrollment %}COMIENZA CUANDO QUIERAS{% else %}INSCRIPCIONES CERRADAS{% endif %}</p>
                 {% endif %}
             </div>
         {% endif %}

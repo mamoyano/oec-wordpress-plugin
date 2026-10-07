@@ -812,13 +812,13 @@ function oec_get_reviews(where, tid, page){
         let html='<div class="oec-reviews-full-list">';
         data.reviews.forEach(rv=>{
             const px=Math.round(rv.rating*22*88/110);
-            const img=rv.author.image.startsWith('http')?rv.author.image:`https://imgrsize.oe-img.center${rv.author.image}?w=200&q=90`;
+            const img=rv.author.image.startsWith('http')?rv.author.image:`https://imgrsize.oe-img.center${rv.author.image}?w=80&q=85&format=webp`;
             const name=rv.author.prefix?`${rv.author.prefix} ${rv.author.first_name} ${rv.author.last_name}`:`${rv.author.first_name} ${rv.author.last_name}`;
             // Mismo criterio de tamaño según largo del comentario que en el
             // render server-side (Twig) — si se toca uno, tocar el otro.
             const len=(rv.comment||'').length;
             const rfSize = len<30?'oec-rf-text--xxl' : len<60?'oec-rf-text--xl' : len<150?'oec-rf-text--l' : len<300?'oec-rf-text--m' : 'oec-rf-text--s';
-            html+=`<div class="oec-review-full"><img src="${img}" class="oec-rf-avatar" alt="${name}" loading="lazy"><div class="oec-rf-meta"><div class="oec-rf-name">${name}</div><div class="oec-rf-sprite"><div class="oec-rf-fill" style="width:${px}px"></div></div></div><div class="oec-rf-body"><div class="oec-rf-text ${rfSize}">${rv.comment}</div><div class="oec-rf-date">${new Date(rv.date).toLocaleDateString('es-AR')}</div></div></div>`;
+            html+=`<div class="oec-review-full"><img src="${img}" class="oec-rf-avatar" width="40" height="40" alt="${name}" loading="lazy"><div class="oec-rf-meta"><div class="oec-rf-name">${name}</div><div class="oec-rf-sprite"><div class="oec-rf-fill" style="width:${px}px"></div></div></div><div class="oec-rf-body"><div class="oec-rf-text ${rfSize}">${rv.comment}</div><div class="oec-rf-date">${new Date(rv.date).toLocaleDateString('es-AR')}</div></div></div>`;
         });
         if(data.pagination.total>page) html+=`<div id="oec-more_reviews_${next}"><a class="oec-mas-op" href="javascript:oec_get_reviews('oec-more_reviews_${next}','${tid}',${next})">Cargar más <i class="bi bi-chevron-down"></i></a></div>`;
         html+='</div>';

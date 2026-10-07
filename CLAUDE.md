@@ -2381,6 +2381,28 @@ socio no se le ofrecen formaciones de otros organizadores. Sin alternativas, el 
 esta formación" (plantilla + `upgrade_template()` para las ya pegadas). Probado en local: comunidad
 → 10 alternativas; incrustada y dominio de socio simulado → ninguna.
 
+## v1.4.15 — puntos del plugin de la auditoría PageSpeed (2026-10-07)
+
+PageSpeed móvil de una ficha (g-se.com, Planifica tus intervalos): 75 / 95 / 100 / 100; los datos
+reales (CrUX) aprueban las 3 métricas. El TBT (660 ms) es sobre todo de terceros (Facebook Pixel,
+GTM, Clarity): eso se maneja en GTM, no en el plugin. Lo nuestro, corregido:
+- **Copy**: "COMIENCE CUANDO QUIERA" (caja de precios, formación asincrónica) → "COMIENZA CUANDO QUIERAS".
+- **Contraste**: `.oec-rc-note` y `.oec-pay-label` de `#9ca3af` a `#6b7280` (4,8:1 sobre blanco).
+- **Orden de títulos**: los ítems de "¿Por qué elegir esta formación?" pasaron de `<h4>` a `<h3>`
+  (estaban directo bajo un `<h2>`); CSS `.oec-bullet-text :is(h3, h4)`, mismo aspecto.
+- **Imágenes**: `width`/`height` en avatares de opiniones (36/40), fotos de docentes en Contenidos (18),
+  miniatura de certificado (300×212, `height:auto` en CSS → al cargar manda la proporción real) y foto
+  del asesor (52). Avatares pedidos a 80 px en webp (antes 100/200 px en jpg); también en las opiniones
+  que arma `oec_get_reviews()`.
+- **Reprocesamiento forzado** (`oec-frontend.js`): la medición inicial de la barra de secciones
+  (`--oec-sticky-h`, `measureTopOffset()`, sección activa) ya no corre apenas carga el script (diseño
+  "sucio" → recálculo de toda la página) sino con `requestIdleCallback` (Safari: `setTimeout` 300 ms).
+  El scroll la sigue disparando como antes.
+- Plantillas ya pegadas: `upgrade_template()` aplica todo lo del Twig al vuelo (probado: la plantilla de
+  1.4.14 procesada queda idéntica a la nueva procesada). No hace falta volver a pegarla.
+- Lighthouse CLI no corre en la Mac de Mario (Node x64 + Chrome arm64): se verificó con mediciones en el
+  Browser pane (estilos calculados, orden de títulos, barra sticky y tabs, sin errores de consola).
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

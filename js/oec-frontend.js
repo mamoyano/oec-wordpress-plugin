@@ -32,12 +32,17 @@
     // nuevo. Se mide oculto (visibility:hidden) para no hacer parpadear la
     // barra un frame antes de que updateSticky() decida si corresponde
     // mostrarla.
-    const prevDisplay = stickyEl.style.display;
-    stickyEl.style.visibility = 'hidden';
-    stickyEl.style.display    = 'block';
-    document.documentElement.style.setProperty('--oec-sticky-h', stickyEl.offsetHeight + 'px');
-    stickyEl.style.display    = prevDisplay || 'none';
-    stickyEl.style.visibility = '';
+    // Se hace en un momento ocioso (ver initialMeasure() más abajo), no apenas carga el script:
+    // ahí el diseño todavía está "sucio" y leer offsetHeight obligaba al navegador a recalcular
+    // toda la página en medio de la carga (Lighthouse: "reprocesamiento forzado").
+    function measureStickyHeight() {
+        const prevDisplay = stickyEl.style.display;
+        stickyEl.style.visibility = 'hidden';
+        stickyEl.style.display    = 'block';
+        document.documentElement.style.setProperty('--oec-sticky-h', stickyEl.offsetHeight + 'px');
+        stickyEl.style.display    = prevDisplay || 'none';
+        stickyEl.style.visibility = '';
+    }
 
     // Header fijo del TEMA (o la barra de administración de WordPress con sesión iniciada): en
     // sitios con Divi/Avada/Astra/Elementor el header suele quedar "position:fixed" arriba y, con
@@ -151,7 +156,14 @@
         }
     }, { passive: true });
 
-    updateSticky();
+    // Primera medición cuando el navegador está libre (requestIdleCallback; Safari no lo tiene →
+    // setTimeout). Si antes el usuario ya scrolleó, updateSticky() corre igual por el scroll.
+    function initialMeasure() {
+        if (stickyEl.style.display === 'none' || !stickyEl.style.display) measureStickyHeight();
+        updateSticky();
+    }
+    if (window.requestIdleCallback) requestIdleCallback(initialMeasure, { timeout: 1500 });
+    else setTimeout(initialMeasure, 300);
 })();
 
 // Mover al body todos los elementos fixed/overlay que estén dentro del bleed wrapper

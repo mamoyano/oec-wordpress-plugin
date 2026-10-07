@@ -970,6 +970,37 @@ if (!class_exists('OEC_Shortcodes')) {
             // < 1.4.14: sin formaciones alternativas (sitio de socio o ficha incrustada) el texto
             // seguía invitando a "conocer alternativas".
             $content = str_replace('para conocer alternativas disponibles.', 'y te avisamos apenas se reabra esta formación.', $content);
+            // < 1.4.15 (auditoría PageSpeed): tuteo, títulos de "¿Por qué elegir…?" como <h3> (iban
+            // <h4> directo debajo de un <h2>), avatares al doble del tamaño que se muestran y en webp,
+            // y width/height en las imágenes para reservar su lugar antes de que carguen.
+            $content = str_replace('COMIENCE CUANDO QUIERA', 'COMIENZA CUANDO QUIERAS', $content);
+            $a = strpos($content, 'id="oec-bullets"');
+            $b = $a !== false ? strpos($content, 'id="oec-masinformacion"', $a) : false;
+            if ($a !== false && $b !== false) {
+                $mid     = str_replace(['<h4>', '<h4 ', '</h4>'], ['<h3>', '<h3 ', '</h3>'], substr($content, $a, $b - $a));
+                $content = substr($content, 0, $a) . $mid . substr($content, $b);
+            }
+            $content = str_replace(
+                [
+                    "~ review.author.image ~ '?w=100&amp;q=90'",
+                    "~ review.author.image ~ '?w=200&amp;q=90'",
+                    'class="oec-rev-avatar" alt=',
+                    'class="oec-rf-avatar" alt=',
+                    'class="oec-subj-img" loading=',
+                    '?w=300&amp;q=89&amp;format=webp" alt="{{ cert.name }}"',
+                    '?w=200&amp;q=89&amp;format=webp" loading="lazy" alt="{{ data.salesman.full_name }}"',
+                ],
+                [
+                    "~ review.author.image ~ '?w=80&amp;q=85&amp;format=webp'",
+                    "~ review.author.image ~ '?w=80&amp;q=85&amp;format=webp'",
+                    'class="oec-rev-avatar" width="36" height="36" alt=',
+                    'class="oec-rf-avatar" width="40" height="40" alt=',
+                    'class="oec-subj-img" width="18" height="18" loading=',
+                    '?w=300&amp;q=89&amp;format=webp" width="300" height="212" alt="{{ cert.name }}"',
+                    '?w=200&amp;q=89&amp;format=webp" width="52" height="52" loading="lazy" alt="{{ data.salesman.full_name }}"',
+                ],
+                $content
+            );
             return $content;
         }
 
