@@ -639,12 +639,15 @@ if (!class_exists('OEC_Shortcodes')) {
             // sentido gastar la llamada: nunca se muestran.
             $openEnrollment = !empty($data['enrollment_end'])
                 && date('Ymd', strtotime($data['enrollment_end'])) >= date('Ymd');
-            $similar = $openEnrollment ? [] : $this->get_similar_open_trainings($data);
+            // Solo en una comunidad propia de OEC (lista de dominios OEC_CREDITS_ALLOWED_DOMAINS) y
+            // nunca en la ficha incrustada: en el sitio de un socio no se le ofrecen al visitante
+            // formaciones de otros organizadores.
+            $embed      = function_exists('oec_is_embed') && oec_is_embed();
+            $own_site   = function_exists('oec_credits_system_enabled') && oec_credits_system_enabled();
+            $similar    = ($openEnrollment || $embed || !$own_site) ? [] : $this->get_similar_open_trainings($data);
 
-            // Ficha incrustada en el sitio de un socio (ver oec_is_embed()): inscripción con el link
-            // del socio (data.register), sin breadcrumb, y las demás fichas también incrustadas.
-            $embed = function_exists('oec_is_embed') && oec_is_embed();
-
+            // Ficha incrustada en el sitio de un socio ($embed, ver oec_is_embed()): inscripción con
+            // el link del socio (data.register), sin breadcrumb, y las demás fichas también incrustadas.
             $output = oec_debug_time('Shortcode: render Twig', function () use ($embed, $content, $data, $current_url, $brand_color, $dominant_color, $dominant_color_css, $reviews_top, $reviews_data, $reviews_summary, $similar) {
                 return $this->process_twig($content, [
                 'data'    => $data,
@@ -964,6 +967,9 @@ if (!class_exists('OEC_Shortcodes')) {
             // < 1.4.3: el video de "Presentación" solo se buscaba pegado en short_description;
             // ahora también llega aparte en video_url.
             $content = preg_replace('/split_vimeo_intro(?!\s*\()/', "split_vimeo_intro(data.video_url|default(''))", $content);
+            // < 1.4.14: sin formaciones alternativas (sitio de socio o ficha incrustada) el texto
+            // seguía invitando a "conocer alternativas".
+            $content = str_replace('para conocer alternativas disponibles.', 'y te avisamos apenas se reabra esta formación.', $content);
             return $content;
         }
 

@@ -2371,6 +2371,16 @@ con encabezado y pie del tema.
   links de inscripción = `register` con `target=_blank`, sticky de secciones y de precios andando
   dentro del iframe, barra mobile al pie del iframe, sin scroll horizontal, sin errores de consola.
 
+## v1.4.14 — formaciones alternativas solo en comunidades propias (2026-10-07)
+
+Con inscripción cerrada, las "formaciones alternativas" (`get_similar_open_trainings()`) solo se
+piden y muestran en una comunidad propia de OEC (dominio en `OEC_CREDITS_ALLOWED_DOMAINS`, misma
+lista que créditos, `oec_credits_system_enabled()`) y nunca en la ficha incrustada: en el sitio de un
+socio no se le ofrecen formaciones de otros organizadores. Sin alternativas, el texto pasó de
+"Contáctanos para conocer alternativas disponibles" a "Contáctanos y te avisamos apenas se reabra
+esta formación" (plantilla + `upgrade_template()` para las ya pegadas). Probado en local: comunidad
+→ 10 alternativas; incrustada y dominio de socio simulado → ninguna.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto
