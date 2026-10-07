@@ -325,13 +325,20 @@ document.addEventListener('DOMContentLoaded', function() {
         var bar  = document.getElementById('oec-mobile-bar');
         var wrap = document.getElementById('oec-bleed-wrapper');
         if (!bar || !wrap) return;
-        function update() {
-            var away = wrap.getBoundingClientRect().bottom < window.innerHeight - 2;
-            bar.classList.toggle('oec-mobile-bar--away', away);
-        }
-        window.addEventListener('scroll', update, { passive: true });
-        window.addEventListener('resize', update);
-        update();
+        // Con IntersectionObserver sobre un marcador al final de la ficha, sin leer posiciones a
+        // mano: un getBoundingClientRect() al cargar obligaba a calcular el diseño de TODA la
+        // página dentro de este script (Lighthouse: tarea larga de ~250 ms en v1.4.15).
+        if (!('IntersectionObserver' in window)) return;
+        var end = document.createElement('div');
+        end.setAttribute('aria-hidden', 'true');
+        end.style.cssText = 'height:1px;margin-top:-1px;pointer-events:none';
+        wrap.appendChild(end);
+        new IntersectionObserver(function (entries) {
+            var e = entries[entries.length - 1];
+            // rootBounds es null dentro de un iframe de otro dominio (ficha incrustada).
+            var bottom = e.rootBounds ? e.rootBounds.bottom : window.innerHeight;
+            bar.classList.toggle('oec-mobile-bar--away', e.boundingClientRect.top < bottom - 2);
+        }).observe(end);
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();

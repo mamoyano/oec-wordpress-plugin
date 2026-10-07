@@ -2413,6 +2413,22 @@ la mancha no rompa el borde inferior. Comparado antes/después con Chrome headle
 `?oldhero=1`, ya borrado). Ojo: Chrome headless no achica la ventana por debajo de ~500 px, así que una
 captura con `--window-size=390` sale cortada (parece desborde y no lo es).
 
+## v1.4.17 — la barra de celular ya no fuerza el cálculo de toda la página (2026-10-07)
+
+PageSpeed después de 1.4.15 bajó de 75 a 62. Parte fue ruido de la corrida (el FCP, que no depende de
+nuestro JS, también empeoró), pero apareció una tarea larga nuestra: `oec-frontend.js` (fade de
+`#oec-mobile-bar` al llegar al pie, v1.3.2) hacía `wrap.getBoundingClientRect()` apenas cargaba →
+"reprocesamiento forzado" de 403 ms, tarea de 245 ms. Antes de 1.4.15 ese primer cálculo completo lo
+pagaba `updateSticky()` (~80 ms); al pasarlo a tiempo ocioso, el costo se corrió a esta línea.
+**Aprendizaje**: el primer script que lee el diseño (`getBoundingClientRect`, `offsetHeight`,
+`scrollHeight`…) mientras la página carga paga el cálculo de TODA la página; sacar una lectura puede
+correr el costo a la siguiente. Al revisar, buscar todas las lecturas que corren al cargar, no solo la
+que marca Lighthouse.
+Ahora la barra usa `IntersectionObserver` sobre un marcador de 1 px al final de `#oec-bleed-wrapper`:
+avisa cuando entra en pantalla sin leer posiciones a mano (`rootBounds` es null en un iframe de otro
+dominio → `window.innerHeight`). En `oec-formacion.js` no queda ninguna lectura de diseño al cargar
+(las demás corren con las fuentes cargadas, en `requestAnimationFrame` o al hacer click).
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto
