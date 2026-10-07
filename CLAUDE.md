@@ -2439,8 +2439,25 @@ el freno del click al checkout de 1.0.70). Esa es la causa de "antes pasábamos 
 Imágenes (plugin): fondo del hero en celular `w=700&q=75` (antes 82; la misma URL en el Twig y en
 `oec_hero_preload()`, si no se baja dos veces), avatares de opiniones `q=70` (antes 85, la mitad del
 peso), logo de SportDiscus `w=180&q=80` con `width="89" height="28"` (su proporción real, 200×63).
+**Ojo — el carrusel de opiniones "interactuaba" por el usuario**: con 1.0.102 los rastreadores seguían
+cargando a los ~2 s. El tema escucha `scroll` en captura sobre `window` como señal de "primera
+interacción", y en captura también llegan los `scroll` de elementos internos: el auto-scroll de
+`#oec-rev-carousel` (v1.4.8) disparaba GTM/Pixel/Clarity en el mismo milisegundo (medido con Chrome
+headless + puppeteer-core conectado por `--remote-debugging-port`; lanzarlo desde Node x64 no anda).
+Arreglado en oec-wp-theme 1.0.103 (solo cuenta `e.target === document`). Si el plugin agrega otro
+elemento que scrollee solo, no afecta a los rastreadores.
 Plantillas ya pegadas: `upgrade_template()`. Los logos de medios de pago (`statics/checkout/*.png`) NO
 se pueden achicar: `imgrsize` no redimensiona `statics/` (siempre devuelve el PNG de 120×120).
+
+## v1.4.19 — medios de pago en paralelo con los precios (2026-10-07)
+
+Con tema 1.0.103, PageSpeed 79 (TBT 770 → 300 ms), pero GTM/Pixel seguían dentro de la medición:
+Lighthouse corta cuando la red queda quieta, y después del load la ficha encadenaba país
+(`initialPreferences`) → precios → medios de pago → logos (~2 s en una corrida rápida, más de 4 s con la
+red simulada de PageSpeed). `checkPayOpts()` (medios de pago) solo depende del país: ahora
+`getRegPrices()` lo dispara al mismo tiempo que el pedido de precios (no con force_contact ni con
+total ≤ 0, igual que antes). Las cajas siguen mostrándose recién con los precios. Probado en local
+(Chrome headless): precios y medios de pago salen en el mismo milisegundo, 3 logos en las 3 cajas.
 
 ## Pendientes abiertos (a retomar)
 

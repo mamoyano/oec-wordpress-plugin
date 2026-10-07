@@ -620,6 +620,10 @@ function formatOecMoney(n){
 }
 function getRegPrices(id,total,country,currency){
     if(total<=0){ jQuery('.just-price').text('GRATIS'); return; }
+    // Medios de pago en paralelo con los precios (solo dependen del país): antes se pedían recién
+    // con los precios ya llegados, y esa cadena de pedidos estiraba la carga (PageSpeed seguía
+    // midiendo cuando arrancaban GTM y el Pixel). Se pintan en cajas que se muestran más abajo.
+    if(!OEC_CONFIG.force_contact) checkPayOpts(['oec-po_span','oec-sticky-pay','oec-mb-pay'],id,country);
     fetch(`${OEC_API.prices}/${id}/prices?country=${country}&currency=${currency}`)
     .then(r=>r.json())
     .then(data=>{
@@ -642,7 +646,6 @@ function getRegPrices(id,total,country,currency){
                 return `<img src="https://imgrsize.oe-img.center/statics/checkout/${l}?w=100&q=90" alt="${p.es.name}" title="${p.es.name}" height="24" loading="lazy" style="max-width:60px;object-fit:contain">`;
             }).join('');
         }
-        checkPayOpts(['oec-po_span','oec-sticky-pay','oec-mb-pay'],id,country);
     }).catch(console.error);
 }
 // País y moneda del visitante. Sin "force-cache" (v1.4.12): con ese modo el navegador reusaba la
