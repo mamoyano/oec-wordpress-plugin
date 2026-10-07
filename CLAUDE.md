@@ -2403,6 +2403,16 @@ GTM, Clarity): eso se maneja en GTM, no en el plugin. Lo nuestro, corregido:
 - Lighthouse CLI no corre en la Mac de Mario (Node x64 + Chrome arm64): se verificó con mediciones en el
   Browser pane (estilos calculados, orden de títulos, barra sticky y tabs, sin errores de consola).
 
+## v1.4.16 — sombra abajo a la izquierda en el hero (2026-10-07)
+
+`.oec-hero-overlay` pasó a tres capas (la primera queda arriba): 1) fundido al `--oec-dominant` en el
+último 18% (empalma con la página), 2) `radial-gradient(ellipse 65% 75% at 0% 72%, rgba(0,0,0,.7) →
+.45 → transparent 85%)`: sombra donde están píldoras, título, "Organiza" y compartir, que se apaga hacia
+arriba y a la derecha, 3) el oscurecido vertical de siempre. El fundido va arriba de la sombra para que
+la mancha no rompa el borde inferior. Comparado antes/después con Chrome headless (mu-plugin temporal
+`?oldhero=1`, ya borrado). Ojo: Chrome headless no achica la ventana por debajo de ~500 px, así que una
+captura con `--window-size=390` sale cortada (parece desborde y no lo es).
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

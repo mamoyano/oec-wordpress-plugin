@@ -144,7 +144,13 @@
     .oec-hero-bg { background-image: var(--oec-hero-bg-url-mobile) !important; }
 }
 #oec-hero:hover .oec-hero-bg { transform: scale(1.03); }
-.oec-hero-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,.25) 0%, rgba(0,0,0,.3) 30%, rgba(0,0,0,.65) 65%, rgba(0,0,0,.55) 82%, var(--oec-dominant) 100%) !important; }
+/* Tres capas (la primera queda arriba): 1) el fundido al color dominante en el borde inferior, que
+   empalma con la página; 2) sombra que nace abajo a la izquierda, donde están píldoras, título,
+   "Organiza" y compartir, y se apaga hacia arriba y a la derecha; 3) el oscurecido vertical de siempre. */
+.oec-hero-overlay { position: absolute; inset: 0; background:
+    linear-gradient(to bottom, transparent 82%, var(--oec-dominant) 100%),
+    radial-gradient(ellipse 65% 75% at 0% 72%, rgba(0,0,0,.7) 0%, rgba(0,0,0,.45) 40%, transparent 85%),
+    linear-gradient(to bottom, rgba(0,0,0,.25) 0%, rgba(0,0,0,.3) 30%, rgba(0,0,0,.65) 65%, rgba(0,0,0,.55) 82%, rgba(0,0,0,.55) 100%) !important; }
 .oec-hero-content { position: relative; z-index: 2; min-height: 460px !important; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; padding: 200px 6% 64px !important; }
 .oec-hero-inner { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; }
 .oec-hero-left  { flex: 1 1 0; min-width: 0 !important; }
