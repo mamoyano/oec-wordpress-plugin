@@ -2076,7 +2076,7 @@ Verificado en mobile (375px) en la de Fisiología (2 docentes, bio abierta/cerra
 - **Cómo se publica una versión** (Plugin Update Checker con `enableReleaseAssets()`): subir
   `Version:` en `oec-main.php`, commit + push a `main`, y un release de GitHub con tag `vX.Y.Z` y el
   asset `oec-wordpress-plugin.zip` — carpeta `oec-wordpress-plugin/` con los archivos versionados en
-  git MENOS `CLAUDE.md`, `tests/` y `.gitignore` (mismo contenido que el zip de v1.3.1). Los sitios lo
+  git MENOS `CLAUDE.md`, `tests/`, `tools/`, `server/` y `.gitignore` (mismo contenido que el zip de v1.3.1). Los sitios lo
   ven en Plugins → "Hay una nueva versión".
 
 ## v1.3.3 — el plugin aguanta una caída de la API de OEC (2026-09-29)
@@ -2458,6 +2458,21 @@ red simulada de PageSpeed). `checkPayOpts()` (medios de pago) solo depende del p
 `getRegPrices()` lo dispara al mismo tiempo que el pedido de precios (no con force_contact ni con
 total ≤ 0, igual que antes). Las cajas siguen mostrándose recién con los precios. Probado en local
 (Chrome headless): precios y medios de pago salen en el mismo milisegundo, 3 logos en las 3 cajas.
+
+## v1.4.20 — CSS de la ficha minificado (2026-10-07)
+
+`css/oec-formacion.css` (99 KB, la mitad son comentarios) se servía tal cual: ~21,5 KB comprimido y
+bloqueante. Ahora se sirve `css/oec-formacion.min.css` (72 KB, ~11,4 KB comprimido), generado con
+**`python3 tools/build-css.py`** — correrlo después de CADA cambio en `oec-formacion.css` y commitear
+los dos archivos. El minificador es propio a propósito: solo saca comentarios y espacios (respeta
+comillas y nunca toca espacios junto a ":" o ",", que en un selector son combinadores). csso se probó
+y se descartó: reescribía `background: none` → `0 0` y `outline: none` → `0` (mismo aspecto, distinto
+estilo calculado). Verificado con Chrome headless: estilo calculado de los ~2.250 elementos y
+pseudo-elementos de la ficha, original vs. minificado, **0 diferencias** en 1366 y 412 px.
+**Seguro**: el enqueue usa el `.min` solo si su `filemtime` es >= al del original; si alguien edita el
+original y no regenera, se sirve el original (nunca CSS viejo). En el zip (git archive, orden
+alfabético) el `.min` va después del original, así que al descomprimir queda igual o más nuevo.
+`oec-formaciones.css` (listado) sigue sin minificar.
 
 ## Pendientes abiertos (a retomar)
 

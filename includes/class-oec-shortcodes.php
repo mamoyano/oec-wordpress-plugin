@@ -184,7 +184,16 @@ if (!class_exists('OEC_Shortcodes')) {
                 // caché del navegador — con un número fijo, el navegador puede
                 // seguir sirviendo una versión vieja de la caché indefinidamente
                 // después de editar el CSS/JS.
-                $css_path = plugin_dir_path(dirname(__FILE__)) . 'css/oec-formacion.css';
+                // Versión minificada (tools/build-css.py, ~11 KB comprimida en vez de ~21) solo si no es
+                // más vieja que el original: si alguien edita oec-formacion.css y no la regenera, se sirve
+                // el original. Así nunca llega al navegador un CSS desactualizado.
+                $css_file = 'css/oec-formacion.css';
+                $css_src  = plugin_dir_path(dirname(__FILE__)) . $css_file;
+                $css_min  = plugin_dir_path(dirname(__FILE__)) . 'css/oec-formacion.min.css';
+                if (file_exists($css_min) && file_exists($css_src) && filemtime($css_min) >= filemtime($css_src)) {
+                    $css_file = 'css/oec-formacion.min.css';
+                }
+                $css_path = plugin_dir_path(dirname(__FILE__)) . $css_file;
                 $js_frontend_path = plugin_dir_path(dirname(__FILE__)) . 'js/oec-frontend.js';
                 $js_formacion_path = plugin_dir_path(dirname(__FILE__)) . 'js/oec-formacion.js';
 
@@ -196,7 +205,7 @@ if (!class_exists('OEC_Shortcodes')) {
 
                 wp_enqueue_style(
                     'oec-formacion',
-                    plugin_dir_url(dirname(__FILE__)) . 'css/oec-formacion.css',
+                    plugin_dir_url(dirname(__FILE__)) . $css_file,
                     [],
                     file_exists($css_path) ? filemtime($css_path) : '1.0'
                 );
