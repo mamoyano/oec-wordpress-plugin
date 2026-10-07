@@ -812,7 +812,7 @@ function oec_get_reviews(where, tid, page){
         let html='<div class="oec-reviews-full-list">';
         data.reviews.forEach(rv=>{
             const px=Math.round(rv.rating*22*88/110);
-            const img=rv.author.image.startsWith('http')?rv.author.image:`https://imgrsize.oe-img.center${rv.author.image}?w=80&q=85&format=webp`;
+            const img=rv.author.image.startsWith('http')?rv.author.image:`https://imgrsize.oe-img.center${rv.author.image}?w=80&q=70&format=webp`;
             const name=rv.author.prefix?`${rv.author.prefix} ${rv.author.first_name} ${rv.author.last_name}`:`${rv.author.first_name} ${rv.author.last_name}`;
             // Mismo criterio de tamaño según largo del comentario que en el
             // render server-side (Twig) — si se toca uno, tocar el otro.

@@ -212,7 +212,7 @@
 ══════════════════════════════════════════════════════════════ #}
 <div id="oec-hero">
     <div class="oec-hero-bg-wrap" style="background-color: {{ extra.dominant_color_css }}">
-        <div class="oec-hero-bg" style="--oec-hero-bg-url:url(https://imgrsize.oe-img.center/campus/capacitacion/imagen/{{ t_image_last }}?w=1400&amp;q=89&amp;format=webp); --oec-hero-bg-url-mobile:url(https://imgrsize.oe-img.center/campus/capacitacion/imagen/{{ t_image_last }}?w=700&amp;q=82&amp;format=webp)"></div>
+        <div class="oec-hero-bg" style="--oec-hero-bg-url:url(https://imgrsize.oe-img.center/campus/capacitacion/imagen/{{ t_image_last }}?w=1400&amp;q=89&amp;format=webp); --oec-hero-bg-url-mobile:url(https://imgrsize.oe-img.center/campus/capacitacion/imagen/{{ t_image_last }}?w=700&amp;q=75&amp;format=webp)"></div>
         <div class="oec-hero-overlay"></div>
     </div>
     <div class="oec-hero-content">
@@ -507,7 +507,7 @@
             <div class="oec-reviews-carousel" id="oec-rev-carousel">
                 {% for review in reviews.top %}
                     {% set rpx = (review.rating * 22 * 88 / 110)|round %}
-                    {% set rimg = review.author.image starts with 'http' ? review.author.image : 'https://imgrsize.oe-img.center' ~ review.author.image ~ '?w=80&amp;q=85&amp;format=webp' %}
+                    {% set rimg = review.author.image starts with 'http' ? review.author.image : 'https://imgrsize.oe-img.center' ~ review.author.image ~ '?w=80&amp;q=70&amp;format=webp' %}
                     <div class="oec-rev-card">
                         <img src="{{ rimg }}" class="oec-rev-avatar" width="36" height="36" alt="{{ review.author.first_name }}" loading="lazy">
                         <div class="oec-rev-head">
@@ -712,7 +712,7 @@
                 <div class="oec-reviews-full-list">
                 {% for review in reviews.all %}
                     {% set rpx = (review.rating * 22 * 88 / 110)|round %}
-                    {% set rimg = review.author.image starts with 'http' ? review.author.image : 'https://imgrsize.oe-img.center' ~ review.author.image ~ '?w=80&amp;q=85&amp;format=webp' %}
+                    {% set rimg = review.author.image starts with 'http' ? review.author.image : 'https://imgrsize.oe-img.center' ~ review.author.image ~ '?w=80&amp;q=70&amp;format=webp' %}
                     {% set rname = review.author.prefix ? review.author.prefix ~ ' ' ~ review.author.first_name ~ ' ' ~ review.author.last_name : review.author.first_name ~ ' ' ~ review.author.last_name %}
                     {% set comment_len = review.comment|length %}
                     {% if comment_len < 30 %}{% set rf_size = "oec-rf-text--xxl" %}
@@ -801,7 +801,7 @@
                 <div class="oec-bullet-text">
                     <h3>
                         <a href="https://about.ebsco.com/es/productos/bases-de-datos/sportdiscus-full-text" target="_blank" rel="noopener">
-                            <img src="https://imgrsize.oe-img.center/campus/capacitacion/imagen/12410_1_FbAd_69cc46aebdb99.png?w=200&amp;q=89&amp;format=webp" alt="SportDiscus with Full Text" style="height:28px !important;max-width:140px !important;object-fit:contain !important;vertical-align:middle !important">
+                            <img src="https://imgrsize.oe-img.center/campus/capacitacion/imagen/12410_1_FbAd_69cc46aebdb99.png?w=180&amp;q=80&amp;format=webp" width="89" height="28" alt="SportDiscus with Full Text" style="height:28px !important;max-width:140px !important;object-fit:contain !important;vertical-align:middle !important">
                         </a>
                     </h3>
                     <p>Acceso a SPORT Discus with Full text en el campus virtual. <a href="https://about.ebsco.com/es/productos/bases-de-datos/sportdiscus-full-text" target="_blank" rel="noopener" class="cm_main_color" style="font-size:12px !important">Ver base de datos →</a></p>

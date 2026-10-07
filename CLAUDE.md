@@ -2429,6 +2429,19 @@ avisa cuando entra en pantalla sin leer posiciones a mano (`rootBounds` es null 
 dominio → `window.innerHeight`). En `oec-formacion.js` no queda ninguna lectura de diseño al cargar
 (las demás corren con las fuentes cargadas, en `requestAnimationFrame` o al hacer click).
 
+## v1.4.18 — imágenes más livianas + rastreadores del tema (2026-10-07)
+
+PageSpeed con `?trackers=false` (el interruptor del tema que no carga GTM/Pixel/Clarity): **95**, TBT
+20 ms. Con rastreadores, 74: GTM + Pixel sumaban ~1,2 s de tareas largas porque desde oec-wp-theme
+1.0.70 (2026-09-30) cargaban apenas terminaba el load. En oec-wp-theme 1.0.102 volvieron a "primera
+interacción o 4 s después del load" (decisión de Mario: no le importan las visitas cortas; se mantiene
+el freno del click al checkout de 1.0.70). Esa es la causa de "antes pasábamos los 90".
+Imágenes (plugin): fondo del hero en celular `w=700&q=75` (antes 82; la misma URL en el Twig y en
+`oec_hero_preload()`, si no se baja dos veces), avatares de opiniones `q=70` (antes 85, la mitad del
+peso), logo de SportDiscus `w=180&q=80` con `width="89" height="28"` (su proporción real, 200×63).
+Plantillas ya pegadas: `upgrade_template()`. Los logos de medios de pago (`statics/checkout/*.png`) NO
+se pueden achicar: `imgrsize` no redimensiona `statics/` (siempre devuelve el PNG de 120×120).
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

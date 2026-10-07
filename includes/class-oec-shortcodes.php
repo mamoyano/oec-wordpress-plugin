@@ -1001,6 +1001,22 @@ if (!class_exists('OEC_Shortcodes')) {
                 ],
                 $content
             );
+            // < 1.4.18: imágenes más livianas (PageSpeed): hero de celular a calidad 75 (también en
+            // oec_hero_preload(), tiene que ser la MISMA URL), avatares a 70 y el logo de SportDiscus a
+            // su tamaño real con width/height.
+            $content = str_replace(
+                [
+                    '?w=700&amp;q=82&amp;format=webp',
+                    "~ review.author.image ~ '?w=80&amp;q=85&amp;format=webp'",
+                    '12410_1_FbAd_69cc46aebdb99.png?w=200&amp;q=89&amp;format=webp" alt=',
+                ],
+                [
+                    '?w=700&amp;q=75&amp;format=webp',
+                    "~ review.author.image ~ '?w=80&amp;q=70&amp;format=webp'",
+                    '12410_1_FbAd_69cc46aebdb99.png?w=180&amp;q=80&amp;format=webp" width="89" height="28" alt=',
+                ],
+                $content
+            );
             return $content;
         }
 

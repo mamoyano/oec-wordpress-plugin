@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.4.17
+Version: 1.4.18
 Author: Online Education Center
 */
 
@@ -560,7 +560,7 @@ if (!function_exists('oec_hero_preload')) {
         printf(
             "<link rel=\"preload\" as=\"image\" href=\"%s\" media=\"(max-width: 600px)\" fetchpriority=\"high\">\n" .
             "<link rel=\"preload\" as=\"image\" href=\"%s\" media=\"(min-width: 601px)\" fetchpriority=\"high\">\n",
-            esc_url(oec_build_display_image_url($data['image'], 700, 82)),
+            esc_url(oec_build_display_image_url($data['image'], 700, 75)),
             esc_url(oec_build_display_image_url($data['image'], 1400, 89))
         );
     }
