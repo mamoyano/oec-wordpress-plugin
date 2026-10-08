@@ -2546,3 +2546,16 @@ Decisión de Mario: un OR estricto, sin excepciones, en la sección Contacto y e
 7. Estadísticas desde Zoho (ver su sección): subir `server/zoho/partner-contacts.php`
    + `zoho-config.php` a onlineeducation.center, probar, sacar `list-deals.php` y
    rotar las claves de Zoho.
+
+## v1.4.22 — chat directo: mensaje inicial y burbuja (2026-10-08)
+
+- **Mensaje inicial perdido**: las funciones `bm*` aparecen antes de que Botmaker se conecte con su
+  servidor, y `bmSendMessage` descarta el mensaje sin avisar si todavía no tiene usuario (en su
+  código: `"No user or business defined yet"`). Medido en vivo: ~500 ms entre una cosa y la otra, así
+  que el delay fijo de 500 ms fallaba seguido en redes lentas. Ahora `whenConnected()` espera a que
+  `bmInfo().platformContactId` exista (se setea junto con el usuario). El `data-msg` se manda una
+  sola vez por visita (reabrir no lo repite).
+- **Burbuja + cruz superpuestas**: con `body.oec-bm-chat-open` se esconde `.oec-float-botmaker`
+  (la cruz "Cerrar chat" de Botmaker queda en el mismo lugar); vuelve al cerrar. Si Botmaker queda
+  minimizado por otra vía (`bmInfo().isMinimized`), también se marca como cerrado.
+- Mismo cambio en el tema (v1.0.119, `assets/js/botmaker.js`) para home y landings.

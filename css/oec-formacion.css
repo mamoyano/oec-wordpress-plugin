@@ -679,6 +679,9 @@ body.oec-bm-chat-open div:has(> iframe[name="Botmaker"]) { display: flex !import
 .oec-float-wa { background: #25D366 !important; }
 .oec-float-botmaker { background: var(--oec-brand) !important; font-size: 26px !important; }
 .oec-float-wa:hover, .oec-float-botmaker:hover { transform: scale(1.08); color: #fff !important; }
+/* Con el chat abierto, Botmaker pone su cruz de cerrar justo donde está la
+   burbuja: se la esconde hasta que se cierre (oec-formacion.js, setOpen). */
+body.oec-bm-chat-open .oec-float-botmaker { display: none !important; }
 @media (max-width: 960px) {
     .oec-float-wa, .oec-float-botmaker { bottom: 122px; width: 48px; height: 48px; }
     .oec-float-wa { font-size: 26px !important; }

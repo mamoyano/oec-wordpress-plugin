@@ -374,6 +374,22 @@ function initBotmakerChat(){
         setTimeout(() => whenReady(fn, triesLeft - 1), 200);
     }
 
+    // Bug real (2026-10-08): las funciones bm* aparecen ANTES de que
+    // Botmaker termine de conectarse con su servidor, y bmSendMessage
+    // descarta el mensaje sin avisar mientras no tenga usuario (en su
+    // código: "No user or business defined yet"). Con la carga diferida
+    // el delay fijo de 500ms a veces no alcanzaba y el mensaje inicial se
+    // perdía. Se espera a que bmInfo() traiga el contacto (se completa
+    // junto con el usuario); si bmInfo deja de existir, vuelve el delay.
+    function whenConnected(fn, triesLeft){
+        if (typeof window.bmInfo !== 'function') { setTimeout(fn, 500); return; }
+        let info = null;
+        try { info = window.bmInfo(); } catch (err) { /* todavía montándose */ }
+        if ((info && info.platformContactId) || triesLeft <= 0) { fn(); return; }
+        setTimeout(() => whenConnected(fn, triesLeft - 1), 200);
+    }
+    const sentMsgs = new Set();
+
     // El iframe del widget se identifica por name="Botmaker" (atributo
     // real del <iframe> que inyecta su script — verificado en vivo).
     // Necesario para no confundirlo con OTRO iframe que pueda haber en
@@ -433,9 +449,11 @@ function initBotmakerChat(){
                 window.bmShow();
                 window.bmMaximize();
                 const msg = trigger.getAttribute('data-msg') || '';
-                // Pequeño delay: el widget necesita terminar de montarse/
-                // expandirse antes de poder recibir un mensaje.
-                if (msg) setTimeout(() => window.bmSendMessage(msg), 500);
+                // Una sola vez por visita: reabrir el chat no lo repite.
+                if (msg && !sentMsgs.has(msg)) {
+                    sentMsgs.add(msg);
+                    whenConnected(() => window.bmSendMessage(msg), 75);
+                }
             }, 75);
         });
     });
@@ -473,6 +491,10 @@ function initBotmakerChat(){
     // un listener fresco.
     setInterval(() => {
         if (!userWantsOpen) return;
+        // Minimizado por otra vía que no sea "Cerrar chat": vuelve la burbuja.
+        try {
+            if (typeof window.bmInfo === 'function' && window.bmInfo().isMinimized) { setOpen(false); return; }
+        } catch (err) { /* sigue el enganche de abajo */ }
         // try/catch: si Botmaker alguna vez sirve el iframe desde otro
         // origen (hoy no es el caso, verificado en vivo), leer
         // contentDocument tira SecurityError — sin esto, el vigía de
