@@ -149,36 +149,21 @@
 {% set wa_link   = "https://api.whatsapp.com/send?phone=" ~ wa_number ~ "&amp;text=" ~ chat_message|url_encode %}
 
 {# ══════════════════════════════════════════════════════════════
-   CANAL DE CONTACTO — qué se muestra (bloques de la sección Contacto +
-   ícono flotante) según quién atiende, el monto de la formación y si
-   la inscripción está abierta:
-   - Si NO atiende el equipo de OEC (extra.equipo_oec = false): Email +
-     WhatsApp (número/ícono flotante propios de ESE sitio, configurados
-     en wp-admin) — nunca chat directo, SIEMPRE, sin importar el
-     estado de inscripción. El costo de WhatsApp por conversación que
-     preocupa acá (ver más abajo) es el de la línea de VENTAS de OEC —
-     con un socio, el número/costo es del socio, no nuestro, así que
-     esta rama no cambia.
-   - Si SÍ atiende OEC (extra.equipo_oec = true): el chat directo
-     (Botmaker, extra.botmaker_id — SIEMPRE el proyecto de OEC,
-     hardcodeado en el plugin, no configurable por sitio) se ofrece
-     siempre. El monto (data.prices.total) Y el estado de inscripción
-     (openEnrollment, ya calculado arriba) deciden cuál de los dos
-     queda como ícono FLOTANTE (nunca los dos a la vez) y si además se
-     suma el bloque de WhatsApp en Contacto:
-       · < 200 O inscripción cerrada: flota Botmaker, Contacto NO
-         muestra "Por WhatsApp" — con inscripción cerrada, WhatsApp se
-         apaga sin importar el precio (Botmaker es gratis por
-         conversación, WhatsApp de ventas de OEC no — no tiene sentido
-         pagar ese costo por una formación a la que ya no se puede
-         inscribir nadie).
-       · >= 200 Y inscripción abierta: flota WhatsApp, Contacto SÍ
-         muestra "Por WhatsApp" (como venía siendo hasta ahora).
+   CANAL DE CONTACTO — WhatsApp O chat directo, NUNCA los dos (ni en la
+   sección Contacto ni como ícono flotante). Email siempre.
+   - Chat directo (Botmaker, extra.botmaker_id — SIEMPRE el proyecto de
+     OEC, hardcodeado en el plugin): solo si atiende el equipo de OEC
+     (extra.equipo_oec) Y (la formación cuesta menos de 200
+     (data.prices.total) O la inscripción está cerrada). WhatsApp de
+     ventas de OEC cobra por conversación: no se paga por formaciones
+     baratas ni por una a la que ya no se puede inscribir nadie.
+   - En cualquier otro caso, WhatsApp (con un socio, el número es el
+     suyo, configurado en wp-admin).
 ══════════════════════════════════════════════════════════════ #}
-{% set showChatDirecto   = extra.equipo_oec and extra.botmaker_id %}
-{% set showWhatsappBlock = not extra.equipo_oec or (data.prices.total >= 200 and openEnrollment) %}
+{% set showChatDirecto   = extra.equipo_oec and extra.botmaker_id and (data.prices.total < 200 or not openEnrollment) %}
+{% set showWhatsappBlock = not showChatDirecto %}
 {% set showFloatWhatsapp = showWhatsappBlock %}
-{% set showFloatBotmaker = extra.equipo_oec and extra.botmaker_id and (data.prices.total < 200 or not openEnrollment) %}
+{% set showFloatBotmaker = showChatDirecto %}
 
 {# JSON-LD Course: lo imprime el plugin en el <head> (oec_course_jsonld(), oec-main.php)
    con los mismos datos. Si una plantilla vieja todavía trae su bloque Course,
@@ -1525,9 +1510,8 @@
    ÍCONO FLOTANTE — esquina inferior derecha. También visible en mobile
    (más chico y corrido hacia arriba, ver media query de .oec-float-wa/
    .oec-float-botmaker) ya que la mobile bar no tiene ícono propio de
-   contacto. NUNCA los dos a la vez — ver showFloatWhatsapp/
-   showFloatBotmaker más arriba (depende de quién atiende y, si es
-   OEC, del monto de la formación).
+   contacto. NUNCA los dos a la vez — ver "CANAL DE CONTACTO" más
+   arriba.
 ══════════════════════════════════════════════════════════════ #}
 {% if showFloatWhatsapp %}
 <a href="{{ wa_link }}" target="_blank" rel="noopener" id="oec-float-wa" class="oec-float-wa{% if not openEnrollment %} oec-float-wa--no-mobile-bar{% endif %}" aria-label="Contáctanos por WhatsApp" title="Contáctanos por WhatsApp">

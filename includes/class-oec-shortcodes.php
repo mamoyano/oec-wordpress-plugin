@@ -976,6 +976,21 @@ if (!class_exists('OEC_Shortcodes')) {
             // < 1.4.3: el video de "Presentación" solo se buscaba pegado en short_description;
             // ahora también llega aparte en video_url.
             $content = preg_replace('/split_vimeo_intro(?!\s*\()/', "split_vimeo_intro(data.video_url|default(''))", $content);
+            // < 1.4.21: WhatsApp O chat directo, nunca los dos. Antes, si atendía OEC, el bloque de
+            // chat salía siempre y WhatsApp se sumaba con precio >= 200 e inscripción abierta.
+            // Las plantillas viejas pueden llamar a la variable showChatAnonimo (< 1.4.0).
+            if (preg_match('/\{%\s*set\s+(showChatDirecto|showChatAnonimo)\s*=/', $content, $m)) {
+                $chat = $m[1];
+                $defs = [
+                    $chat               => "extra.equipo_oec and extra.botmaker_id and (data.prices.total < 200 or not openEnrollment)",
+                    'showWhatsappBlock' => "not $chat",
+                    'showFloatWhatsapp' => 'showWhatsappBlock',
+                    'showFloatBotmaker' => $chat,
+                ];
+                foreach ($defs as $var => $expr) {
+                    $content = preg_replace('/\{%\s*set\s+' . $var . '\s*=[^%]*%\}/', '{% set ' . $var . ' = ' . $expr . ' %}', $content, 1);
+                }
+            }
             // < 1.4.14: sin formaciones alternativas (sitio de socio o ficha incrustada) el texto
             // seguía invitando a "conocer alternativas".
             $content = str_replace('para conocer alternativas disponibles.', 'y te avisamos apenas se reabra esta formación.', $content);

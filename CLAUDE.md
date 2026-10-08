@@ -1442,7 +1442,10 @@ más abajo ("Chat anónimo también con inscripción cerrada"):
 | NO | (no aplica) | (no aplica) | ❌ | ✅ | WhatsApp |
 | SÍ | < 200 | (no aplica) | ✅ | ❌ | Botmaker |
 | SÍ | ≥ 200 | Cerrada | ✅ | ❌ | Botmaker |
-| SÍ | ≥ 200 | Abierta | ✅ | ✅ | WhatsApp |
+| SÍ | ≥ 200 | Abierta | ❌ | ✅ | WhatsApp |
+
+**Desde v1.4.21 (2026-10-08) es un OR estricto**: o WhatsApp, o chat directo, nunca los dos (antes la
+última fila mostraba los dos bloques en Contacto). Ver la sección de v1.4.21.
 
 Nunca los dos íconos flotantes a la vez — son mutuamente excluyentes
 por diseño (mismo lugar en pantalla, mismo tamaño, código de color
@@ -2473,6 +2476,23 @@ pseudo-elementos de la ficha, original vs. minificado, **0 diferencias** en 1366
 original y no regenera, se sirve el original (nunca CSS viejo). En el zip (git archive, orden
 alfabético) el `.min` va después del original, así que al descomprimir queda igual o más nuevo.
 `oec-formaciones.css` (listado) sigue sin minificar.
+
+## v1.4.21 — WhatsApp O chat directo, nunca los dos (2026-10-08)
+
+Decisión de Mario: un OR estricto, sin excepciones, en la sección Contacto y en el ícono flotante.
+- Chat directo (Botmaker) = atiende OEC (`extra.equipo_oec`) y hay `botmaker_id` y (precio < 200 o
+  inscripción cerrada). WhatsApp = todo lo demás (`showWhatsappBlock = not showChatDirecto`; flotantes
+  iguales a sus bloques). Antes, con OEC atendiendo, el bloque de chat salía siempre y WhatsApp se
+  sumaba con precio ≥ 200 e inscripción abierta. De paso: si atiende OEC pero no hay `botmaker_id`,
+  ahora sale WhatsApp (antes, con precio < 200, no salía ningún canal además del email).
+- Plantillas ya pegadas: `upgrade_template()` reescribe las 4 líneas `{% set … %}` (acepta el nombre
+  viejo `showChatAnonimo`). No hace falta volver a pegarla. Verificado: la plantilla de la base local
+  (vieja, de antes de 1.4.7) y la nueva, procesadas, solo difieren en comentarios.
+- Verificado en local con 60 fichas abiertas + cerradas: 42 solo WhatsApp, 18 solo chat (las de < 200),
+  cerradas solo chat, 0 con los dos; con `oec_equipo_ventas = 0`, todas solo WhatsApp.
+- **Ojo**: la página "Formación" de la base local (`wp_2_posts` ID 8) tiene una plantilla VIEJA (antes
+  de 1.4.7): desde entonces las versiones se probaron vía `upgrade_template()`. Sirve como prueba real
+  del camino "plantilla ya pegada"; no pisarla sin pensarlo.
 
 ## Pendientes abiertos (a retomar)
 
