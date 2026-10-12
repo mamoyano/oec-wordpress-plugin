@@ -2494,6 +2494,24 @@ Decisión de Mario: un OR estricto, sin excepciones, en la sección Contacto y e
   de 1.4.7): desde entonces las versiones se probaron vía `upgrade_template()`. Sirve como prueba real
   del camino "plantilla ya pegada"; no pisarla sin pensarlo.
 
+## v1.4.23 — una formación que no existe responde 404 (2026-10-12)
+
+Search Console (informe de páginas del 12/10): miles de URLs de ficha "duplicadas sin canónica" / soft 404.
+Causa: `/formacion/{slug}-t-XXXXXXXXXXXXXX` con un ID que la API no conoce renderizaba la ficha VACÍA con
+200 (sin título ni canonical, "Gratis", "0 días para inscribirte"), y Cloudflare la cacheaba. Lo mismo
+`/formacion` a secas.
+- `oec_get_page_bundle()` devuelve `not_found => true` cuando el pedido de la formación trae **404
+  explícito** de la API (`{"error":{"code":404,"message":"Training ID not found"}}`) y no hay copia
+  guardada. Se recuerda un día (`oec_nf_<md5(id en minúsculas)>`, transient) para no volver a consultar.
+- `oec_training_not_found_404()` (`template_redirect`, prioridad 0): con `not_found` → `set_404()` +
+  `status_header(404)` + `Cache-Control: public, max-age=60` (carga la plantilla 404 del tema; el shortcode
+  y los metadatos de la ficha no corren). `/formacion` sin ID → 301 a la página `formaciones` si existe
+  (salvo para quien puede editar páginas); si no, 404.
+- **No es lo mismo que una caída**: timeout/5xx siguen el camino de v1.3.3 (`mark_down` + `stale`). Un ID
+  con otra capitalización (`t-k5a…`) NO es 404: la API lo resuelve y la ficha sale con su canonical.
+- Probado en local: ID inexistente 404 (dos veces, la segunda sin llamar a la API), `/formacion` 301,
+  ficha real y variante en minúsculas 200 con sus 3 JSON-LD.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

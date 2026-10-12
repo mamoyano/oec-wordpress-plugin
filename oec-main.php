@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.4.22
+Version: 1.4.23
 Author: Online Education Center
 */
 
@@ -404,8 +404,16 @@ if (!function_exists('oec_get_page_bundle')) {
         preg_match('/t-[a-zA-Z0-9]{14}/', $_SERVER['REQUEST_URI'], $matches);
         $id = !empty($matches[0]) ? $matches[0] : '';
 
-        $bundle = ['id' => $id, 'data' => null, 'reviews' => null, 'summary' => null, 'dominant_color' => null, 'dominant_color_css' => 'rgb(248,250,252)'];
+        $bundle = ['id' => $id, 'data' => null, 'reviews' => null, 'summary' => null, 'dominant_color' => null, 'dominant_color_css' => 'rgb(248,250,252)', 'not_found' => false];
         if (!$id) return $bundle;
+
+        // La API ya dijo (404 explícito) que este ID no existe: se recuerda un día y no se
+        // vuelve a consultar. La página responde 404 (oec_training_not_found_404()).
+        $nf_key = 'oec_nf_' . md5(strtolower($id));
+        if (get_transient($nf_key)) {
+            $bundle['not_found'] = true;
+            return $bundle;
+        }
 
         $use_cache = defined('OEC_CACHE_ENABLED') ? OEC_CACHE_ENABLED : true;
         $token     = get_option('oec_token');
@@ -475,6 +483,15 @@ if (!function_exists('oec_get_page_bundle')) {
                 if (!($resp instanceof \WpOrg\Requests\Response) || OEC_Api::failed($resp)) OEC_Api::mark_down($ck);
             }
 
+            // "Training ID not found": 404 de la API (no un fallo ni un timeout) y sin copia
+            // guardada → la formación no existe. Distinto de una caída: ahí se sirve lo último bueno.
+            $tr = $responses['training'] ?? null;
+            if ($tr instanceof \WpOrg\Requests\Response && (int) $tr->status_code === 404 && !OEC_Api::stale($key_training)) {
+                set_transient($nf_key, 1, DAY_IN_SECONDS);
+                $bundle['not_found'] = true;
+                return $bundle;
+            }
+
             foreach ($responses as $key => $response) {
                 if (!($response instanceof \WpOrg\Requests\Response) || !$response->success) continue;
                 switch ($key) {
@@ -534,10 +551,42 @@ if (!function_exists('oec_get_page_bundle')) {
             'summary'            => $reviews_summary,
             'dominant_color'     => $dominant_color,
             'dominant_color_css' => $dominant_color ? "rgb({$dominant_color['r']},{$dominant_color['g']},{$dominant_color['b']})" : 'rgb(248,250,252)',
+            'not_found'          => false,
         ];
         return $bundle;
     }
 }
+
+/**
+ * La página "formacion" sin una formación real detrás:
+ * - ID que la API no conoce (formación borrada o URL inventada) → 404 de verdad, con la
+ *   plantilla 404 del tema. Antes salía una ficha vacía con 200 (sin título, "Gratis", "0 días
+ *   para inscribirte") que Search Console contaba como duplicada sin canónica / soft 404 y que
+ *   además quedaba en la caché de Cloudflare.
+ * - /formacion a secas (sin ID) → al listado de formaciones si el sitio lo tiene; si no, 404.
+ * Con la API caída no se entra acá: not_found solo se marca con su 404 explícito.
+ */
+if (!function_exists('oec_training_not_found_404')) {
+    function oec_training_not_found_404() {
+        if (!is_page('formacion') || is_preview() || is_admin()) return;
+        $bundle = oec_get_page_bundle();
+        if ($bundle['id'] === '') {
+            if (current_user_can('edit_pages')) return; // quien edita la página la puede ver vacía
+            $list = get_page_by_path('formaciones');
+            if ($list && $list->post_status === 'publish') {
+                wp_safe_redirect(get_permalink($list), 301, 'OEC');
+                exit;
+            }
+        } elseif (empty($bundle['not_found'])) {
+            return;
+        }
+        global $wp_query;
+        $wp_query->set_404();
+        status_header(404);
+        header('Cache-Control: public, max-age=60'); // como los demás 404: no queda pegado en la caché
+    }
+}
+add_action('template_redirect', 'oec_training_not_found_404', 0);
 
 if (!function_exists('oec_get_current_training_data')) {
     function oec_get_current_training_data() {
