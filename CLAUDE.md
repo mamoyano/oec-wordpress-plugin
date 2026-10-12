@@ -2577,3 +2577,32 @@ Causa: `/formacion/{slug}-t-XXXXXXXXXXXXXX` con un ID que la API no conoce rende
   (la cruz "Cerrar chat" de Botmaker queda en el mismo lugar); vuelve al cerrar. Si Botmaker queda
   minimizado por otra vía (`bmInfo().isMinimized`), también se marca como cerrado.
 - Mismo cambio en el tema (v1.0.119, `assets/js/botmaker.js`) para home y landings.
+
+## v1.4.24 — chat con IA en lugar de Botmaker (2026-10-12)
+
+Decisión de Mario: el webchat de Botmaker se da de baja en todos lados (JS, CSS, constante, plantilla).
+**Las secciones de arriba que hablan de Botmaker / "chat directo" / "chat anónimo" quedan como historia.**
+- **Regla de contacto** (Twig, "CANAL DE CONTACTO"): formulario siempre; además WhatsApp O chat con IA,
+  nunca los dos. Venta del socio (`extra.equipo_oec` en 0) → WhatsApp del socio. Venta de OEC → chat con
+  IA si el sitio lo tiene (`extra.chat_ia`) y (precio < 200 o inscripción cerrada); si no, WhatsApp de OEC.
+- **`extra.chat_ia`** = `apply_filters('oec_chat_ia_available', false)` y no es ficha incrustada. El filtro
+  lo responde el tema `oec-wp-theme` (≥ 1.0.143) cuando tiene el chat con IA configurado. En un sitio de
+  socio (otro tema) da false → WhatsApp: el plugin no trae ningún chat propio.
+- **Quién abre el chat**: el tema. El plugin solo pone elementos con la clase `.oec-chat-ia-trigger`
+  (`data-msg="Hola"` es el saludo inicial): el bloque "Con nuestro asistente con IA" de la sección Contacto
+  y el ícono flotante `#oec-float-chat` (`.oec-float-chat`, con el globito "¿Alguna pregunta?"). El tema
+  escucha el clic (`assets/js/ai-chat.js`) y marca `body.oec-chat-open` mientras está abierto.
+- **Plantillas ya pegadas**: `upgrade_template()` les reescribe la expresión de `showChatDirecto` /
+  `showChatAnonimo` (el nombre viejo de la variable se conserva), reemplaza el bloque de chat y el
+  flotante por los nuevos (`CHAT_IA_BLOCK`, `CHAT_IA_FLOAT`) y saca `window.OEC_BOTMAKER_SRC`. No hace
+  falta volver a pegarla. La plantilla nueva usa `showChatIA` / `showFloatChatIA`.
+- Se fueron: `OEC_BOTMAKER_PROJECT_ID`, `extra.botmaker_id`, `initBotmakerChat()`, las reglas CSS del
+  iframe de Botmaker y `.oec-botmaker-trigger`. `.oec-float-botmaker` pasó a llamarse `.oec-float-chat`
+  (también en el blindaje de CSS y en `tests/hostile-audit.js`).
+- Probado en local con la plantilla vieja de la base (camino `upgrade_template()`) y con la nueva: fichas
+  de 100 y 170 → solo chat con IA; de 400 y 600 → solo WhatsApp; con `oec_equipo_ventas = 0` o sin chat en
+  el sitio (filtro en false) → todas WhatsApp; 0 restos de Botmaker en el HTML.
+- **Ojo al tocar la plantilla por script**: el flotante lleva un `{% if %}…{% endif %}` DENTRO del atributo
+  `class`; cortar "hasta el primer `{% endif %}`" deja medio elemento colgado (pasó armando esta versión:
+  "Unknown endif tag").
+

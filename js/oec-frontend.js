@@ -53,7 +53,7 @@
     // los links de secciones. Se recalcula en cada scroll: si el header del tema se achica o se
     // esconde al bajar, la barra lo sigue. Se ignora cualquier cosa más alta que el 40% de la
     // pantalla (un menú mobile abierto, un popup de cookies a pantalla completa, etc.).
-    function isOurs(el) { return !!(el.closest && el.closest('#oec-menu-sticky, #oec-bleed-wrapper, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker, iframe[name="Botmaker"]')); }
+    function isOurs(el) { return !!(el.closest && el.closest('#oec-menu-sticky, #oec-bleed-wrapper, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat')); }
     let lastTopOffset = -1;
     function measureTopOffset() {
         let bottom = 0;

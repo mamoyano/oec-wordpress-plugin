@@ -18,7 +18,7 @@ window.oecHostileAudit = async function (opts) {
   hostile.textContent = css;
   document.head.appendChild(hostile);
 
-  const ROOTS = '#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, #oec-region-panel, #oec-country-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker, .oec-scope';
+  const ROOTS = '#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, #oec-region-panel, #oec-country-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat, .oec-scope';
   const all = [...document.querySelectorAll(ROOTS)];
   const roots = all.filter(r => !all.some(o => o !== r && o.contains(r)));
   const els = roots.flatMap(r => [r, ...r.querySelectorAll('*')]).filter(e => !['SCRIPT', 'STYLE', 'TEMPLATE', 'NOSCRIPT', 'BR'].includes(e.tagName));
@@ -66,7 +66,7 @@ window.oecHostileAudit = async function (opts) {
      const antes = oecSnapshot();  …recargar solo el CSS con oecReloadPluginCss()…
      oecCompareSnapshots(antes, oecSnapshot())  → mismo formato de resultado que la auditoría. */
 window.oecSnapshot = function () {
-  const ROOTS = '#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, #oec-region-panel, #oec-country-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker, .oec-scope';
+  const ROOTS = '#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, #oec-region-panel, #oec-country-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat, .oec-scope';
   const all = [...document.querySelectorAll(ROOTS)];
   const roots = all.filter(r => !all.some(o => o !== r && o.contains(r)));
   const els = roots.flatMap(r => [r, ...r.querySelectorAll('*')]).filter(e => !['SCRIPT', 'STYLE', 'TEMPLATE', 'NOSCRIPT', 'BR'].includes(e.tagName));

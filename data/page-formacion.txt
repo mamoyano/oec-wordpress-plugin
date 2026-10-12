@@ -142,28 +142,33 @@
 
 {% set comercial_image      = data.salesman.image|split('/') %}
 {% set comercial_image_last = comercial_image|last %}
-{# Mismo texto para WhatsApp Y el chat directo de Botmaker (sección
-   Contacto, más abajo) — un solo lugar donde tocarlo si cambia. #}
+{# Texto con el que arranca la conversación por WhatsApp (sección Contacto e
+   ícono flotante) — un solo lugar donde tocarlo si cambia. #}
 {% set chat_message = "Info sobre " ~ data.canonical ~ " por favor." %}
 {% set wa_number = extra.equipo_oec ? "5493512584960" : extra.ventas_whatsapp %}
 {% set wa_link   = "https://api.whatsapp.com/send?phone=" ~ wa_number ~ "&amp;text=" ~ chat_message|url_encode %}
 
 {# ══════════════════════════════════════════════════════════════
-   CANAL DE CONTACTO — WhatsApp O chat directo, NUNCA los dos (ni en la
-   sección Contacto ni como ícono flotante). Email siempre.
-   - Chat directo (Botmaker, extra.botmaker_id — SIEMPRE el proyecto de
-     OEC, hardcodeado en el plugin): solo si atiende el equipo de OEC
-     (extra.equipo_oec) Y (la formación cuesta menos de 200
-     (data.prices.total) O la inscripción está cerrada). WhatsApp de
-     ventas de OEC cobra por conversación: no se paga por formaciones
-     baratas ni por una a la que ya no se puede inscribir nadie.
-   - En cualquier otro caso, WhatsApp (con un socio, el número es el
-     suyo, configurado en wp-admin).
+   CANAL DE CONTACTO — WhatsApp O chat con IA, NUNCA los dos (ni en la
+   sección Contacto ni como ícono flotante). Email (formulario) siempre.
+   - Si la venta NO la hace OEC (extra.equipo_oec en 0): formulario al
+     email del socio + WhatsApp del socio (wp-admin → OEC → Configuración).
+   - Si la venta la hace OEC: formulario al CRM y, además,
+       · chat con IA del sitio (extra.chat_ia: lo ofrece el tema
+         oec-wp-theme de las comunidades, filtro "oec_chat_ia_available")
+         si la formación cuesta menos de 200 (data.prices.total) o tiene
+         la inscripción cerrada: WhatsApp de ventas cobra por
+         conversación y no se paga por formaciones baratas ni por una a
+         la que ya no se puede inscribir nadie;
+       · WhatsApp de OEC en cualquier otro caso (200 o más, o un sitio
+         sin chat con IA: socio, ficha incrustada).
+   El chat lo abre el tema: cualquier .oec-chat-ia-trigger (data-msg es el
+   saludo con el que arranca). Reemplazó al webchat de Botmaker (v1.4.24).
 ══════════════════════════════════════════════════════════════ #}
-{% set showChatDirecto   = extra.equipo_oec and extra.botmaker_id and (data.prices.total < 200 or not openEnrollment) %}
-{% set showWhatsappBlock = not showChatDirecto %}
+{% set showChatIA        = extra.equipo_oec and extra.chat_ia and (data.prices.total < 200 or not openEnrollment) %}
+{% set showWhatsappBlock = not showChatIA %}
 {% set showFloatWhatsapp = showWhatsappBlock %}
-{% set showFloatBotmaker = showChatDirecto %}
+{% set showFloatChatIA   = showChatIA %}
 
 {# JSON-LD Course: lo imprime el plugin en el <head> (oec_course_jsonld(), oec-main.php)
    con los mismos datos. Si una plantilla vieja todavía trae su bloque Course,
@@ -1058,10 +1063,9 @@
        CONTACTO — 3 bloques, dos columnas: "Por Email" (columna
        izquierda, la presentación de la Customer Success Manager + el
        formulario, todo apilado en una sola columna interna) y, en la
-       columna derecha, "Por chat directo" (Botmaker, opcional — solo
-       si hay un ID de Botmaker configurado en wp-admin) + "Por
-       WhatsApp" (mismo link que el botón flotante, wa_link, definido
-       más arriba junto con chat_message).
+       columna derecha, el chat con IA del sitio O "Por WhatsApp" (mismo
+       link que el botón flotante, wa_link, definido más arriba junto
+       con chat_message) — ver "CANAL DE CONTACTO".
     ══════════════════════════════════════════════════════════════ #}
     <section id="oec-contacto" class="oec-card oec-card-pad" aria-label="Contacto">
         <h2 class="oec-section-title">{% if openEnrollment %}¿Alguna duda?{% else %}Avísame cuando abra inscripciones{% endif %}</h2>
@@ -1094,12 +1098,12 @@
                 </div>
             </div>
             <div class="oec-contact-col-alt">
-                {% if showChatDirecto %}
+                {% if showChatIA %}
                 <div class="oec-contact-block oec-contact-block--chat">
-                    <h3 class="oec-contact-block-title"><i class="bi bi-chat-dots-fill"></i> Por chat directo</h3>
-                    <p class="oec-contact-sub">Te responde al instante nuestro asistente, sin que tengas que dejar tus datos. Cuando quieras, puedes pedir hablar con un asesor pedagógico.</p>
-                    <a href="#chat" role="button" id="oec-botmaker-cta" class="oec-contact-cta oec-contact-cta--chat oec-botmaker-trigger" data-msg="{{ chat_message }}">
-                        <i class="bi bi-chat-dots-fill"></i> Iniciar chat
+                    <h3 class="oec-contact-block-title"><i class="bi bi-stars"></i> Con nuestro asistente con IA</h3>
+                    <p class="oec-contact-sub">Te responde al instante sobre esta formación (contenidos, fechas, precios y formas de pago), sin que tengas que dejar tus datos. Está entrenado para reconocer cuándo no sabe una respuesta: en ese caso te deriva con una persona de nuestro equipo.</p>
+                    <a href="#chat" role="button" class="oec-contact-cta oec-contact-cta--chat oec-chat-ia-trigger" data-msg="Hola">
+                        <i class="bi bi-stars"></i> Chatear ahora
                     </a>
                 </div>
                 {% endif %}
@@ -1509,7 +1513,7 @@
 {# ══════════════════════════════════════════════════════════════
    ÍCONO FLOTANTE — esquina inferior derecha. También visible en mobile
    (más chico y corrido hacia arriba, ver media query de .oec-float-wa/
-   .oec-float-botmaker) ya que la mobile bar no tiene ícono propio de
+   .oec-float-chat) ya que la mobile bar no tiene ícono propio de
    contacto. NUNCA los dos a la vez — ver "CANAL DE CONTACTO" más
    arriba.
 ══════════════════════════════════════════════════════════════ #}
@@ -1518,9 +1522,10 @@
     <i class="bi bi-whatsapp"></i>
 </a>
 {% endif %}
-{% if showFloatBotmaker %}
-<a href="#chat" role="button" id="oec-float-botmaker" class="oec-float-botmaker oec-botmaker-trigger{% if not openEnrollment %} oec-float-botmaker--no-mobile-bar{% endif %}" aria-label="Chatear con nosotros" title="Chatear con nosotros" data-msg="{{ chat_message }}">
-    <i class="bi bi-chat-dots-fill"></i>
+{% if showFloatChatIA %}
+<a href="#chat" role="button" id="oec-float-chat" class="oec-float-chat oec-chat-ia-trigger{% if not openEnrollment %} oec-float-chat--no-mobile-bar{% endif %}" aria-label="Chatear con nuestro asistente con IA" data-msg="Hola">
+    <span class="oec-float-chat-tip" aria-hidden="true">¿Alguna pregunta?</span>
+    <i class="bi bi-stars"></i>
 </a>
 {% endif %}
 
@@ -1562,12 +1567,5 @@ window.OEC_CONFIG = {
     force_contact:  {% if force_contact %}true{% else %}false{% endif %}
 };
 const OEC_AJAX_NONCE = '{{ extra.ajax_nonce }}';
-{% if showChatDirecto %}
-// Chat directo: solo la URL del script de Botmaker. NO se carga acá — lo
-// inyecta oec-formacion.js (initBotmakerChat) recién cuando el usuario
-// muestra intención de abrir el chat (hover/foco/toque/click en un botón
-// de chat). Es una app de ~200 KB + fuentes que casi nadie usa.
-window.OEC_BOTMAKER_SRC = 'https://go.botmaker.com/rest/webchat/p/{{ extra.botmaker_id }}/init.js';
-{% endif %}
 </script>
 [/oec-content]

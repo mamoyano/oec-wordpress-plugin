@@ -677,7 +677,9 @@ if (!class_exists('OEC_Shortcodes')) {
                     'dominant_color_css'  => $dominant_color_css,
                     'ajax_nonce'          => class_exists('OEC_Ajax') ? OEC_Ajax::token() : wp_create_nonce('oec_ajax'), // dura días: ver OEC_Ajax::token()
                     'credits_enabled'     => !$embed && function_exists('oec_credits_system_enabled') && oec_credits_system_enabled(),
-                    'botmaker_id'         => defined('OEC_BOTMAKER_PROJECT_ID') ? OEC_BOTMAKER_PROJECT_ID : '',
+                    // ¿El sitio tiene chat con IA? Lo dice el tema (oec-wp-theme) por este filtro; un
+                    // sitio de socio o la ficha incrustada no lo tienen y ofrecen WhatsApp.
+                    'chat_ia'             => !$embed && (bool) apply_filters('oec_chat_ia_available', false),
                     // Mismos ítems que el BreadcrumbList JSON-LD (oec-main.php): el hero los muestra visibles.
                     'breadcrumb'          => !$embed && function_exists('oec_training_breadcrumb_items') ? oec_training_breadcrumb_items($data) : [],
                 ],
@@ -704,9 +706,8 @@ if (!class_exists('OEC_Shortcodes')) {
             if (!$bi || false === strpos((string) $bi->src, 'jsdelivr')) {
                 $output = preg_replace('#<link rel="preconnect" href="https://cdn\.jsdelivr\.net">\s*#', '', $output, 1);
             }
-            // - enlaces rastreables: los botones de chat eran href="javascript:void(0)" y los atajos
-            //   del hero (.scroll-link) no tenían href. El JS ya cancela la navegación en los dos.
-            $output = preg_replace('/<a href="javascript:void\(0\)"(?=[^>]*\boec-botmaker-trigger\b)/', '<a href="#chat" role="button"', $output);
+            // - enlaces rastreables: los atajos del hero (.scroll-link) no tenían href. El JS ya
+            //   cancela la navegación.
             $output = preg_replace_callback('/<a\b(?![^>]*\bhref=)([^>]*\bscroll-link\b[^>]*\bwhere="([a-z0-9_-]+)"[^>]*)>/i', fn($m) => '<a href="#' . $m[2] . '"' . $m[1] . '>', $output);
 
             // Microdatos (itemscope/itemtype/itemprop) de la plantilla: estaban sueltos (Review sin
@@ -961,6 +962,21 @@ if (!class_exists('OEC_Shortcodes')) {
          * que cada sitio quede bien con solo actualizar el plugin, sin volver a pegarla. Cada
          * reemplazo apunta a un texto EXACTO de la plantilla vieja: en la actual no matchea nada.
          */
+        /** Bloque "chat con IA" de la sección Contacto (igual al de data/page-formacion.txt). */
+        const CHAT_IA_BLOCK = '<div class="oec-contact-block oec-contact-block--chat">
+                    <h3 class="oec-contact-block-title"><i class="bi bi-stars"></i> Con nuestro asistente con IA</h3>
+                    <p class="oec-contact-sub">Te responde al instante sobre esta formación (contenidos, fechas, precios y formas de pago), sin que tengas que dejar tus datos. Está entrenado para reconocer cuándo no sabe una respuesta: en ese caso te deriva con una persona de nuestro equipo.</p>
+                    <a href="#chat" role="button" class="oec-contact-cta oec-contact-cta--chat oec-chat-ia-trigger" data-msg="Hola">
+                        <i class="bi bi-stars"></i> Chatear ahora
+                    </a>
+                </div>';
+
+        /** Ícono flotante del chat con IA (igual al de data/page-formacion.txt). */
+        const CHAT_IA_FLOAT = '<a href="#chat" role="button" id="oec-float-chat" class="oec-float-chat oec-chat-ia-trigger{% if not openEnrollment %} oec-float-chat--no-mobile-bar{% endif %}" aria-label="Chatear con nuestro asistente con IA" data-msg="Hola">
+    <span class="oec-float-chat-tip" aria-hidden="true">¿Alguna pregunta?</span>
+    <i class="bi bi-stars"></i>
+</a>';
+
         private function upgrade_template($content) {
             $content = (string) $content;
             // < 1.4.1: "¿es la comunidad dueña?" buscaba la URL de la comunidad como texto dentro
@@ -976,13 +992,15 @@ if (!class_exists('OEC_Shortcodes')) {
             // < 1.4.3: el video de "Presentación" solo se buscaba pegado en short_description;
             // ahora también llega aparte en video_url.
             $content = preg_replace('/split_vimeo_intro(?!\s*\()/', "split_vimeo_intro(data.video_url|default(''))", $content);
-            // < 1.4.21: WhatsApp O chat directo, nunca los dos. Antes, si atendía OEC, el bloque de
-            // chat salía siempre y WhatsApp se sumaba con precio >= 200 e inscripción abierta.
-            // Las plantillas viejas pueden llamar a la variable showChatAnonimo (< 1.4.0).
+            // < 1.4.24: el webchat de Botmaker se dio de baja; su lugar lo ocupa el chat con IA del
+            // sitio (extra.chat_ia). Regla: WhatsApp O chat con IA, nunca los dos — chat con IA si
+            // atiende OEC, el sitio lo tiene y (precio < 200 o inscripción cerrada); si no, WhatsApp.
+            // Las plantillas viejas llaman a la variable showChatDirecto (o showChatAnonimo, < 1.4.0)
+            // y a su flotante showFloatBotmaker: se les reescribe la expresión, no el nombre.
             if (preg_match('/\{%\s*set\s+(showChatDirecto|showChatAnonimo)\s*=/', $content, $m)) {
                 $chat = $m[1];
                 $defs = [
-                    $chat               => "extra.equipo_oec and extra.botmaker_id and (data.prices.total < 200 or not openEnrollment)",
+                    $chat               => "extra.equipo_oec and extra.chat_ia and (data.prices.total < 200 or not openEnrollment)",
                     'showWhatsappBlock' => "not $chat",
                     'showFloatWhatsapp' => 'showWhatsappBlock',
                     'showFloatBotmaker' => $chat,
@@ -990,6 +1008,20 @@ if (!class_exists('OEC_Shortcodes')) {
                 foreach ($defs as $var => $expr) {
                     $content = preg_replace('/\{%\s*set\s+' . $var . '\s*=[^%]*%\}/', '{% set ' . $var . ' = ' . $expr . ' %}', $content, 1);
                 }
+                // Bloque de la sección Contacto ("Por chat directo" / "Por chat anónimo").
+                $content = preg_replace(
+                    '#<div class="oec-contact-block oec-contact-block--chat">.*?</div>#s',
+                    self::CHAT_IA_BLOCK,
+                    $content,
+                    1
+                );
+                // Ícono flotante.
+                $content = preg_replace('#<a\b[^>]*\bid="oec-float-botmaker"[^>]*>.*?</a>#s', self::CHAT_IA_FLOAT, $content, 1);
+                // La URL del script de Botmaker que la plantilla le pasaba al JS (con su comentario y su {% if %}).
+                $content = preg_replace('#\{%\s*if\s+' . $chat . '\s*%\}\s*(?://[^\n]*\n\s*)*window\.OEC_BOTMAKER_SRC[^\n]*\n\s*\{%\s*endif\s*%\}\n?#', '', $content);
+                $content = preg_replace('#^[ \t]*window\.OEC_BOTMAKER_SRC[^\n]*\n#m', '', $content);
+                // Plantillas muy viejas: el <script> que inyectaba el widget en cada visita.
+                $content = preg_replace('#<script\b[^>]*>(?:(?!</script>|OEC_CONFIG).)*go\.botmaker\.com(?:(?!</script>|OEC_CONFIG).)*</script>#s', '', $content);
             }
             // < 1.4.14: sin formaciones alternativas (sitio de socio o ficha incrustada) el texto
             // seguía invitando a "conocer alternativas".

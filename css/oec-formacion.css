@@ -16,7 +16,7 @@
    paneles de país/moneda, íconos flotantes). */
 /* Base de los contenedores (lo que antes se heredaba del <body> del tema), incluidos los propios
    contenedores: la barra sticky es un <nav> raíz y un tema que estila "nav" le pegaba directo. */
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) {
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
     font-size: 16px !important; line-height: 1.7 !important; color: #1e2d3d !important;
     font-weight: 400 !important; font-style: normal !important; letter-spacing: normal !important; word-spacing: normal !important;
@@ -24,38 +24,38 @@
     margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
     background-color: transparent !important; text-decoration: none !important; list-style: none !important; float: none !important;
 }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker), :where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) *, :where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) *::before, :where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) *::after { box-sizing: border-box !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat), :where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) *, :where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) *::before, :where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) *::after { box-sizing: border-box !important; }
 /* A) SIEMPRE, en todo el plugin: tipografía que un tema suele meter en etiquetas sueltas y que ni
    el Twig ni el editor de OEC ponen en línea a propósito (una fuente pegada desde Word conviene
    que se unifique con la del plugin). */
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) * {
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) * {
     font-family: inherit !important; line-height: inherit !important; letter-spacing: inherit !important; word-spacing: inherit !important;
     text-transform: inherit !important; text-indent: inherit !important; text-shadow: inherit !important; quotes: none !important;
 }
 /* B) Todo el plugin MENOS el HTML que viene de la API (.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol): con
    !important, así que le gana a cualquier regla normal del tema. Los pocos style="…" del Twig que
    chocan con esto llevan su propio !important en línea (un !important en línea le gana a todo). */
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(*):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) {
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(*):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) {
     font-size: inherit !important; color: inherit !important; font-weight: inherit !important; font-style: inherit !important;
     text-align: inherit !important; float: none !important;
 }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(h1, h2, h3, h4, h5, h6, p, ul, ol, li, dl, dt, dd, blockquote, figure, figcaption, pre, table, caption, th, td,
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(h1, h2, h3, h4, h5, h6, p, ul, ol, li, dl, dt, dd, blockquote, figure, figcaption, pre, table, caption, th, td,
     section, article, aside, nav, header, footer, main, form, fieldset, legend, label, address, img, iframe, video, svg,
     button, input, select, textarea, a, span, strong, b, em, i, small, code):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) {
     margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
     background: transparent !important; text-decoration: none !important; outline: 0 !important; vertical-align: baseline !important;
     list-style: none !important;
 }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(h1, h2, h3, h4, h5, h6, strong, b, th):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { font-weight: 700 !important; }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(em, cite, dfn, var):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { font-style: italic !important; }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(h1):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { font-size: 2em !important; }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(h2):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { font-size: 1.5em !important; }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(h3):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { font-size: 1.17em !important; }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(small):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { font-size: .85em !important; }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(p):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { margin: 0 0 8px !important; }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(a):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { color: var(--oec-brand) !important; }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(img, svg, video, iframe):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { max-width: 100% !important; }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(input, select, textarea) { height: auto !important; background: #fff !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(h1, h2, h3, h4, h5, h6, strong, b, th):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { font-weight: 700 !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(em, cite, dfn, var):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { font-style: italic !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(h1):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { font-size: 2em !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(h2):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { font-size: 1.5em !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(h3):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { font-size: 1.17em !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(small):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { font-size: .85em !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(p):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { margin: 0 0 8px !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(a):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { color: var(--oec-brand) !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(img, svg, video, iframe):where(:not(:is(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) *)) { max-width: 100% !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(input, select, textarea) { height: auto !important; background: #fff !important; }
 /* C) El HTML de la API (descripciones, biografías, temario): SIN !important, para que los style="…"
    que pone el editor de OEC (<p style="font-size:1.5em;font-weight:bold">, imágenes con float…)
    le sigan ganando, pero con especificidad de doble ID (2,1,0) para ganarle a las reglas de tema
@@ -79,18 +79,18 @@
 #oec-bleed-wrapper#oec-bleed-wrapper :where(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) :where(ol > li) { list-style: inherit; }
 #oec-bleed-wrapper#oec-bleed-wrapper :where(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) :where(a) { color: var(--oec-brand); text-decoration: underline; }
 #oec-bleed-wrapper#oec-bleed-wrapper :where(.oec-prose, .oec-subject, .oec-teacher-org, .oec-methodol) :where(img) { max-width: 100%; height: auto; }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(code, kbd, pre, samp) { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important; }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(h1, h2, h3, h4, h5, h6) { line-height: 1.25 !important; }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(hr) { height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-top: 1px solid #e5e7eb !important; background: none !important; }
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(button, input, select, textarea, a, [role=button]) { min-height: auto !important; min-width: auto !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(code, kbd, pre, samp) { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(h1, h2, h3, h4, h5, h6) { line-height: 1.25 !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(hr) { height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-top: 1px solid #e5e7eb !important; background: none !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(button, input, select, textarea, a, [role=button]) { min-height: auto !important; min-width: auto !important; }
 /* Controles de formulario: interlineado "normal" (el del navegador), como se diseñaron; heredar el
    1.7 del texto los agrandaba 7-8px cada uno. */
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(button, input, select, textarea) { line-height: normal !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(button, input, select, textarea) { line-height: normal !important; }
 /* Pseudo-elementos que los temas cuelgan de etiquetas sueltas (flechitas en "ul li::before",
    comillas en blockquote, adornos en títulos). No se tocan los íconos (.bi, en <i>) ni los propios
    del plugin, que declaran su "content" con !important y con clase (le ganan a esta capa). */
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(li, a, h1, h2, h3, h4, h5, h6, p, blockquote, button, section, nav, label, strong, ul, ol)::before,
-:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-botmaker) :where(li, a, h1, h2, h3, h4, h5, h6, p, blockquote, button, section, nav, label, strong, ul, ol)::after { content: none !important; margin: 0 !important; color: inherit !important; }
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(li, a, h1, h2, h3, h4, h5, h6, p, blockquote, button, section, nav, label, strong, ul, ol)::before,
+:where(#oec-bleed-wrapper, #oec-menu-sticky, #oec-mobile-bar, .oec-region-panel, #oec-region-backdrop, .oec-float-wa, .oec-float-chat) :where(li, a, h1, h2, h3, h4, h5, h6, p, blockquote, button, section, nav, label, strong, ul, ol)::after { content: none !important; margin: 0 !important; color: inherit !important; }
 
 .cm_main_color { color: var(--oec-brand) !important; }
 
@@ -596,32 +596,6 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-contact-cta--whatsapp { color: #1da851 !important; }
 .oec-contact-block--whatsapp:hover .oec-contact-cta--whatsapp,
 .oec-contact-cta--whatsapp:hover { background: #25d366 !important; border-color: #25d366 !important; color: #fff !important; }
-/* Botmaker: escondido por CSS puro desde el primer frame, SIN esperar a
-   que su script (async) termine de cargar y exponga bmHide() en window
-   — bmHide()/el vigía de oec-formacion.js son "cinturón", esto es el
-   "tirante": una carrera real detectada en desktop (con red más lenta
-   que en las pruebas locales, el widget se llegaba a ver un instante
-   antes de que bmHide() pudiera correr). El CSS no tiene ese problema:
-   aplica apenas existe el <iframe name="Botmaker">, sin depender de
-   ningún timing de JS. body.oec-bm-chat-open lo "desbloquea" — lo pone
-   y saca oec-formacion.js (initBotmakerChat()) al abrir/cerrar el chat
-   con nuestro botón. */
-iframe[name="Botmaker"] { display: none !important; }
-body.oec-bm-chat-open iframe[name="Botmaker"] { display: flex !important; }
-/* No alcanza con esconder el iframe: Botmaker lo envuelve en un <div>
-   propio, hijo directo de <body>, sin clase/id propios — solo estilo
-   inline (`position:fixed; width:450px; height:100%; left:0%; z-index:
-   10000; display:flex`). Ese envoltorio NO se achica ni se esconde solo
-   cuando el iframe de adentro queda en display:none — sigue ocupando
-   toda la franja izquierda de la pantalla (450px de ancho, alto
-   completo), con z-index altísimo y pointer-events normal, así que
-   tapa cualquier link/botón que haya debajo (confirmado: bloqueaba
-   hasta el propio <h1> del hero) aunque sea invisible. Se esconde el
-   ENVOLTORIO completo (con :has(), no el iframe solo) — un hijo de un
-   display:none deja de recibir clicks también, así que no hace falta
-   duplicar el toggle en dos selectores distintos. */
-body div:has(> iframe[name="Botmaker"]) { display: none !important; }
-body.oec-bm-chat-open div:has(> iframe[name="Botmaker"]) { display: flex !important; }
 .oec-form    { display: flex; flex-direction: column; gap: 10px; }
 .oec-form input  { padding: 11px 14px !important; font-size: 14px !important; border: 1.5px solid #e5e7eb !important; border-radius: 8px !important; outline: none !important; transition: border-color .2s; width: 100%; box-sizing: border-box; }
 .oec-form input:focus { border-color: var(--oec-brand) !important; }
@@ -669,27 +643,31 @@ body.oec-bm-chat-open div:has(> iframe[name="Botmaker"]) { display: flex !import
 }
 .oec-mb-enroll-solo { display: block; width: 100%; padding: 14px !important; font-size: 15px !important; }
 
-/* ─── ÍCONO FLOTANTE DE CONTACTO (WhatsApp o Botmaker) ───────────
+/* ─── ÍCONO FLOTANTE DE CONTACTO (WhatsApp o chat con IA) ───────────
    Mismo lugar/tamaño/comportamiento para los dos — nunca aparecen los
-   dos a la vez (ver showFloatWhatsapp/showFloatBotmaker en el Twig),
-   así que comparten hasta el z-index sin pisarse. Botmaker usa
-   var(--oec-brand) en vez de un verde fijo — no tiene un color de
-   marca propio como WhatsApp. */
-.oec-float-wa, .oec-float-botmaker { position: fixed; right: 20px; bottom: 20px; width: 56px; height: 56px; border-radius: 50% !important; color: #fff !important; display: flex; align-items: center; justify-content: center; font-size: 30px !important; box-shadow: 0 4px 14px rgba(0,0,0,.25) !important; z-index: 9500; transition: transform .2s ease; }
+   dos a la vez (ver showFloatWhatsapp/showFloatChatIA en el Twig),
+   así que comparten hasta el z-index sin pisarse. El del chat con IA
+   (.oec-float-chat, lo abre el tema) usa var(--oec-brand) y trae un
+   globito "¿Alguna pregunta?" que aparece unos segundos al cargar. */
+.oec-float-wa, .oec-float-chat { position: fixed; right: 20px; bottom: 20px; width: 56px; height: 56px; border-radius: 50% !important; color: #fff !important; display: flex; align-items: center; justify-content: center; font-size: 30px !important; box-shadow: 0 4px 14px rgba(0,0,0,.25) !important; z-index: 9500; transition: transform .2s ease; }
 .oec-float-wa { background: #25D366 !important; }
-.oec-float-botmaker { background: var(--oec-brand) !important; font-size: 26px !important; }
-.oec-float-wa:hover, .oec-float-botmaker:hover { transform: scale(1.08); color: #fff !important; }
-/* Con el chat abierto, Botmaker pone su cruz de cerrar justo donde está la
-   burbuja: se la esconde hasta que se cierre (oec-formacion.js, setOpen). */
-body.oec-bm-chat-open .oec-float-botmaker { display: none !important; }
+.oec-float-chat { background: var(--oec-brand) !important; font-size: 26px !important; }
+.oec-float-wa:hover, .oec-float-chat:hover { transform: scale(1.08); color: #fff !important; }
+/* Con el chat abierto (pantalla completa, lo marca el tema) no hace falta. */
+body.oec-chat-open .oec-float-chat { display: none !important; }
+.oec-float-chat .bi-stars { line-height: 1 !important; }
+.oec-float-chat-tip { position: absolute; right: calc(100% + 12px); top: 50%; transform: translateY(-50%); white-space: nowrap; padding: 8px 12px !important; border-radius: 14px 14px 2px 14px !important; background: #fff !important; color: #111827 !important; font-size: 13px !important; font-weight: 600 !important; line-height: 1.2 !important; box-shadow: 0 4px 14px rgba(0,0,0,.18) !important; animation: oec-float-chat-tip 9s ease 1.5s both; pointer-events: none; }
+.oec-float-chat:hover .oec-float-chat-tip { animation: none; opacity: 1; }
+@keyframes oec-float-chat-tip { 0% { opacity: 0; } 6%, 90% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .oec-float-chat-tip { animation: none; opacity: 1; } }
 @media (max-width: 960px) {
-    .oec-float-wa, .oec-float-botmaker { bottom: 122px; width: 48px; height: 48px; }
+    .oec-float-wa, .oec-float-chat { bottom: 122px; width: 48px; height: 48px; }
     .oec-float-wa { font-size: 26px !important; }
-    .oec-float-botmaker { font-size: 22px !important; }
+    .oec-float-chat { font-size: 22px !important; }
 }
 /* Sin mobile bar (inscripciones cerradas) no hace falta correrlo hacia
    arriba para no taparla — vuelve a la posición normal de abajo del todo. */
-@media (max-width: 960px) { .oec-float-wa--no-mobile-bar, .oec-float-botmaker--no-mobile-bar { bottom: 20px; } }
+@media (max-width: 960px) { .oec-float-wa--no-mobile-bar, .oec-float-chat--no-mobile-bar { bottom: 20px; } }
 
 /* ─── BLOQUE STICKY DE INSCRIPCIÓN — vive dentro de la columna
    derecha; se engancha arriba de la pantalla cuando ".oec-rc" ya
@@ -853,9 +831,6 @@ body.oec-bm-chat-open .oec-float-botmaker { display: none !important; }
     .oec-price-date-long { display: none !important; }
     .oec-price-date-short { display: inline !important; }
 }
-
-/* Chat directo: mientras Botmaker se descarga tras el primer click (carga diferida, ver initBotmakerChat) */
-.oec-botmaker-trigger.oec-bm-loading { cursor: progress; opacity: .7; }
 
 /* ─── BARRA DE COMPARTIR (hero) — mismo set que los artículos del tema, versión para fondo oscuro ─── */
 /* Ficha incrustada (iframe en el sitio de un socio): la URL de esta página no es la que ve el

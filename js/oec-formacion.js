@@ -323,197 +323,6 @@ function initTeacherSocialLinks(){
     });
 }
 
-// ─── CHAT DIRECTO (Botmaker) — sección Contacto + ícono flotante ────
-// El script de Botmaker (inyectado acá mismo, recién ante la primera
-// intención del usuario — ver loadBotmaker(); el Twig solo expone su URL
-// en window.OEC_BOTMAKER_SRC cuando corresponde ofrecer chat directo)
-// mete su propia "pelotita" flotante apenas termina de
-// cargar. La escondemos con bmHide() y la reemplazamos por nuestros
-// propios disparadores — cualquier elemento con la clase
-// ".oec-botmaker-trigger" (hoy son dos: el botón "Iniciar chat
-// directo" de la sección Contacto, y el ícono flotante
-// "#oec-float-botmaker" que reemplaza al de WhatsApp cuando el monto
-// de la formación es bajo — ver data.prices.total en el Twig). Al
-// clickear CUALQUIERA de los dos: abre el widget (bmShow + bmMaximize)
-// y manda el mismo mensaje predeterminado que ya usa el botón de
-// WhatsApp (bmSendMessage) — mismo `chat_message` del Twig, cada
-// disparador trae su propio data-msg con ese texto.
-// Ojo: bmHide/bmShow/bmMaximize/bmSendMessage no están en la
-// documentación pública de Botmaker — se confirmaron probándolos en
-// vivo contra su CDN real (cargan el script real, quedan expuestos en
-// window). Si Botmaker cambia su script y estos nombres dejan de
-// existir, whenReady() simplemente nunca llama a fn() — no rompe nada,
-// pero el botón deja de hacer algo visible; revisar esto primero si
-// alguna vez "Iniciar chat directo" deja de abrir el chat.
-function initBotmakerChat(){
-    const triggers = document.querySelectorAll('.oec-botmaker-trigger');
-    if (!triggers.length || !window.OEC_BOTMAKER_SRC) return; // chat directo no ofrecido en esta formación
-
-    // Carga diferida: el script de Botmaker (una app React de ~200 KB comprimidos + 4 familias de
-    // Google Fonts + un polyfill) se inyecta recién ante la primera señal de intención sobre un
-    // disparador — hover/foco/toque (precalienta, así al click ya suele estar listo) o el click
-    // mismo. Antes se cargaba en CADA visita, aunque casi nadie abriera el chat.
-    let bmLoaded = false;
-    function loadBotmaker(){
-        if (bmLoaded) return;
-        bmLoaded = true;
-        const js = document.createElement('script');
-        js.async = true;
-        js.src = window.OEC_BOTMAKER_SRC;
-        document.body.appendChild(js);
-        startHideWatcher();
-    }
-
-    function whenReady(fn, triesLeft){
-        if (typeof window.bmHide === 'function' && typeof window.bmShow === 'function'
-            && typeof window.bmMaximize === 'function' && typeof window.bmSendMessage === 'function') {
-            fn();
-            return;
-        }
-        if (triesLeft <= 0) return; // Botmaker no cargó (bloqueado, caído, etc.) — no insistimos más
-        setTimeout(() => whenReady(fn, triesLeft - 1), 200);
-    }
-
-    // Bug real (2026-10-08): las funciones bm* aparecen ANTES de que
-    // Botmaker termine de conectarse con su servidor, y bmSendMessage
-    // descarta el mensaje sin avisar mientras no tenga usuario (en su
-    // código: "No user or business defined yet"). Con la carga diferida
-    // el delay fijo de 500ms a veces no alcanzaba y el mensaje inicial se
-    // perdía. Se espera a que bmInfo() traiga el contacto (se completa
-    // junto con el usuario); si bmInfo deja de existir, vuelve el delay.
-    function whenConnected(fn, triesLeft){
-        if (typeof window.bmInfo !== 'function') { setTimeout(fn, 500); return; }
-        let info = null;
-        try { info = window.bmInfo(); } catch (err) { /* todavía montándose */ }
-        if ((info && info.platformContactId) || triesLeft <= 0) { fn(); return; }
-        setTimeout(() => whenConnected(fn, triesLeft - 1), 200);
-    }
-    const sentMsgs = new Set();
-
-    // El iframe del widget se identifica por name="Botmaker" (atributo
-    // real del <iframe> que inyecta su script — verificado en vivo).
-    // Necesario para no confundirlo con OTRO iframe que pueda haber en
-    // la página (ej. un video de Vimeo incrustado en "Presentación").
-    function bmIframe(){ return document.querySelector('iframe[name="Botmaker"]'); }
-
-    // Bug real encontrado probando el flujo completo: cuando el usuario
-    // cierra la conversación desde el botón propio de Botmaker ("Cerrar
-    // chat", adentro del widget), bmHide() NO se dispara solo — el
-    // widget cae en su propio estado "minimizado" (la pelotita flotante
-    // con el globito de pregunta que no queríamos mostrar nunca, tapando
-    // "INICIAR INSCRIPCIÓN"), no en escondido de verdad. Búsqueda en la
-    // documentación pública de Botmaker (incluida la que pasó Mario):
-    // no hay ningún evento "se cerró la conversación" ni una opción de
-    // configuración para desactivar esa pelotita de entrada.
-    // Se detecta por TAMAÑO en vez de por evento: medido en vivo, el
-    // iframe totalmente escondido (bmHide) da 0×0, abierto da pantalla
-    // completa en mobile / ~450×647 en desktop, y esa pelotita
-    // intermedia da ~330×110 — bastante más chica que "abierto" pero
-    // !=0. Un vigía cada 400ms controla: si NO pedimos que esté abierto
-    // (userWantsOpen) y el iframe mide algo (>0), lo volvemos a
-    // esconder — cubre tanto este caso (cierre desde adentro) como la
-    // carrera de la primera carga (bmHide() llamado antes de que el
-    // widget termine de montarse del todo, ver sesión anterior).
-    let userWantsOpen = false;
-    // Refleja userWantsOpen en <body> — el CSS (".oec-formacion.css",
-    // "iframe[name=\"Botmaker\"]") lo usa para esconder el widget
-    // SIEMPRE por default, sin importar timing de JS; solo se
-    // "desbloquea" mientras body tenga esta clase. Ver comentario largo
-    // en el CSS para el porqué (la carrera de la primera carga en
-    // desktop con red lenta no se podía resolver solo con JS async).
-    function setOpen(open){
-        userWantsOpen = open;
-        document.body.classList.toggle('oec-bm-chat-open', open);
-    }
-    function startHideWatcher(){
-        whenReady(() => {
-            setInterval(() => {
-                if (userWantsOpen) return;
-                const iframe = bmIframe();
-                if (!iframe) return;
-                const r = iframe.getBoundingClientRect();
-                if (r.width > 0 || r.height > 0) window.bmHide();
-            }, 400);
-        }, 75); // hasta 15s de espera a que Botmaker cargue (red móvil lenta)
-    }
-
-    triggers.forEach(function(trigger){
-        ['pointerenter', 'focus', 'touchstart'].forEach(ev => trigger.addEventListener(ev, loadBotmaker, { once: true, passive: true }));
-        trigger.addEventListener('click', function(e){
-            e.preventDefault();
-            loadBotmaker();
-            trigger.classList.add('oec-bm-loading');
-            whenReady(() => {
-                trigger.classList.remove('oec-bm-loading');
-                setOpen(true);
-                window.bmShow();
-                window.bmMaximize();
-                const msg = trigger.getAttribute('data-msg') || '';
-                // Una sola vez por visita: reabrir el chat no lo repite.
-                if (msg && !sentMsgs.has(msg)) {
-                    sentMsgs.add(msg);
-                    whenConnected(() => window.bmSendMessage(msg), 75);
-                }
-            }, 75);
-        });
-    });
-
-    // Detectar el cierre desde ADENTRO del widget (mismo-origen,
-    // confirmado en vivo) para reaccionar al toque en vez de esperar
-    // hasta el próximo tick del vigía (máx. 400ms de diferencia, pero
-    // esto evita hasta ese destello). Se re-adjunta en cada tick del
-    // vigía (barato) porque Botmaker reescribe su propio documento
-    // interno (document.write) al cambiar de estado — un listener
-    // puesto una sola vez se puede perder si el botón que escuchaba ya
-    // no es el mismo nodo del DOM.
-    // El selector es por aria-label, NO por clase — probado en vivo:
-    // el botón "Cerrar chat" tiene una clase distinta en la variante
-    // mobile del widget (".wc-header-right") que en la de desktop
-    // (".wc-button.wc-button-regular"), pero el aria-label es igual en
-    // las dos.
-    //
-    // Bug real encontrado probando DOS aperturas en la misma carga de
-    // página (ej. la burbuja flotante y después el botón de Contacto):
-    // en una reapertura, Botmaker a veces REUSA el mismo nodo <button>
-    // de "Cerrar chat" de la sesión anterior en vez de crear uno nuevo
-    // (no siempre hace document.write) — pero `dataset.oecBound` seguía
-    // marcado desde la primera apertura, y como el listener se puso con
-    // `{ once: true }`, ya se había consumido y desaparecido solo al
-    // primer cierre. Con el dataset todavía en "1", el vigía creía que
-    // ya había un listener vivo y nunca ponía uno nuevo — el segundo
-    // click en "Cerrar chat" no hacía nada, `userWantsOpen` se quedaba
-    // en `true` para siempre, y el widget quedaba visible en su estado
-    // "minimizado" (la pelotita con la pregunta predeterminada de
-    // Botmaker) sin que nada lo volviera a esconder. Fix: limpiar el
-    // dataset justo cuando el listener se dispara (adentro del propio
-    // handler) — así, si el nodo sobrevive a un cierre y se reusa en la
-    // próxima apertura, el vigía lo vuelve a ver "libre" y le engancha
-    // un listener fresco.
-    setInterval(() => {
-        if (!userWantsOpen) return;
-        // Minimizado por otra vía que no sea "Cerrar chat": vuelve la burbuja.
-        try {
-            if (typeof window.bmInfo === 'function' && window.bmInfo().isMinimized) { setOpen(false); return; }
-        } catch (err) { /* sigue el enganche de abajo */ }
-        // try/catch: si Botmaker alguna vez sirve el iframe desde otro
-        // origen (hoy no es el caso, verificado en vivo), leer
-        // contentDocument tira SecurityError — sin esto, el vigía de
-        // arriba (el que sí importa, el que esconde el widget) se
-        // rompería en cascada por un error en ESTE detalle secundario.
-        try {
-            const iframe = bmIframe();
-            const closeBtn = iframe && iframe.contentDocument && iframe.contentDocument.querySelector('[aria-label="Cerrar chat"]');
-            if (closeBtn && !closeBtn.dataset.oecBound) {
-                closeBtn.dataset.oecBound = '1';
-                closeBtn.addEventListener('click', () => {
-                    delete closeBtn.dataset.oecBound;
-                    setOpen(false);
-                }, { once: true });
-            }
-        } catch (err) { /* cross-origin u otro cambio de Botmaker — el vigía de tamaño sigue funcionando igual */ }
-    }, 400);
-}
-
 // ─── COUNTDOWN EN BLOQUES (fecha límite de inscripción y de descuento) ───────
 function updateCountdowns(){
     const now = Date.now()/1000;
@@ -1037,7 +846,7 @@ jQuery(document).ready(function($){
         }
     })();
 
-    // Ícono flotante de contacto (WhatsApp o Botmaker, nunca los dos a
+    // Ícono flotante de contacto (WhatsApp o chat con IA, nunca los dos a
     // la vez): movido a <body> por el mismo motivo que
     // #oec-region-backdrop/#oec-region-panel más abajo — inmune a
     // cualquier ancestro con transform/animación que rompa
@@ -1049,7 +858,7 @@ jQuery(document).ready(function($){
     // el origen exacto, pero da igual: moverlo a <body> lo deja
     // inmune a cualquier transform que aparezca en el árbol, venga de
     // donde venga).
-    $('#oec-float-wa, #oec-float-botmaker').appendTo(document.body);
+    $('#oec-float-wa, #oec-float-chat').appendTo(document.body);
 
     // Bios de docentes: convierte listas de enlaces sociales en botones — no depende
     // de ningún fetch, corre apenas el DOM está listo
@@ -1057,7 +866,6 @@ jQuery(document).ready(function($){
     // más información?" lleva al mismo lugar. Plantillas pegadas antes de 1.4.4 lo traen igual: se saca.
     if (OEC_CONFIG.force_contact) $('.oec-sticky-more').remove();
     oecSafe('initTeacherSocialLinks', initTeacherSocialLinks);
-    oecSafe('initBotmakerChat', initBotmakerChat);
     oecSafe('initAddToCalendar', initAddToCalendar);
 
     // Formulario de contacto

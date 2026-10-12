@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.4.23
+Version: 1.4.24
 Author: Online Education Center
 */
 
@@ -103,26 +103,10 @@ if (!function_exists('oec_credits_system_enabled')) {
 }
 
 
-// ─────────────────────────────────────────────────────────────────
-// CHAT DIRECTO (BOTMAKER) — proyecto de OEC, hardcodeado
-// El chat directo solo se ofrece cuando el contacto lo atiende el
-// equipo comercial de OEC (toggle "¿Equipo de Ventas de OEC?" en
-// wp-admin → OEC → Configuración, oec_equipo_ventas) — en ese caso es
-// SIEMPRE este mismo proyecto de Botmaker, nunca uno distinto por
-// sitio de socio, así que no tiene sentido pedirle a cada sitio que lo
-// configure (a diferencia de oec_ventas_whatsapp/oec_ventas_email, que
-// sí son propios de cada sitio y solo aplican cuando NO es el equipo
-// de OEC el que atiende). Antes vivía en wp-admin como
-// "Botmaker — ID de proyecto"; a pedido explícito de Mario se sacó de
-// ahí y se hardcodeó acá.
-// ─────────────────────────────────────────────────────────────────
 // Endpoint en onlineeducation.center que da los números y contactos de Zoho por
 // etapa (server/zoho/partner-contacts.php). Las claves de Zoho viven allá.
 if (!defined('OEC_ZOHO_CONTACTS_ENDPOINT')) {
     define('OEC_ZOHO_CONTACTS_ENDPOINT', 'https://onlineeducation.center/connections/zoho/partner-contacts.php');
-}
-if (!defined('OEC_BOTMAKER_PROJECT_ID')) {
-    define('OEC_BOTMAKER_PROJECT_ID', '6EJESDV1VQ');
 }
 
 
