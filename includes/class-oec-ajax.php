@@ -226,10 +226,12 @@ if (!class_exists('OEC_Ajax')) {
             $data = $this->credits_api_request('GET', 'https://api.onlineeducation.center/contable/api/coupons?edition_uid=' . urlencode($edition_uid));
             if (empty($data) || !is_array($data)) return [];
 
-            $now = new DateTime('now', new DateTimeZone('UTC'));
-            $valid = array_filter($data, function ($coupon) use ($now) {
-                $exp = DateTime::createFromFormat('Y-m-d', $coupon['expiration'] ?? '', new DateTimeZone('UTC'));
-                return $exp && $exp >= $now;
+            // "expiration" es un día de calendario: el cupón vale hasta terminar ese
+            // día en la hora del sitio (en UTC vencía 3 horas antes en Argentina).
+            $today = current_time('Y-m-d');
+            $valid = array_filter($data, function ($coupon) use ($today) {
+                $exp = (string) ($coupon['expiration'] ?? '');
+                return preg_match('/^\d{4}-\d{2}-\d{2}/', $exp) && substr($exp, 0, 10) >= $today;
             });
 
             usort($valid, function ($a, $b) { return $b['percentage'] - $a['percentage']; });

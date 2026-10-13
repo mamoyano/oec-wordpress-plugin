@@ -2606,3 +2606,18 @@ Decisión de Mario: el webchat de Botmaker se da de baja en todos lados (JS, CSS
   `class`; cortar "hasta el primer `{% endif %}`" deja medio elemento colgado (pasó armando esta versión:
   "Unknown endif tag").
 
+
+## v1.4.25 — el día de cierre se compara en la hora del sitio (2026-10-13)
+
+Revisión general de fechas (junto con el tema v1.0.151). Regla: "inscripción hasta el 13" = abierta
+todo el 13 en la hora del sitio; cierra al llegar el 14. Lo mismo para cupones y pago anticipado.
+- `process_twig` / `get_similar_open_trainings()`: comparaban con `date('Ymd')` (UTC) → desde las 21:00
+  de Argentina del último día daban la formación por cerrada. Ahora `substr(fecha, 0, 10)` contra
+  `current_time('Y-m-d')`.
+- `get_valid_coupons()` (créditos): el cupón vencía a las 21:00 de Argentina de su último día. Mismo
+  criterio de día del sitio.
+- `oec-formacion.js`: el descuento por pago anticipado se ocultaba según el día del NAVEGADOR; ahora
+  compara el instante (`early_payment.expiration` ya llega como fin del día en la hora del sitio).
+- **Ojo, no es de horarios**: una ficha que sigue "cerrada" después de extender la inscripción en el
+  campus es caché (24 h de `oec_cache_…` + Cloudflare). Se arregla con `/purge-cache.php?url=…` (tema)
+  o esperando al sync del tema, que desde 1.0.151 borra las fichas cuyas fechas cambiaron.

@@ -955,7 +955,7 @@ jQuery(document).ready(function($){
         if(window.fbq) fbq('track','ViewContent',{content_name:OEC_TRAINING_DATA.title,content_ids:[OEC_TRAINING_DATA.id],content_type:'product'});
 
         // Countdowns (.oec-countdown: fecha de inicio/cierre de inscripción y descuento por pago anticipado)
-        const today=new Date(), todayN=today.getFullYear()*10000+(today.getMonth()+1)*100+today.getDate();
+        const today=new Date();
         // enrollment_end ya llega como el final del día de cierre en la hora
         // del sitio (normalize_dates() del plugin): se compara el instante.
         const enrEnd=new Date(OEC_TRAINING_DATA.enrollment_end);
@@ -970,9 +970,10 @@ jQuery(document).ready(function($){
         oecSafe('initOecRegionSelector', initOecRegionSelector);
         oecSafe('setCountryCurrency', setCountryCurrency);
 
-        // Ocultar descuento vencido
-        const $disc=$('#oec-disc-early-payment'), dAttr=$disc.attr('date');
-        if(dAttr&&todayN>parseInt(dAttr,10)) $disc.hide();
+        // Ocultar descuento vencido. Se compara el instante (earlyExp es el final
+        // de ese día en la hora del sitio): con el día del navegador se escondía
+        // antes de tiempo en Europa y seguía a la vista en México.
+        if(earlyExp&&new Date(earlyExp)<today) $('#oec-disc-early-payment').hide();
 
         // Affiliate code
         const aff=qsp('affcod')||getExp('AffiliateCode');

@@ -646,8 +646,11 @@ if (!class_exists('OEC_Shortcodes')) {
             // "openEnrollment" en el Twig, pero acá hace falta en PHP porque
             // dispara una llamada de red). Con inscripciones abiertas no tiene
             // sentido gastar la llamada: nunca se muestran.
+            // La parte AAAA-MM-DD de la API es el día de cierre, y cierra al terminar
+            // ese día en la hora del sitio (ver normalize_dates()): con date() (UTC)
+            // se daba por cerrada 3 horas antes en Argentina.
             $openEnrollment = !empty($data['enrollment_end'])
-                && date('Ymd', strtotime($data['enrollment_end'])) >= date('Ymd');
+                && substr((string) $data['enrollment_end'], 0, 10) >= current_time('Y-m-d');
             // Solo en una comunidad propia de OEC (lista de dominios OEC_CREDITS_ALLOWED_DOMAINS) y
             // nunca en la ficha incrustada: en el sitio de un socio no se le ofrecen al visitante
             // formaciones de otros organizadores.
@@ -777,11 +780,11 @@ if (!class_exists('OEC_Shortcodes')) {
             $results  = OEC_Api::call($endpoint);
             if (empty($results) || !is_array($results)) return [];
 
-            $today   = date('Ymd');
+            $today   = current_time('Y-m-d'); // día del sitio, no UTC (ver normalize_dates())
             $similar = [];
             foreach ($results as $t) {
                 if (($t['id'] ?? null) === ($data['id'] ?? null)) continue; // excluir la formación actual
-                if (empty($t['enrollment_end']) || date('Ymd', strtotime($t['enrollment_end'])) < $today) continue;
+                if (empty($t['enrollment_end']) || substr((string) $t['enrollment_end'], 0, 10) < $today) continue;
                 $similar[] = $t;
                 if (count($similar) >= 10) break;
             }
