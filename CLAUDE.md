@@ -2621,3 +2621,12 @@ todo el 13 en la hora del sitio; cierra al llegar el 14. Lo mismo para cupones y
 - **Ojo, no es de horarios**: una ficha que sigue "cerrada" después de extender la inscripción en el
   campus es caché (24 h de `oec_cache_…` + Cloudflare). Se arregla con `/purge-cache.php?url=…` (tema)
   o esperando al sync del tema, que desde 1.0.151 borra las fichas cuyas fechas cambiaron.
+
+## v1.4.26 — la caja de pago anticipado dice hasta cuándo vale (2026-10-14)
+
+Pedido de Mario: debajo de "X% dto. por pago anticipado" va `.oec-disc-until` "Hasta el {día de mes}"
+(`early_payment.expiration|format_date(false)`, el mismo formato que ya usa el anillo del hero: día del
+sitio, sin año). Hace falta sobre todo con más de 15 días, cuando el countdown de la caja todavía no
+aparece. Plantillas ya pegadas: `upgrade_template()` la agrega después del título (solo si no está).
+Probado en local con la plantilla vieja de la base (Entrenamiento de la resistencia en el fútbol,
+vence el 24/10), escritorio y 412 px.

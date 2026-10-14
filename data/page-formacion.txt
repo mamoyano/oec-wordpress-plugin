@@ -1265,6 +1265,7 @@
         {% if earlyPayDiscount %}
             <div class="oec-disc-box" id="oec-disc-early-payment" date="{{ data.prices.discounts.early_payment.expiration|date('Ymd') }}" role="complementary" aria-label="Descuento disponible">
                 <div class="oec-disc-title"><i class="bi bi-tags-fill"></i> {{ data.prices.discounts.early_payment.percentage }}% dto. por pago anticipado</div>
+                <div class="oec-disc-until">Hasta el {{ data.prices.discounts.early_payment.expiration|format_date(false) }}</div>
                 <span class="total-price oec-disc-price"><span class="std-disc-percent" style="display:none">{{ data.prices.discounts.early_payment.percentage }}</span>{{ data.prices.currency }} {{ data.prices.discounts.early_payment.total|number_format(0, ',', '.') }}</span>
                 <div class="oec-countdown oec-countdown--disc" date="{{ data.prices.discounts.early_payment.expiration }}">
                     <span class="oec-cd-prefix">Quedan</span>

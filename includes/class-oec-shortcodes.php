@@ -1033,6 +1033,11 @@ if (!class_exists('OEC_Shortcodes')) {
             // <h4> directo debajo de un <h2>), avatares al doble del tamaño que se muestran y en webp,
             // y width/height en las imágenes para reservar su lugar antes de que carguen.
             $content = str_replace('COMIENCE CUANDO QUIERA', 'COMIENZA CUANDO QUIERAS', $content);
+            // < 1.4.26: la caja de pago anticipado no decía hasta cuándo vale el descuento.
+            $disc_title = '<div class="oec-disc-title"><i class="bi bi-tags-fill"></i> {{ data.prices.discounts.early_payment.percentage }}% dto. por pago anticipado</div>';
+            if (strpos($content, 'oec-disc-until') === false && strpos($content, $disc_title) !== false) {
+                $content = str_replace($disc_title, $disc_title . '<div class="oec-disc-until">Hasta el {{ data.prices.discounts.early_payment.expiration|format_date(false) }}</div>', $content);
+            }
             $a = strpos($content, 'id="oec-bullets"');
             $b = $a !== false ? strpos($content, 'id="oec-masinformacion"', $a) : false;
             if ($a !== false && $b !== false) {
