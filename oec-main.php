@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.4.26
+Version: 1.4.27
 Author: Online Education Center
 */
 
@@ -621,7 +621,7 @@ if (!function_exists('oec_seo_and_stars_metadata')) {
         $clean_desc  = preg_replace('/\s+/', ' ', trim($clean_desc));
         $desc        = esc_attr(wp_trim_words($clean_desc, 25, '...'));
         $title       = esc_html($data['title']);
-        $url         = esc_url(!empty($data['canonical']) ? $data['canonical'] : oec_get_current_training_canonical());
+        $url         = esc_url(oec_get_current_training_canonical());
 
         echo "\n\n";
         echo "<meta name='description' content='{$desc}'>\n";
@@ -859,7 +859,10 @@ if (!function_exists('oec_get_current_training_canonical')) {
     function oec_get_current_training_canonical() {
         $data = oec_get_current_training_data();
         if (!$data) return home_url('/formacion');
-        if (!empty($data['canonical'])) return $data['canonical'];
+        // El tema OEC rearma con este filtro el canonical de las comunidades
+        // migradas (la API todavía manda la URL de su sitio viejo, p. ej.
+        // www.voley.org/capacitacion/…).
+        if (!empty($data['canonical'])) return apply_filters('oec_training_canonical', $data['canonical']);
         $slug = $data['slug'] ?? $data['id'] ?? '';
         return $slug ? home_url('/formacion/' . $slug . '/') : home_url('/formacion');
     }
