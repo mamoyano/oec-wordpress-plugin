@@ -101,6 +101,15 @@ if (!class_exists('OEC_Ajax')) {
             }
         }
 
+        /** UTM de la campaña con que llegó la persona (las manda js/oec-campaign.js vía el formulario). */
+        private function utm_from_post() {
+            $out = [];
+            foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $k) {
+                $out[$k] = substr(sanitize_text_field(wp_unslash($_POST[$k] ?? '')), 0, 200);
+            }
+            return $out;
+        }
+
         /**
          * Envía los datos del formulario por email al equipo de ventas del cliente.
          */
@@ -144,12 +153,7 @@ if (!class_exists('OEC_Ajax')) {
                 'country'      => $country,
                 'locale'       => $locale,
                 'phone'        => $phone,
-                'utm_source'   => '',
-                'utm_medium'   => '',
-                'utm_campaign' => '',
-                'utm_term'     => '',
-                'utm_content'  => '',
-            ];
+            ] + $this->utm_from_post();
 
             $token = get_option('oec_token', '');
 

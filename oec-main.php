@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.4.27
+Version: 1.4.28
 Author: Online Education Center
 */
 
@@ -197,6 +197,23 @@ add_action('wp_footer', function () {
     <?php
 }, 999);
 
+
+
+// ─────────────────────────────────────────────────────────────────
+// PARÁMETROS DE CAMPAÑA HACIA EL CHECKOUT
+// Las UTM y los identificadores de clic (fbclid, gclid…) con que la persona
+// llegó a cualquier página del sitio viajan a los enlaces al checkout
+// (*.onlineeducation.center). Qué hace y por qué: js/oec-campaign.js, copia
+// del mismo archivo del tema OEC. Con el tema instalado lo imprime el tema
+// (define OEC_CAMPAIGN_LINKS); si el plugin está solo, lo imprime el plugin.
+// En todo el sitio, no solo en la ficha: el anuncio puede llevar a otra
+// página. Solo toca enlaces a onlineeducation.center.
+// ─────────────────────────────────────────────────────────────────
+add_action('wp_footer', function () {
+    if (defined('OEC_CAMPAIGN_LINKS')) return;
+    $js = (string) file_get_contents(plugin_dir_path(__FILE__) . 'js/oec-campaign.js');
+    if ($js !== '') echo "<script>\n" . $js . "</script>\n"; // phpcs:ignore WordPress.Security.EscapeOutput
+}, 20);
 
 // ─────────────────────────────────────────────────────────────────
 // AUTOLOADER MANUAL PARA TWIG (Sin Composer)

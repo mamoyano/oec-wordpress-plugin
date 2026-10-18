@@ -2630,3 +2630,15 @@ sitio, sin año). Hace falta sobre todo con más de 15 días, cuando el countdow
 aparece. Plantillas ya pegadas: `upgrade_template()` la agrega después del título (solo si no está).
 Probado en local con la plantilla vieja de la base (Entrenamiento de la resistencia en el fútbol,
 vence el 24/10), escritorio y 412 px.
+
+## v1.4.28 — UTM e identificadores de clic al checkout, también sin el tema (2026-10-18)
+
+`js/oec-campaign.js` es COPIA del `assets/js/campaign-links.js` del tema (mantenerlos iguales). Guarda la
+campaña con que la persona llegó a cualquier página (utm_*, fbclid, gclid, gbraid, wbraid, msclkid,
+ttclid, li_fat_id; la última reemplaza a la anterior, 30 días, fbclid 90, localStorage `oec_campaign`) y la
+agrega a los enlaces a *.onlineeducation.center sin pisar los que ya traen (las UTM van en grupo). Los
+enlaces internos no se tocan (rompe sesiones de GA4). Lo imprime en línea en `wp_footer` en todo el sitio
+SOLO si el tema no define `OEC_CAMPAIGN_LINKS` (tema >= 1.0.177); si están los dos corre una vez
+(`window.oecCampaign`). El formulario de consulta (`oec_more_info`) ahora manda `utm_*` de
+`window.oecCampaign.get()` a la API (`more-info`), que antes iban vacías. Verificado en local con
+twentytwentyfive (plugin solo): home con UTM → ficha → checkout con todo, y el POST del formulario.
