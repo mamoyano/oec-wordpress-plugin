@@ -2642,3 +2642,14 @@ SOLO si el tema no define `OEC_CAMPAIGN_LINKS` (tema >= 1.0.177); si están los 
 (`window.oecCampaign`). El formulario de consulta (`oec_more_info`) ahora manda `utm_*` de
 `window.oecCampaign.get()` a la API (`more-info`), que antes iban vacías. Verificado en local con
 twentytwentyfive (plugin solo): home con UTM → ficha → checkout con todo, y el POST del formulario.
+
+## v1.4.29 — foto del docente en Contenidos siempre redonda (2026-10-19)
+
+`.oec-subj-img` (foto de 18 px junto a cada clase en Contenidos) a veces quedaba ovalada (18×25). Vive
+dentro de `.oec-subject`, y la capa del HTML de la API (`#oec-bleed-wrapper#oec-bleed-wrapper
+:where(.oec-prose, .oec-subject, …) :where(img) { height: auto }`, doble ID) le ganaba por especificidad a
+su `height: 18px`: con una foto no cuadrada el alto salía de la proporción del archivo. Ahora `width` y
+`height` llevan `!important` (el JS no los toca). **Ojo**: cualquier `<img>` propio del plugin que se
+agregue dentro de esas cuatro regiones necesita su tamaño con `!important`, por el mismo motivo.
+Verificado en "Diplomado de Especialista en Readaptación Deportiva": 22 fotos, todas 18×18 (incluidas las
+de 120×146), en 1366 y 412 px.

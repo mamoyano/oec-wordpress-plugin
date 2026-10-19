@@ -332,7 +332,9 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-subject:first-child { border-top: none !important; margin-top: 0 !important; padding-top: 0 !important; }
 .oec-subject h4  { font-size: 14px !important; font-weight: 600 !important; color: #111827 !important; margin: 0 0 9px !important; }
 .oec-subj-teacher { display: inline-flex; align-items: center; gap: 5px; font-size: 12px !important; color: #6b7280 !important; margin-right: 6px !important; }
-.oec-subj-img    { width: 18px; height: 18px; border-radius: 50% !important; object-fit: cover; }
+/* Tamaño con !important: vive dentro de .oec-subject, y la capa del HTML de la API (doble ID, más arriba)
+   le pone height:auto a sus <img> — con una foto no cuadrada quedaba ovalada (18×25). */
+.oec-subj-img    { width: 18px !important; height: 18px !important; flex-shrink: 0; border-radius: 50% !important; object-fit: cover; }
 
 /* ─── REVIEWS COMPLETOS ──────────────────────────────────────── */
 .oec-reviews-full-list { display: flex; flex-direction: column; gap: 14px; }
