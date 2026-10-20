@@ -145,28 +145,24 @@
 {# Texto con el que arranca la conversación por WhatsApp (sección Contacto e
    ícono flotante) — un solo lugar donde tocarlo si cambia. #}
 {% set chat_message = "Info sobre " ~ data.canonical ~ " por favor." %}
-{% set wa_number = extra.equipo_oec ? "5493512584960" : extra.ventas_whatsapp %}
+{% set wa_number = extra.contact.whatsapp %}
 {% set wa_link   = "https://api.whatsapp.com/send?phone=" ~ wa_number ~ "&amp;text=" ~ chat_message|url_encode %}
 
 {# ══════════════════════════════════════════════════════════════
-   CANAL DE CONTACTO — WhatsApp O chat con IA, NUNCA los dos (ni en la
-   sección Contacto ni como ícono flotante). Email (formulario) siempre.
-   - Si la venta NO la hace OEC (extra.equipo_oec en 0): formulario al
-     email del socio + WhatsApp del socio (wp-admin → OEC → Configuración).
-   - Si la venta la hace OEC: formulario al CRM y, además,
-       · chat con IA del sitio (extra.chat_ia: lo ofrece el tema
-         oec-wp-theme de las comunidades, filtro "oec_chat_ia_available")
-         si la formación cuesta menos de 200 (data.prices.total) o tiene
-         la inscripción cerrada: WhatsApp de ventas cobra por
-         conversación y no se paga por formaciones baratas ni por una a
-         la que ya no se puede inscribir nadie;
-       · WhatsApp de OEC en cualquier otro caso (200 o más, o un sitio
-         sin chat con IA: socio, ficha incrustada).
-   El chat lo abre el tema: cualquier .oec-chat-ia-trigger (data-msg es el
-   saludo con el que arranca). Reemplazó al webchat de Botmaker (v1.4.24).
+   CANAL DE CONTACTO — lo decide el plugin (oec_contact_channels(), oec-main.php) y llega en
+   extra.contact: form ('crm' | 'partner' | ''), whatsapp (número o ''), chat (bool), csm (bool).
+   WhatsApp O chat con IA, nunca los dos.
+   - Comunidad de OEC (por dominio) y no incrustada: atiende OEC. Formulario a la CRM y WhatsApp
+     de OEC si la inscripción está abierta y cuesta USD 300 o más; si no, chat con IA.
+   - Sitio de socio o ficha incrustada: b2c_package true → switch de ventas (OEC: CRM + WhatsApp de
+     OEC; socio: email + WhatsApp del socio configurados en el plugin). b2c_package false → email y
+     WhatsApp de la organización (email_b2c / phone_b2c), los que haya.
+   Lo que no corresponde (formulario, foto del CSM, la sección entera y sus enlaces) lo oculta el CSS
+   con clases en #oec-bleed-wrapper (oec-c-no-form / oec-c-no-csm / oec-c-none).
+   El chat lo abre el tema: cualquier .oec-chat-ia-trigger (data-msg es el saludo con el que arranca).
 ══════════════════════════════════════════════════════════════ #}
-{% set showChatIA        = extra.equipo_oec and extra.chat_ia and (data.prices.total < 200 or not openEnrollment) %}
-{% set showWhatsappBlock = not showChatIA %}
+{% set showChatIA        = extra.contact.chat %}
+{% set showWhatsappBlock = wa_number != '' %}
 {% set showFloatWhatsapp = showWhatsappBlock %}
 {% set showFloatChatIA   = showChatIA %}
 

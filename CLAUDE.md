@@ -2664,3 +2664,38 @@ con `!important` el ancho/márgenes de `.oec-live-wrap` y el tamaño/sombra/anim
 (el JS solo toca el `display` del wrap). El resto de las `.oec-live-*` del tema (`__hero`, `-block`,
 `-grupo`…) no coinciden con las del plugin. Verificado en "Fuerza de la A a la Z": wrap 772 de 774 px de
 la tarjeta, punto 8 px con `oec-live-pulse`.
+
+## v1.4.31 — canales de contacto: comunidad por dominio, USD 300 y `b2c_package` (2026-10-20)
+
+Regla de Mario (reemplaza la de v1.4.21/v1.4.24). **Una sola fuente**: `oec_contact_channels($data,
+$embed, $open)` en `oec-main.php` (filtro `oec_contact_channels` al final, para casos especiales y para
+probar ramas que la API no trae). Devuelve `form` ('crm' | 'partner' | ''), `email` (destino del socio,
+NUNCA va al HTML), `whatsapp` (dígitos o ''), `chat`, `csm`.
+- **Comunidad** = dominio en `OEC_CREDITS_ALLOWED_DOMAINS` (ahora g-se.com, fisio.one, traumato.site,
+  swimming.science, voley.org, is.fitness, oec-test.local; sin `www.`; se sacaron scalify.business y
+  nuevo.g-se.com) y no incrustada. Atiende OEC siempre (se ignoran el switch y `b2c_package`): CRM +
+  WhatsApp de OEC (`OEC_SALES_WHATSAPP`) si la inscripción está abierta y `prices.total` >= 300 (USD);
+  si no, chat con IA — y si el tema no lo ofrece (`oec_chat_ia_available`), WhatsApp de OEC.
+- **Socio o incrustada**: `b2c_package` true (o ausente) → switch de ventas (OEC: CRM + WhatsApp de OEC;
+  socio: email + WhatsApp configurados en el plugin; sin email cargado, el formulario sigue yendo a la
+  CRM). `b2c_package` false → `organization.data.email_b2c` / `phone_b2c`, los que haya; sin ninguno, no
+  hay contacto.
+- Teléfono válido (`oec_normalize_whatsapp()`): sin espacios, guiones, puntos, paréntesis ni "+", 10 a 15
+  dígitos; si no, no hay botón de WhatsApp.
+- **Cómo se aplica a cualquier plantilla (nueva o ya pegada)**: `extra.contact` para el número y el chat
+  (`upgrade_template()` reescribe `wa_number`, `showChatIA`/`showChatDirecto`/`showChatAnonimo` y
+  `showWhatsappBlock`), y clases en `#oec-bleed-wrapper` para ocultar: `oec-c-no-form` (bloque del
+  formulario), `oec-c-no-csm` (foto/nombre del CSM: solo se ve si atiende OEC), `oec-c-none` (sección
+  `#oec-contacto`, todo `[where="oec-contacto"]` — tab de la barra, botones "SOLICITAR INFORMACIÓN" — y el
+  párrafo que lo contiene; con `body:has(…)` porque la barra y la barra mobile se mudan a `<body>`).
+- **Formulario** (`oec_more_info_ajax()`): recalcula los canales con `OEC_Api::call('trainings/{uid}')`;
+  del navegador solo toma `embed` (elige entre destinos válidos de esa formación). Partner → `wp_mail` al
+  email; CRM → API; sin formulario → error.
+- Se eliminó el script viejo de `full_bleed_wrap()` que reemplazaba en toda la página el WhatsApp de OEC
+  por el del socio según el switch (en una comunidad le hubiera pisado el número).
+- Datos reales (120 formaciones, 2026-10-20): `b2c_package` siempre true y `email_b2c`/`phone_b2c` vacíos;
+  la rama false se probó forzándola con el filtro. Verificado: 17 casos de la regla con datos simulados;
+  en local, plantilla vieja de la base y la nueva (comunidad ≥300 → WhatsApp, <300 y cerrada → chat,
+  incrustada → WhatsApp de OEC); visibilidad en Chrome headless (socio sin CSM, solo WhatsApp sin
+  formulario, sin contacto sin sección/tab/enlaces/párrafo); formulario: partner llega al Mailpit local,
+  sin contacto devuelve error (la CRM real no se tocó).

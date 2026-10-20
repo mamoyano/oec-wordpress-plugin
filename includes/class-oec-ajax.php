@@ -90,14 +90,26 @@ if (!class_exists('OEC_Ajax')) {
                 wp_send_json_error('Datos incompletos.');
             }
 
-            // 2. ¿Usa su propio equipo de ventas?
-            $equipo_oec    = get_option('oec_equipo_ventas', '1');
-            $ventas_email  = get_option('oec_ventas_email', '');
+            // 2. ¿A quién va la consulta? Misma regla que la ficha (oec_contact_channels()), calculada
+            // acá con los datos de la formación: no se confía en lo que diga el navegador. Lo único que
+            // llega de él es si la ficha está incrustada (solo elige entre destinos válidos de ESTA
+            // formación). Sin datos de la API (caída), queda la regla del switch de ventas.
+            $data = [];
+            if (preg_match('/^t-[A-Za-z0-9]{14}$/', $uid) && class_exists('OEC_Api')) {
+                $d    = OEC_Api::call('trainings/' . $uid);
+                $data = is_array($d) ? ($d['data'] ?? $d) : [];
+            }
+            $embed    = !empty($_POST['embed']);
+            $channels = function_exists('oec_contact_channels')
+                ? oec_contact_channels($data, $embed)
+                : ['form' => 'crm', 'email' => ''];
 
-            if ($equipo_oec === '0' && !empty($ventas_email)) {
-                $this->enviar_email_propio($ventas_email, $uid, $name, $lastname, $email, $phone, $country);
-            } else {
+            if ($channels['form'] === 'partner' && $channels['email']) {
+                $this->enviar_email_propio($channels['email'], $uid, $name, $lastname, $email, $phone, $country);
+            } elseif ($channels['form'] === 'crm') {
                 $this->enviar_a_api_oec($uid, $name, $lastname, $email, $phone, $country, $locale);
+            } else {
+                wp_send_json_error('Esta formación no recibe consultas por este medio.');
             }
         }
 

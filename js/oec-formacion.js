@@ -876,7 +876,7 @@ jQuery(document).ready(function($){
             $r.text('Enviando...');
             // UTM de la campaña con que llegó (js/oec-campaign.js): la API de OEC las guarda con la consulta.
             const camp=window.oecCampaign?window.oecCampaign.get():{};
-            $.post(oecAjaxUrl(),{action:'oec_more_info',nonce:OEC_AJAX_NONCE,uid:$c.data('uid'),country:$c.data('country'),locale:$c.data('locale'),name:$f.find('[name="name"]').val(),lastname:$f.find('[name="lastname"]').val(),phone:$f.find('[name="phone"]').val(),email:$f.find('[name="email"]').val(),utm_source:camp.utm_source||'',utm_medium:camp.utm_medium||'',utm_campaign:camp.utm_campaign||'',utm_term:camp.utm_term||'',utm_content:camp.utm_content||''})
+            $.post(oecAjaxUrl(),{action:'oec_more_info',nonce:OEC_AJAX_NONCE,embed:window.OEC_EMBED?1:0,uid:$c.data('uid'),country:$c.data('country'),locale:$c.data('locale'),name:$f.find('[name="name"]').val(),lastname:$f.find('[name="lastname"]').val(),phone:$f.find('[name="phone"]').val(),email:$f.find('[name="email"]').val(),utm_source:camp.utm_source||'',utm_medium:camp.utm_medium||'',utm_campaign:camp.utm_campaign||'',utm_term:camp.utm_term||'',utm_content:camp.utm_content||''})
             .done(res=>{ $r.html(res.success?`<div class="oec-success"><i class="bi bi-check-square"></i> ${res.data}</div>`:`<div class="oec-error"><i class="bi bi-x-square"></i> ${res.data}</div>`); if(!res.success)$f.fadeIn(); })
             .fail(()=>{ $r.html('<div class="oec-error"><i class="bi bi-x-square"></i> Error de conexión.</div>'); $f.fadeIn(); });
         });

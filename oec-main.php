@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.4.30
+Version: 1.4.31
 Author: Online Education Center
 */
 
@@ -59,14 +59,15 @@ define('OEC_CACHE_ENABLED', OEC_ENV === 'production');
 // Agregar acá cada comunidad nueva a medida que se activa.
 // ─────────────────────────────────────────────────────────────────
 if (!defined('OEC_CREDITS_ALLOWED_DOMAINS')) {
+    // Comunidades propias de OEC (definición de Mario, 2026-10-20). Deciden créditos, formaciones
+    // alternativas y los canales de contacto de la ficha (oec_contact_channels()).
     define('OEC_CREDITS_ALLOWED_DOMAINS', [
         'g-se.com',
-        'traumato.site',
         'fisio.one',
+        'traumato.site',
         'swimming.science',
+        'voley.org',
         'is.fitness',
-        'scalify.business',
-        'nuevo.g-se.com', // staging en Cloudways
         'oec-test.local', // sitio de desarrollo local
     ]);
 }
@@ -97,8 +98,85 @@ if (!defined('OEC_REDEEM_CONFIRM_SLUG')) {
 
 if (!function_exists('oec_credits_system_enabled')) {
     function oec_credits_system_enabled() {
-        $host = wp_parse_url(home_url(), PHP_URL_HOST);
+        $host = strtolower((string) wp_parse_url(home_url(), PHP_URL_HOST));
+        $host = preg_replace('/^www\./', '', $host);
         return in_array($host, OEC_CREDITS_ALLOWED_DOMAINS, true);
+    }
+}
+
+// WhatsApp de ventas de OEC (antes vivía suelto en la plantilla).
+if (!defined('OEC_SALES_WHATSAPP')) define('OEC_SALES_WHATSAPP', '5493512584960');
+
+/**
+ * Número de WhatsApp utilizable o "": se sacan espacios, guiones, puntos, paréntesis y el "+", y tienen
+ * que quedar entre 10 y 15 dígitos (con código de país). Cualquier otro carácter lo invalida.
+ */
+if (!function_exists('oec_normalize_whatsapp')) {
+    function oec_normalize_whatsapp($raw) {
+        $n = preg_replace('/[\s\-\.\(\)\+]/', '', (string) $raw);
+        return preg_match('/^\d{10,15}$/', $n) ? $n : '';
+    }
+}
+
+/**
+ * Canales de contacto de una ficha (regla de Mario, 2026-10-20). Una sola fuente para la ficha y para
+ * el envío del formulario (OEC_Ajax::oec_more_info_ajax()).
+ *
+ * - Comunidad de OEC (dominio en OEC_CREDITS_ALLOWED_DOMAINS) y no incrustada: atiende OEC siempre
+ *   (se ignoran el switch de ventas y b2c_package). Formulario a la CRM y, además, WhatsApp de OEC si
+ *   la inscripción está abierta y cuesta USD 300 o más; si no, chat con IA (si el tema no lo ofrece,
+ *   WhatsApp de OEC).
+ * - Sitio de socio o ficha incrustada:
+ *     b2c_package true (o sin el dato): switch "Equipo de Ventas de OEC" → CRM + WhatsApp de OEC;
+ *       apagado → email + WhatsApp del socio configurados en el plugin.
+ *     b2c_package false: email_b2c y/o phone_b2c de la organización; sin ninguno, no hay contacto.
+ *
+ * @return array form ('crm'|'partner'|''), email (destino si form = partner), whatsapp (dígitos o ''),
+ *               chat (bool), csm (mostrar la foto/nombre de nuestro Customer Success Manager).
+ */
+if (!function_exists('oec_contact_channels')) {
+    function oec_contact_channels($data, $embed = false, $open = true) {
+        // Filtro para casos especiales (y para probar ramas que la API todavía no trae, como
+        // b2c_package = false): recibe el resultado y los mismos datos.
+        return apply_filters('oec_contact_channels', oec_contact_channels_base($data, $embed, $open), $data, $embed, $open);
+    }
+}
+if (!function_exists('oec_contact_channels_base')) {
+    function oec_contact_channels_base($data, $embed = false, $open = true) {
+        $oec = ['form' => 'crm', 'email' => '', 'whatsapp' => OEC_SALES_WHATSAPP, 'chat' => false, 'csm' => true];
+
+        if (!$embed && function_exists('oec_credits_system_enabled') && oec_credits_system_enabled()) {
+            $price = (float) ($data['prices']['total'] ?? 0);
+            if ((!$open || $price < 300) && apply_filters('oec_chat_ia_available', false)) {
+                $oec['whatsapp'] = '';
+                $oec['chat']     = true;
+            }
+            return $oec;
+        }
+
+        $b2c = !array_key_exists('b2c_package', (array) $data) || !empty($data['b2c_package']);
+        if ($b2c) {
+            if (get_option('oec_equipo_ventas', '1') === '1') return $oec;
+            $email = sanitize_email(get_option('oec_ventas_email', ''));
+            return [
+                // Sin email del socio cargado, el formulario sigue yendo a la CRM (como antes).
+                'form'     => is_email($email) ? 'partner' : 'crm',
+                'email'    => is_email($email) ? $email : '',
+                'whatsapp' => oec_normalize_whatsapp(get_option('oec_ventas_whatsapp', '')),
+                'chat'     => false,
+                'csm'      => !is_email($email),
+            ];
+        }
+
+        $org   = $data['organization']['data'] ?? [];
+        $email = sanitize_email((string) ($org['email_b2c'] ?? ''));
+        return [
+            'form'     => is_email($email) ? 'partner' : '',
+            'email'    => is_email($email) ? $email : '',
+            'whatsapp' => oec_normalize_whatsapp($org['phone_b2c'] ?? ''),
+            'chat'     => false,
+            'csm'      => false,
+        ];
     }
 }
 

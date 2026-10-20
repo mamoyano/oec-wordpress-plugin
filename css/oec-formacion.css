@@ -577,6 +577,14 @@ h1.oec-h1.m { font-size: 22px !important; }
    calculó cuánto podían pedir estas 2 columnas antes de que
    "flex-wrap:wrap" las apile de más. */
 .oec-contact-grid { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+/* Canales de contacto (oec_contact_channels(), v1.4.31): clases que pone el plugin en #oec-bleed-wrapper.
+   Sirven igual para la plantilla nueva y para las ya pegadas. La barra de secciones y la barra de celular
+   se mudan a <body>, por eso los enlaces se buscan desde body:has(…). */
+#oec-bleed-wrapper.oec-c-no-form .oec-contact-block--email,
+#oec-bleed-wrapper.oec-c-no-csm .oec-contact-kam { display: none !important; }
+body:has(#oec-bleed-wrapper.oec-c-none) #oec-contacto,
+body:has(#oec-bleed-wrapper.oec-c-none) [where="oec-contacto"],
+body:has(#oec-bleed-wrapper.oec-c-none) p:has(> [where="oec-contacto"]) { display: none !important; }
 .oec-contact-block--email { flex: 1 1 260px; min-width: 230px !important; }
 /* Sin max-width — a pedido, el formulario ocupa TODO el ancho
    disponible de su columna (los inputs/botón de ".oec-form" ya tenían

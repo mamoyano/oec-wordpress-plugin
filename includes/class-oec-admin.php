@@ -440,14 +440,14 @@ if (!class_exists('OEC_Admin')) {
                                                 </div>
                                                 <span id="oec-toggle-label" style="font-weight:600;"><?php echo $equipo_oec === '1' ? 'SÍ' : 'NO'; ?></span>
                                             </label>
-                                            <p class="description" style="margin-top:6px;">Si está en SÍ, se usa el equipo comercial de OEC para los contactos del formulario y WhatsApp.</p>
+                                            <p class="description" style="margin-top:6px;">Si está en SÍ, se usa el equipo comercial de OEC para los contactos del formulario y WhatsApp. No aplica en las comunidades de OEC (ahí atiende siempre OEC) ni en las formaciones en las que el organizador pidió recibir él las consultas: esas van a su email y su WhatsApp.</p>
                                         </td>
                                     </tr>
                                     <tr id="oec-ventas-fields" style="<?php echo $equipo_oec === '1' ? 'display:none;' : ''; ?>">
                                         <th scope="row">WhatsApp de contacto</th>
                                         <td>
                                             <input type="text" name="oec_ventas_whatsapp" value="<?php echo esc_attr($ventas_wa); ?>" class="regular-text" placeholder="Ej: 5491112345678 (con código de país, sin +)">
-                                            <p class="description">Número internacional sin el signo +. Ej: 5491112345678</p>
+                                            <p class="description">Número internacional con código de país (10 a 15 dígitos). Ej: 5491112345678. Si no es válido, no se muestra el botón de WhatsApp.</p>
                                         </td>
                                     </tr>
                                     <tr id="oec-ventas-email-field" style="<?php echo $equipo_oec === '1' ? 'display:none;' : ''; ?>">

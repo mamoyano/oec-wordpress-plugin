@@ -657,10 +657,12 @@ if (!class_exists('OEC_Shortcodes')) {
             $embed      = function_exists('oec_is_embed') && oec_is_embed();
             $own_site   = function_exists('oec_credits_system_enabled') && oec_credits_system_enabled();
             $similar    = ($openEnrollment || $embed || !$own_site) ? [] : $this->get_similar_open_trainings($data);
+            // Canales de contacto (formulario / WhatsApp / chat con IA): ver oec_contact_channels().
+            $contact = function_exists('oec_contact_channels') ? oec_contact_channels($data, $embed, $openEnrollment) : null;
 
             // Ficha incrustada en el sitio de un socio ($embed, ver oec_is_embed()): inscripción con
             // el link del socio (data.register), sin breadcrumb, y las demás fichas también incrustadas.
-            $output = oec_debug_time('Shortcode: render Twig', function () use ($embed, $content, $data, $current_url, $brand_color, $dominant_color, $dominant_color_css, $reviews_top, $reviews_data, $reviews_summary, $similar) {
+            $output = oec_debug_time('Shortcode: render Twig', function () use ($contact, $embed, $content, $data, $current_url, $brand_color, $dominant_color, $dominant_color_css, $reviews_top, $reviews_data, $reviews_summary, $similar) {
                 return $this->process_twig($content, [
                 'data'    => $data,
                 'similar' => $similar,
@@ -683,6 +685,8 @@ if (!class_exists('OEC_Shortcodes')) {
                     // ¿El sitio tiene chat con IA? Lo dice el tema (oec-wp-theme) por este filtro; un
                     // sitio de socio o la ficha incrustada no lo tienen y ofrecen WhatsApp.
                     'chat_ia'             => !$embed && (bool) apply_filters('oec_chat_ia_available', false),
+                    // Sin el email de destino: el Twig solo necesita saber qué mostrar.
+                    'contact'             => $contact ? array_diff_key($contact, ['email' => 1]) : ['form' => 'crm', 'whatsapp' => '5493512584960', 'chat' => false, 'csm' => true],
                     // Mismos ítems que el BreadcrumbList JSON-LD (oec-main.php): el hero los muestra visibles.
                     'breadcrumb'          => !$embed && function_exists('oec_training_breadcrumb_items') ? oec_training_breadcrumb_items($data) : [],
                 ],
@@ -730,7 +734,13 @@ if (!class_exists('OEC_Shortcodes')) {
                 return '<div class="oec-countdown' . $m[1] . '" style="display:flex" date="' . $m[2] . '"';
             }, $output);
 
-            return $this->full_bleed_wrap($output, $dominant_color_css);
+            $cls = [];
+            if ($contact) {
+                if (!$contact['form']) $cls[] = 'oec-c-no-form';
+                if (!$contact['csm']) $cls[] = 'oec-c-no-csm';
+                if (!$contact['form'] && !$contact['whatsapp'] && !$contact['chat']) $cls[] = 'oec-c-none';
+            }
+            return $this->full_bleed_wrap($output, $dominant_color_css, implode(' ', $cls));
         }
 
         /**
@@ -797,67 +807,12 @@ if (!class_exists('OEC_Shortcodes')) {
          * Funciona con cualquier tema porque usa JavaScript para calcular el offset
          * real del elemento respecto al borde de la pantalla.
          */
-        private function full_bleed_wrap($html, $dominant_color_css = 'rgb(248,250,252)') {
+        private function full_bleed_wrap($html, $dominant_color_css = 'rgb(248,250,252)', $classes = '') {
             $uid = 'oec-fb-' . substr(md5(microtime()), 0, 8);
-
-            $gradient = "linear-gradient(to bottom, {$dominant_color_css} 0px, rgb(248,250,252) 500px)";
-
-            // Reemplazo de número de WhatsApp si el cliente usa su propio equipo de ventas si el cliente usa su propio equipo de ventas
-            $equipo_oec      = get_option('oec_equipo_ventas', '1');
-            $ventas_whatsapp = get_option('oec_ventas_whatsapp', '');
+            // (Hasta 1.4.30 había acá un script que reemplazaba el WhatsApp de OEC por el del socio en
+            // toda la página según el switch de ventas. El número ahora lo decide oec_contact_channels().)
             $wa_script = '';
-            if ($equipo_oec === '0' && !empty($ventas_whatsapp)) {
-                $wa_num = esc_js($ventas_whatsapp);
-                $wa_script = <<<JS
-
-    <script>
-    (function() {
-        var oec_wa = '5493512584960';
-        var cte_wa = '{$wa_num}';
-
-        function replaceWA(root) {
-            // 1. href de links de WhatsApp
-            (root.querySelectorAll ? root : document).querySelectorAll('a[href*="' + oec_wa + '"]').forEach(function(el) {
-                el.href = el.href.replace(oec_wa, cte_wa);
-            });
-            // 2. Nodos de texto visibles
-            var walker = document.createTreeWalker(
-                root.querySelectorAll ? root : document.body,
-                NodeFilter.SHOW_TEXT,
-                null,
-                false
-            );
-            var node;
-            while ((node = walker.nextNode())) {
-                if (node.nodeValue.indexOf(oec_wa) !== -1) {
-                    node.nodeValue = node.nodeValue.split(oec_wa).join(cte_wa);
-                }
-            }
-        }
-
-        // Ejecutar en el DOM inicial
-        document.addEventListener('DOMContentLoaded', function() { replaceWA(document.body); });
-
-        // Observar cambios dinámicos (lo que inyecta oec-trainings-v17.js después)
-        var observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(m) {
-                m.addedNodes.forEach(function(node) {
-                    if (node.nodeType === 1) replaceWA(node);
-                });
-            });
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-
-        // Detener el observer cuando la página ya terminó de cargar
-        window.addEventListener('load', function() {
-            // Último pase para asegurarse de no perder nada
-            replaceWA(document.body);
-            setTimeout(function() { observer.disconnect(); }, 3000);
-        });
-    })();
-    </script>
-    JS;
-            }
+            $classes   = $classes !== '' ? ' class="' . esc_attr($classes) . '"' : '';
 
             // Ancho completo ("full bleed") sin importar el contenedor del tema:
             // - SIN transform (antes: left:50% + translateX(-50%)). Un ancestro con transform se
@@ -888,7 +843,7 @@ if (!class_exists('OEC_Shortcodes')) {
             html, body { overflow-x: clip !important; }
             .wp-block-post-title { display: none !important; }
         </style>
-        <div id="oec-bleed-wrapper">
+        <div id="oec-bleed-wrapper"{$classes}>
             <script>(function(){var w=document.getElementById('oec-bleed-wrapper');if(!w)return;function f(){var p=w.parentElement.getBoundingClientRect();w.style.setProperty('--oec-bleed-ml',(-p.left)+'px');w.style.setProperty('--oec-bleed-w',document.documentElement.clientWidth+'px');}f();window.addEventListener('resize',f);window.addEventListener('load',f);})();</script>
             {$html}
         </div>
@@ -1026,6 +981,11 @@ if (!class_exists('OEC_Shortcodes')) {
                 // Plantillas muy viejas: el <script> que inyectaba el widget en cada visita.
                 $content = preg_replace('#<script\b[^>]*>(?:(?!</script>|OEC_CONFIG).)*go\.botmaker\.com(?:(?!</script>|OEC_CONFIG).)*</script>#s', '', $content);
             }
+            // < 1.4.31: los canales de contacto los decide oec_contact_channels() (extra.contact): comunidad
+            // por dominio, umbral USD 300, b2c_package y los datos de contacto de la organización.
+            $content = preg_replace('/\{%\s*set\s+wa_number\s*=\s*extra\.equipo_oec[^%]*%\}/', '{% set wa_number = extra.contact.whatsapp %}', $content, 1);
+            $content = preg_replace('/(\{%\s*set\s+(?:showChatIA|showChatDirecto|showChatAnonimo)\s*=\s*)extra\.equipo_oec and extra\.chat_ia[^%]*%\}/', '$1extra.contact.chat %}', $content, 1);
+            $content = preg_replace('/\{%\s*set\s+showWhatsappBlock\s*=\s*not\s+\w+\s*%\}/', "{% set showWhatsappBlock = wa_number != '' %}", $content, 1);
             // < 1.4.14: sin formaciones alternativas (sitio de socio o ficha incrustada) el texto
             // seguía invitando a "conocer alternativas".
             $content = str_replace('para conocer alternativas disponibles.', 'y te avisamos apenas se reabra esta formación.', $content);
