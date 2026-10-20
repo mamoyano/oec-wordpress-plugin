@@ -2653,3 +2653,14 @@ su `height: 18px`: con una foto no cuadrada el alto salía de la proporción del
 agregue dentro de esas cuatro regiones necesita su tamaño con `!important`, por el mismo motivo.
 Verificado en "Diplomado de Especialista en Readaptación Deportiva": 22 fotos, todas 18×18 (incluidas las
 de 120×146), en 1366 y 412 px.
+
+## v1.4.30 — la marquesina "En el campus virtual" vuelve a ancho completo (2026-10-20)
+
+oec-wp-theme 1.0.179 (página `/especiales/live`, `inc/live.php` + `page-live.php`) usa clases con el
+mismo nombre que la marquesina de sesiones en vivo de la ficha: `.oec-live-wrap { width: 88%; max-width:
+1280px; margin: 0 auto }` (la dejaba angosta y centrada en la tarjeta, ~46 px de margen a cada lado) y
+`.oec-live-dot` (9 px y su propia animación de sombra, sumada al pulso del plugin). El plugin fija ahora
+con `!important` el ancho/márgenes de `.oec-live-wrap` y el tamaño/sombra/animación de `.oec-live-dot`
+(el JS solo toca el `display` del wrap). El resto de las `.oec-live-*` del tema (`__hero`, `-block`,
+`-grupo`…) no coinciden con las del plugin. Verificado en "Fuerza de la A a la Z": wrap 772 de 774 px de
+la tarjeta, punto 8 px con `oec-live-pulse`.

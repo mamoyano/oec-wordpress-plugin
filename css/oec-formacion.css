@@ -231,14 +231,19 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-mas-op     { display: block; text-align: center !important; padding: 12px 24px !important; font-size: 13px !important; color: #6b7280 !important; border-top: 1px solid #f3f4f6 !important; cursor: pointer; }
 .oec-mas-op:hover { color: #111827 !important; background: #f8fafc !important; border-radius: 0 0 12px 12px !important; }
 /* ─── ANUNCIO DE SESIONES EN VIVO (auditorio) — reemplaza el lugar del badge ── */
-.oec-live-wrap { display: none; padding: 14px 24px !important; border-top: 1px solid #f3f4f6 !important; }
+/* Ancho y márgenes propios con !important: oec-wp-theme 1.0.179 usa la misma clase para el contenedor de
+   su página /especiales/live (.oec-live-wrap { width: 88%; max-width: 1280px; margin: 0 auto }) y la
+   marquesina quedaba angosta y centrada dentro de la tarjeta. */
+.oec-live-wrap { display: none; width: auto !important; max-width: none !important; margin: 0 !important; padding: 14px 24px !important; border-top: 1px solid #f3f4f6 !important; }
 .oec-live-label { display: flex; align-items: center; gap: 6px; margin: 0 0 8px !important; font-size: 11px !important; font-weight: 700 !important; letter-spacing: .04em !important; text-transform: uppercase !important; color: #16a34a !important; line-height: 1.2 !important; }
 .oec-live-marquee { position: relative; overflow: hidden; background: #fef2f2 !important; border: 1px solid #fecaca !important; border-radius: 10px !important; padding: 11px 0 !important; }
 .oec-live-marquee-track { display: inline-flex; align-items: center; white-space: nowrap !important; will-change: transform; animation: oec-live-scroll var(--oec-live-duration, 22s) linear infinite; }
 .oec-live-marquee:hover .oec-live-marquee-track { animation-play-state: paused; }
 @keyframes oec-live-scroll { from { transform: translateX(var(--oec-live-start, 100%)); } to { transform: translateX(var(--oec-live-end, -100%)); } }
 .oec-live-item { display: inline-flex; align-items: center; gap: 10px; padding: 0 28px !important; font-size: 13.5px !important; font-weight: 600 !important; line-height: 1 !important; color: #111827 !important; }
-.oec-live-dot { position: relative; width: 8px; height: 8px; border-radius: 50% !important; background: #dc2626 !important; flex-shrink: 0; }
+/* Tamaño, sombra y animación con !important: el tema (1.0.179, página LIVE) también tiene un .oec-live-dot
+   de 9 px con su propia animación de sombra, que se le sumaba al pulso de acá (::after). */
+.oec-live-dot { position: relative; width: 8px !important; height: 8px !important; border-radius: 50% !important; background: #dc2626 !important; box-shadow: none !important; animation: none !important; flex-shrink: 0; }
 .oec-live-dot::after { content: "" !important; position: absolute; inset: -4px; border-radius: 50% !important; background: #dc2626 !important; opacity: .5; animation: oec-live-pulse 1.6s ease-out infinite; }
 @keyframes oec-live-pulse { 0% { transform: scale(.6); opacity: .55; } 100% { transform: scale(2.4); opacity: 0; } }
 .oec-live-tag { color: #dc2626 !important; font-weight: 800 !important; letter-spacing: .02em !important; }
