@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.4.31
+Version: 1.4.32
 Author: Online Education Center
 */
 
@@ -108,12 +108,15 @@ if (!function_exists('oec_credits_system_enabled')) {
 if (!defined('OEC_SALES_WHATSAPP')) define('OEC_SALES_WHATSAPP', '5493512584960');
 
 /**
- * Número de WhatsApp utilizable o "": se sacan espacios, guiones, puntos, paréntesis y el "+", y tienen
+ * Número de WhatsApp utilizable o "": se sacan espacios, caracteres invisibles, guiones, puntos, paréntesis y el "+", y tienen
  * que quedar entre 10 y 15 dígitos (con código de país). Cualquier otro carácter lo invalida.
  */
 if (!function_exists('oec_normalize_whatsapp')) {
     function oec_normalize_whatsapp($raw) {
-        $n = preg_replace('/[\s\-\.\(\)\+]/', '', (string) $raw);
+        // \p{Cf}: caracteres invisibles de formato (marcas de dirección U+202A/U+202C, de ancho cero…) que
+        // se cuelan al copiar un número desde WhatsApp o un documento (pasó con phone_b2c de la API).
+        $n = preg_replace('/[\s\x{00A0}\p{Cf}\-\.\(\)\+]/u', '', (string) $raw);
+        if ($n === null) return '';
         return preg_match('/^\d{10,15}$/', $n) ? $n : '';
     }
 }

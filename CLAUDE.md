@@ -2699,3 +2699,11 @@ NUNCA va al HTML), `whatsapp` (dígitos o ''), `chat`, `csm`.
   incrustada → WhatsApp de OEC); visibilidad en Chrome headless (socio sin CSM, solo WhatsApp sin
   formulario, sin contacto sin sección/tab/enlaces/párrafo); formulario: partner llega al Mailpit local,
   sin contacto devuelve error (la CRM real no se tocó).
+
+## v1.4.32 — teléfono con caracteres invisibles (2026-10-20)
+
+La primera formación real con `b2c_package = false` (Fisiología Aplicada al Ultra Trail, `t-T6ad233682dd07`,
+Gonzalo Inzaurralde) trae `phone_b2c` = "59898805827" envuelto en U+202A/U+202C (marcas de dirección que
+se cuelan al copiar desde WhatsApp o un documento): `oec_normalize_whatsapp()` lo rechazaba. Ahora también
+saca `\p{Cf}` (caracteres invisibles de formato) y el espacio no separable (U+00A0). Verificado: esa ficha
+incrustada → formulario al mail de Gonzalo (sin CSM) + WhatsApp 59898805827.
