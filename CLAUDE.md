@@ -2707,3 +2707,18 @@ Gonzalo Inzaurralde) trae `phone_b2c` = "59898805827" envuelto en U+202A/U+202C 
 se cuelan al copiar desde WhatsApp o un documento): `oec_normalize_whatsapp()` lo rechazaba. Ahora también
 saca `\p{Cf}` (caracteres invisibles de formato) y el espacio no separable (U+00A0). Verificado: esa ficha
 incrustada → formulario al mail de Gonzalo (sin CSM) + WhatsApp 59898805827.
+
+## v1.4.33 — textos y mensaje de WhatsApp cuando atiende el socio (2026-10-20)
+
+Pedido de Mario probando la incrustada de Ultra Trail: el socio probablemente no tiene bot de WhatsApp y
+el formulario le llega directo por email, no a nuestra CRM. `oec_contact_channels()` suma `wa_partner`
+(el WhatsApp es del socio). En la plantilla (`org_contact_name` = nombre de la organización o "el
+organizador"):
+- WhatsApp del socio: mensaje inicial "Hola, quisiera la siguiente información sobre {data.title}:" (sin
+  el enlace) y texto "Escríbele directamente a {org} por WhatsApp con tus dudas sobre esta formación.".
+- Formulario al email del socio: "Deja tus datos y {org} te escribirá por email con más información sobre
+  esta formación." / cerrada: "…te avisará por email apenas {título} vuelva a abrir inscripciones.".
+- Cuando atiende OEC no cambia nada (nuestro bot recibe "Info sobre {canonical} por favor.").
+Plantillas ya pegadas: `upgrade_template()` cambia esas 4 piezas si no tienen `org_contact_name`.
+Verificado con la plantilla vieja de la base y la nueva: Ultra Trail incrustada con los textos de Gonzalo,
+fichas de comunidad iguales que antes, sin errores de Twig.

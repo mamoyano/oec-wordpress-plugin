@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.4.32
+Version: 1.4.33
 Author: Online Education Center
 */
 
@@ -135,7 +135,8 @@ if (!function_exists('oec_normalize_whatsapp')) {
  *     b2c_package false: email_b2c y/o phone_b2c de la organización; sin ninguno, no hay contacto.
  *
  * @return array form ('crm'|'partner'|''), email (destino si form = partner), whatsapp (dígitos o ''),
- *               chat (bool), csm (mostrar la foto/nombre de nuestro Customer Success Manager).
+ *               chat (bool), csm (mostrar la foto/nombre de nuestro Customer Success Manager),
+ *               wa_partner (el WhatsApp es del socio: otro mensaje inicial y otros textos).
  */
 if (!function_exists('oec_contact_channels')) {
     function oec_contact_channels($data, $embed = false, $open = true) {
@@ -146,7 +147,7 @@ if (!function_exists('oec_contact_channels')) {
 }
 if (!function_exists('oec_contact_channels_base')) {
     function oec_contact_channels_base($data, $embed = false, $open = true) {
-        $oec = ['form' => 'crm', 'email' => '', 'whatsapp' => OEC_SALES_WHATSAPP, 'chat' => false, 'csm' => true];
+        $oec = ['form' => 'crm', 'email' => '', 'whatsapp' => OEC_SALES_WHATSAPP, 'chat' => false, 'csm' => true, 'wa_partner' => false];
 
         if (!$embed && function_exists('oec_credits_system_enabled') && oec_credits_system_enabled()) {
             $price = (float) ($data['prices']['total'] ?? 0);
@@ -168,6 +169,7 @@ if (!function_exists('oec_contact_channels_base')) {
                 'whatsapp' => oec_normalize_whatsapp(get_option('oec_ventas_whatsapp', '')),
                 'chat'     => false,
                 'csm'      => !is_email($email),
+                'wa_partner' => true,
             ];
         }
 
@@ -179,6 +181,7 @@ if (!function_exists('oec_contact_channels_base')) {
             'whatsapp' => oec_normalize_whatsapp($org['phone_b2c'] ?? ''),
             'chat'     => false,
             'csm'      => false,
+            'wa_partner' => true,
         ];
     }
 }

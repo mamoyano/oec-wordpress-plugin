@@ -145,6 +145,9 @@
 {# Texto con el que arranca la conversación por WhatsApp (sección Contacto e
    ícono flotante) — un solo lugar donde tocarlo si cambia. #}
 {% set chat_message = "Info sobre " ~ data.canonical ~ " por favor." %}
+{# Con el WhatsApp del socio, un saludo simple con el nombre (sin el enlace: no hay un bot que lo lea). #}
+{% if extra.contact.wa_partner|default(false) %}{% set chat_message = "Hola, quisiera la siguiente información sobre " ~ data.title ~ ":" %}{% endif %}
+{% set org_contact_name = data.organization.data.name|default('') ?: 'el organizador' %}
 {% set wa_number = extra.contact.whatsapp %}
 {% set wa_link   = "https://api.whatsapp.com/send?phone=" ~ wa_number ~ "&amp;text=" ~ chat_message|url_encode %}
 
@@ -1076,9 +1079,9 @@
                     </div>
                 </div>
                 {% if openEnrollment %}
-                    <p class="oec-contact-sub">Envíame tus datos, te respondo automáticamente con más información y puedes contestarme con tus dudas o consultas. Te respondo personalmente.</p>
+                    {% if extra.contact.form|default('') == 'partner' %}<p class="oec-contact-sub">Deja tus datos y {{ org_contact_name }} te escribirá por email con más información sobre esta formación.</p>{% else %}<p class="oec-contact-sub">Envíame tus datos, te respondo automáticamente con más información y puedes contestarme con tus dudas o consultas. Te respondo personalmente.</p>{% endif %}
                 {% else %}
-                    <p class="oec-contact-sub">Deja tus datos y te aviso apenas <strong>{{ data.title }}</strong> vuelva a abrir inscripciones.</p>
+                    {% if extra.contact.form|default('') == 'partner' %}<p class="oec-contact-sub">Deja tus datos y {{ org_contact_name }} te avisará por email apenas <strong>{{ data.title }}</strong> vuelva a abrir inscripciones.</p>{% else %}<p class="oec-contact-sub">Deja tus datos y te aviso apenas <strong>{{ data.title }}</strong> vuelva a abrir inscripciones.</p>{% endif %}
                 {% endif %}
                 <div class="oec-contact-form-wrap">
                     <div class="oec-more-info-form" data-uid="{{ data.id }}" data-locale="es" data-country="XX">
@@ -1106,7 +1109,7 @@
                 {% if showWhatsappBlock %}
                 <div class="oec-contact-block oec-contact-block--whatsapp">
                     <h3 class="oec-contact-block-title"><i class="bi bi-whatsapp"></i> Por WhatsApp</h3>
-                    <p class="oec-contact-sub">Empiezas hablando con nuestro asistente automático por WhatsApp. Cuando quieras, puedes pedir hablar con un asesor pedagógico.</p>
+                    {% if extra.contact.wa_partner|default(false) %}<p class="oec-contact-sub">Escríbele directamente a {{ org_contact_name }} por WhatsApp con tus dudas sobre esta formación.</p>{% else %}<p class="oec-contact-sub">Empiezas hablando con nuestro asistente automático por WhatsApp. Cuando quieras, puedes pedir hablar con un asesor pedagógico.</p>{% endif %}
                     <a href="{{ wa_link }}" target="_blank" rel="noopener" class="oec-contact-cta oec-contact-cta--whatsapp">
                         <i class="bi bi-whatsapp"></i> Escribir por WhatsApp
                     </a>

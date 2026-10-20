@@ -686,7 +686,7 @@ if (!class_exists('OEC_Shortcodes')) {
                     // sitio de socio o la ficha incrustada no lo tienen y ofrecen WhatsApp.
                     'chat_ia'             => !$embed && (bool) apply_filters('oec_chat_ia_available', false),
                     // Sin el email de destino: el Twig solo necesita saber qué mostrar.
-                    'contact'             => $contact ? array_diff_key($contact, ['email' => 1]) : ['form' => 'crm', 'whatsapp' => '5493512584960', 'chat' => false, 'csm' => true],
+                    'contact'             => $contact ? array_diff_key($contact, ['email' => 1]) : ['form' => 'crm', 'whatsapp' => '5493512584960', 'chat' => false, 'csm' => true, 'wa_partner' => false],
                     // Mismos ítems que el BreadcrumbList JSON-LD (oec-main.php): el hero los muestra visibles.
                     'breadcrumb'          => !$embed && function_exists('oec_training_breadcrumb_items') ? oec_training_breadcrumb_items($data) : [],
                 ],
@@ -986,6 +986,19 @@ if (!class_exists('OEC_Shortcodes')) {
             $content = preg_replace('/\{%\s*set\s+wa_number\s*=\s*extra\.equipo_oec[^%]*%\}/', '{% set wa_number = extra.contact.whatsapp %}', $content, 1);
             $content = preg_replace('/(\{%\s*set\s+(?:showChatIA|showChatDirecto|showChatAnonimo)\s*=\s*)extra\.equipo_oec and extra\.chat_ia[^%]*%\}/', '$1extra.contact.chat %}', $content, 1);
             $content = preg_replace('/\{%\s*set\s+showWhatsappBlock\s*=\s*not\s+\w+\s*%\}/', "{% set showWhatsappBlock = wa_number != '' %}", $content, 1);
+            // < 1.4.33: cuando atiende el socio (formulario a su email / su WhatsApp), textos en su nombre y
+            // un mensaje inicial de WhatsApp simple (sin el enlace que lee nuestro bot). Solo si la
+            // plantilla todavía no los tiene.
+            if (strpos($content, 'org_contact_name') === false) {
+                $content = str_replace(
+                    ['{% set chat_message = "Info sobre " ~ data.canonical ~ " por favor." %}', '<p class="oec-contact-sub">Envíame tus datos, te respondo automáticamente con más información y puedes contestarme con tus dudas o consultas. Te respondo personalmente.</p>', '<p class="oec-contact-sub">Deja tus datos y te aviso apenas <strong>{{ data.title }}</strong> vuelva a abrir inscripciones.</p>', '<p class="oec-contact-sub">Empiezas hablando con nuestro asistente automático por WhatsApp. Cuando quieras, puedes pedir hablar con un asesor pedagógico.</p>'],
+                    ['{% set chat_message = "Info sobre " ~ data.canonical ~ " por favor." %}
+{# Con el WhatsApp del socio, un saludo simple con el nombre (sin el enlace: no hay un bot que lo lea). #}
+{% if extra.contact.wa_partner|default(false) %}{% set chat_message = "Hola, quisiera la siguiente información sobre " ~ data.title ~ ":" %}{% endif %}
+{% set org_contact_name = data.organization.data.name|default(\'\') ?: \'el organizador\' %}', '{% if extra.contact.form|default(\'\') == \'partner\' %}<p class="oec-contact-sub">Deja tus datos y {{ org_contact_name }} te escribirá por email con más información sobre esta formación.</p>{% else %}<p class="oec-contact-sub">Envíame tus datos, te respondo automáticamente con más información y puedes contestarme con tus dudas o consultas. Te respondo personalmente.</p>{% endif %}', '{% if extra.contact.form|default(\'\') == \'partner\' %}<p class="oec-contact-sub">Deja tus datos y {{ org_contact_name }} te avisará por email apenas <strong>{{ data.title }}</strong> vuelva a abrir inscripciones.</p>{% else %}<p class="oec-contact-sub">Deja tus datos y te aviso apenas <strong>{{ data.title }}</strong> vuelva a abrir inscripciones.</p>{% endif %}', '{% if extra.contact.wa_partner|default(false) %}<p class="oec-contact-sub">Escríbele directamente a {{ org_contact_name }} por WhatsApp con tus dudas sobre esta formación.</p>{% else %}<p class="oec-contact-sub">Empiezas hablando con nuestro asistente automático por WhatsApp. Cuando quieras, puedes pedir hablar con un asesor pedagógico.</p>{% endif %}'],
+                    $content
+                );
+            }
             // < 1.4.14: sin formaciones alternativas (sitio de socio o ficha incrustada) el texto
             // seguía invitando a "conocer alternativas".
             $content = str_replace('para conocer alternativas disponibles.', 'y te avisamos apenas se reabra esta formación.', $content);
