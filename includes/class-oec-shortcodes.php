@@ -76,6 +76,10 @@ if (!class_exists('OEC_Shortcodes')) {
                 }
                 if (preg_match('/^(<iframe\b[^>]*\bsrc=["\'][^"\']*vimeo[^"\']*["\'][^>]*>.*?<\/iframe>)\s*(.*)$/is', $html, $m)) {
                     $iframe = $m[1];
+                    // Con un src de player.vimeo.com reconocible, la misma miniatura con play.
+                    if (preg_match('#\bsrc=["\'](https?://player\.vimeo\.com/video/\d+[^"\']*)["\']#i', $iframe, $s)) {
+                        return ['iframe' => self::video_facade(html_entity_decode($s[1], ENT_QUOTES, 'UTF-8')), 'rest' => trim($m[2])];
+                    }
                     // El embed de Vimeo que llega del CMS no trae loading="lazy" — sin
                     // esto el player (JS/CSS de terceros, pesado) carga eager apenas el
                     // DOM llega a esta sección, esté o no por debajo del fold.
@@ -194,8 +198,16 @@ if (!class_exists('OEC_Shortcodes')) {
                     $css_file = 'css/oec-formacion.min.css';
                 }
                 $css_path = plugin_dir_path(dirname(__FILE__)) . $css_file;
-                $js_frontend_path = plugin_dir_path(dirname(__FILE__)) . 'js/oec-frontend.js';
-                $js_formacion_path = plugin_dir_path(dirname(__FILE__)) . 'js/oec-formacion.js';
+                // Mismo criterio con los JS (tools/build-js.py, v1.4.34): el .min solo si no es más viejo.
+                $js_pick = function ($name) {
+                    $dir = plugin_dir_path(dirname(__FILE__));
+                    $min = "js/{$name}.min.js";
+                    return (file_exists($dir . $min) && file_exists($dir . "js/{$name}.js") && filemtime($dir . $min) >= filemtime($dir . "js/{$name}.js")) ? $min : "js/{$name}.js";
+                };
+                $js_frontend_file  = $js_pick('oec-frontend');
+                $js_formacion_file = $js_pick('oec-formacion');
+                $js_frontend_path  = plugin_dir_path(dirname(__FILE__)) . $js_frontend_file;
+                $js_formacion_path = plugin_dir_path(dirname(__FILE__)) . $js_formacion_file;
 
                 // Íconos de la ficha, en el <head> y con el MISMO handle que usa
                 // oec-wp-theme: si el tema ya lo encola, WordPress lo carga una sola
@@ -212,7 +224,7 @@ if (!class_exists('OEC_Shortcodes')) {
 
                 wp_enqueue_script(
                     'oec-frontend',
-                    plugin_dir_url(dirname(__FILE__)) . 'js/oec-frontend.js',
+                    plugin_dir_url(dirname(__FILE__)) . $js_frontend_file,
                     ['jquery'],
                     file_exists($js_frontend_path) ? filemtime($js_frontend_path) : '1.0',
                     true  // footer
@@ -227,7 +239,7 @@ if (!class_exists('OEC_Shortcodes')) {
                 // encolado por WordPress).
                 wp_enqueue_script(
                     'oec-formacion',
-                    plugin_dir_url(dirname(__FILE__)) . 'js/oec-formacion.js',
+                    plugin_dir_url(dirname(__FILE__)) . $js_formacion_file,
                     ['jquery'],
                     file_exists($js_formacion_path) ? filemtime($js_formacion_path) : '1.0',
                     true  // footer
@@ -625,6 +637,7 @@ if (!class_exists('OEC_Shortcodes')) {
             $reviews_summary    = $bundle['summary'];
             $dominant_color     = $bundle['dominant_color'];
             $dominant_color_css = $bundle['dominant_color_css'];
+            self::$video_community = (string) ($data['community'] ?? '');
 
             // Seleccionar hasta 5 reviews destacadas
             $reviews_top = [];
@@ -713,6 +726,11 @@ if (!class_exists('OEC_Shortcodes')) {
             if (!$bi || false === strpos((string) $bi->src, 'jsdelivr')) {
                 $output = preg_replace('#<link rel="preconnect" href="https://cdn\.jsdelivr\.net">\s*#', '', $output, 1);
             }
+            // Plantillas pegadas antes de v1.4.34: las APIs se piden con fetch (CORS), y una conexión
+            // abierta sin crossorigin no les sirve (Lighthouse: "conexión previa no utilizada"). El
+            // reproductor de Vimeo ahora carga recién al hacer click: su preconnect sobra.
+            $output = preg_replace('#<link rel="preconnect" href="(https://api\.(?:onlineeducation\.center|g-se\.com))">#', '<link rel="preconnect" href="$1" crossorigin>', $output);
+            $output = preg_replace('#<link rel="preconnect" href="https://player\.vimeo\.com">\s*#', '', $output, 1);
             // - enlaces rastreables: los atajos del hero (.scroll-link) no tenían href. El JS ya
             //   cancela la navegación.
             $output = preg_replace_callback('/<a\b(?![^>]*\bhref=)([^>]*\bscroll-link\b[^>]*\bwhere="([a-z0-9_-]+)"[^>]*)>/i', fn($m) => '<a href="#' . $m[2] . '"' . $m[1] . '>', $output);
@@ -912,7 +930,60 @@ if (!class_exists('OEC_Shortcodes')) {
             } else {
                 return '';
             }
-            return '<iframe loading="lazy" src="' . esc_url($src) . '" title="Video de presentación" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+            return self::video_facade($src);
+        }
+
+        /** Comunidad de la formación que se está mostrando (render_content): segundo Referer para el oEmbed de Vimeo. */
+        private static $video_community = '';
+
+        /**
+         * Miniatura + botón de play en lugar del <iframe> del video (v1.4.34). El reproductor de
+         * Vimeo son ~520 KiB de JS y Chrome baja los iframes "lazy" que están a menos de ~2.500 px
+         * de la pantalla, así que se descargaba al cargar la ficha en celular y le competía a la
+         * imagen del hero. Ahora el iframe se crea recién al hacer click (initVideoFacade(),
+         * oec-formacion.js), con autoplay. Sin JS queda el iframe de siempre en un <noscript>.
+         */
+        public static function video_facade($src) {
+            $src   = (string) $src;
+            $thumb = self::video_thumbnail($src);
+            $play  = $src . (strpos($src, '?') === false ? '?' : '&') . 'autoplay=1';
+            $img   = $thumb ? '<img src="' . esc_url($thumb) . '" alt="" loading="lazy" decoding="async" width="480" height="853">' : '';
+            return '<button type="button" class="oec-video-facade" data-oec-video-src="' . esc_url($play) . '" aria-label="Reproducir el video de presentación">'
+                . $img . '<span class="oec-video-play" aria-hidden="true"><i class="bi bi-play-fill"></i></span></button>'
+                . '<noscript><iframe loading="lazy" src="' . esc_url($src) . '" title="Video de presentación" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></noscript>';
+        }
+
+        /**
+         * URL de la miniatura del video. YouTube: directa. Vimeo: oEmbed, cacheado 7 días (también
+         * el "no hay", para no repetir el pedido). Los videos de OEC están restringidos a ciertos
+         * dominios y el oEmbed solo da la miniatura si el Referer es uno de ellos: se prueba con
+         * este sitio y, si no, con la comunidad de la formación. Sin miniatura, el botón queda
+         * negro con el play.
+         */
+        private static function video_thumbnail($src) {
+            if (preg_match('#youtube-nocookie\.com/embed/([A-Za-z0-9_-]{11})#', $src, $m)) {
+                return 'https://i.ytimg.com/vi/' . $m[1] . '/hqdefault.jpg';
+            }
+            if (!preg_match('#player\.vimeo\.com/video/(\d+)(?:\?(?:.*&)?h=([0-9a-f]+))?#', $src, $m)) return '';
+            $key    = 'oec_vthumb_' . $m[1];
+            $cached = get_transient($key);
+            if ($cached !== false) return $cached === 'none' ? '' : $cached;
+
+            $video    = 'https://vimeo.com/' . $m[1] . (!empty($m[2]) ? '/' . $m[2] : '');
+            $referers = array_unique(array_filter([home_url('/'), self::$video_community ? trailingslashit(self::$video_community) : '']));
+            $thumb    = '';
+            foreach ($referers as $referer) {
+                $res = wp_remote_get('https://vimeo.com/api/oembed.json?url=' . rawurlencode($video), ['timeout' => 3, 'headers' => ['Referer' => $referer]]);
+                if (is_wp_error($res) || wp_remote_retrieve_response_code($res) !== 200) continue;
+                $json = json_decode(wp_remote_retrieve_body($res), true);
+                if (!empty($json['thumbnail_url'])) {
+                    // ".../2216098010-079b…-d_295x166?region=us" → mismo cuadro, de 480 px de ancho.
+                    $thumb = preg_replace('#-d(?:_\d+x\d+)?(?:\?.*)?$#', '-d?mw=480&q=75', $json['thumbnail_url']);
+                    break;
+                }
+            }
+            set_transient($key, $thumb ?: 'none', 7 * DAY_IN_SECONDS);
+            return $thumb;
         }
 
         /**

@@ -2722,3 +2722,40 @@ organizador"):
 Plantillas ya pegadas: `upgrade_template()` cambia esas 4 piezas si no tienen `org_contact_name`.
 Verificado con la plantilla vieja de la base y la nueva: Ultra Trail incrustada con los textos de Gonzalo,
 fichas de comunidad iguales que antes, sin errores de Twig.
+
+## v1.4.34 — video con miniatura, JS minificado y auditoría PageSpeed (2026-10-23)
+
+PageSpeed móvil de la ficha de VBT en g-se.com: 61 (FCP 4,6 s, LCP 8,0 s simulados); los datos reales
+(CrUX) aprueban todo (LCP 1,4 s). Lo del plugin:
+- **Video de "Presentación" con miniatura** (`video_facade()` en `class-oec-shortcodes.php`): en vez del
+  `<iframe>` sale un `<button class="oec-video-facade">` con la miniatura y un play; el click
+  (`oec-formacion.js`, delegado) lo reemplaza por el iframe con `autoplay=1`. Sin JS, `<noscript>` con el
+  iframe de siempre. Motivo: el reproductor son ~520 KiB y 4 tareas largas, y Chrome baja los iframes
+  `lazy` que están a menos de ~2.500 px de la pantalla → se descargaba al cargar en celular. Vale para
+  `video_url` y para el iframe de Vimeo pegado en el texto (datos viejos), sin volver a pegar la plantilla.
+- **Miniatura de Vimeo**: oEmbed (`vimeo.com/api/oembed.json`), transient `oec_vthumb_{id}` 7 días (también
+  el "no hay"). Los videos de OEC están restringidos por dominio: el oEmbed solo da `thumbnail_url` con un
+  `Referer` permitido → prueba con `home_url()` y después con `data.community` (`$video_community`, se
+  setea en `render_content()`). La URL se pide a 480 px (`-d?mw=480&q=75`). En local el video NO se
+  reproduce (dominio no permitido, "cannot be played here"), igual que antes: probar la reproducción en
+  g-se.com. YouTube: `i.ytimg.com/vi/{id}/hqdefault.jpg`.
+- **Caja del video en celular**: medía 240×220 (apilada en columna, el `flex: 0 0 220px` de escritorio
+  pasaba a ser el alto y el video vertical quedaba recortado). Ahora `flex: none` → 240×427.
+- **Preconnect**: `api.onlineeducation.center` y `api.g-se.com` con `crossorigin` (se piden con fetch;
+  sin el atributo la conexión no se reusa) y sin el de `player.vimeo.com`. Plantillas ya pegadas: lo
+  corrige `render_content()` sobre el HTML.
+- **JS minificado**: `js/oec-formacion.min.js` y `js/oec-frontend.min.js` con **`python3 tools/build-js.py`**
+  (terser 5.36.0 vía `npx`) — correrlo después de CADA cambio en esos dos archivos y commitear los .min.
+  Mismo seguro que el CSS: se sirve el .min solo si no es más viejo que el original. 21,8 → 10,2 KB
+  comprimido el de la ficha.
+- **Countdown**: el "tic" ya no fuerza el diseño cada segundo (`void offsetWidth`); alterna las clases
+  `oec-cd-pulse`/`oec-cd-pulse2` (misma animación con dos nombres).
+- **Contraste**: textos chicos en `#9ca3af` → `#6b7280` (fechas de módulos, precio tachado, fecha de la
+  barra mobile, countdown, fecha de opiniones, etc.).
+- **Del tema, no del plugin**: `region.js` se carga bloqueante SOLO en la ficha (`functions.php`:
+  `is_page('formacion') ? false : defer`), con el argumento de que tiene que correr antes que el plugin.
+  No hace falta: `oec-frontend.js`/`oec-formacion.js` van con `defer`, y los `defer` corren en orden de
+  documento, así que `region.js` con `defer` en el `<head>` igual corre antes. `style.css` bloquea en
+  todas las páginas (normal para la hoja principal).
+- Tema hostil (375 px): la miniatura sin diferencias; queda una de antes en `#oec-float-chat`
+  (`min-height` 0 → 60px con el CSS hostil).

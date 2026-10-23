@@ -267,6 +267,14 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-presentacion-cols { display: flex; gap: 24px; align-items: flex-start; }
 .oec-presentacion-video { flex: 0 0 220px; width: 220px; aspect-ratio: 1080 / 1920; border-radius: 12px !important; overflow: hidden; background: #000 !important; }
 .oec-presentacion-video iframe { width: 100%; height: 100%; border: 0 !important; display: block; }
+/* Miniatura con play en lugar del reproductor (v1.4.34, video_facade() en class-oec-shortcodes.php):
+   el iframe se crea recién al hacer click (oec-formacion.js). */
+.oec-video-facade { position: relative; display: block; width: 100%; height: 100%; padding: 0 !important; margin: 0 !important; border: 0 !important; border-radius: 0 !important; background: #000 !important; cursor: pointer; overflow: hidden; }
+.oec-video-facade img { display: block; width: 100% !important; height: 100% !important; max-width: none !important; object-fit: cover; }
+.oec-video-play { position: absolute; top: 50%; left: 50%; display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; margin: -32px 0 0 -32px !important; border-radius: 50% !important; background: rgba(0,0,0,.55) !important; color: #fff !important; font-size: 34px !important; line-height: 1 !important; box-shadow: 0 0 0 2px rgba(255,255,255,.85) !important; transition: transform .2s, background-color .2s; }
+.oec-video-play i { margin-left: 3px !important; }
+.oec-video-facade:hover .oec-video-play, .oec-video-facade:focus-visible .oec-video-play { background: var(--oec-brand) !important; transform: scale(1.06); }
+.oec-video-facade:focus-visible { outline: 3px solid var(--oec-brand) !important; outline-offset: -3px; }
 .oec-presentacion-textwrap { flex: 1 1 0; min-width: 0 !important; }
 .oec-presentacion-textwrap .oec-col-inner { text-align: left !important; }
 /* Mismo alto que el video (220px de ancho × 1920/1080 ≈ 391px) para que las
@@ -276,7 +284,8 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-presentacion-textwrap .oec-col-inner.collapsed { max-height: 391px; }
 @media (max-width: 960px) {
     .oec-presentacion-cols { flex-direction: column; }
-    .oec-presentacion-video { width: 100%; max-width: 240px; margin: 0 auto !important; }
+    /* flex: none — apiladas en columna, el "flex: 0 0 220px" de escritorio pasaba a ser el ALTO (240×220: el video vertical quedaba recortado). */
+    .oec-presentacion-video { flex: none; width: 100%; max-width: 240px; margin: 0 auto !important; }
     .oec-presentacion-textwrap .oec-col-inner.collapsed { max-height: 260px; }
 }
 .oec-collapsible { position: relative; cursor: pointer; }
@@ -359,7 +368,7 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-rf-text--l   { font-size: 15px !important; line-height: 1.5 !important; }
 .oec-rf-text--m   { font-size: 14px !important; }
 .oec-rf-text--s   { font-size: 13px !important; }
-.oec-rf-date      { font-size: 11px !important; color: #9ca3af !important; margin-top: 6px !important; }
+.oec-rf-date      { font-size: 11px !important; color: #6b7280 !important; margin-top: 6px !important; }
 @media (max-width: 960px) {
     /* Fila 1: avatar + nombre/estrellas/fecha lado a lado. Fila 2 (con
        flex-basis:100%, siempre salta a su propia línea): el comentario. */
@@ -407,8 +416,8 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-country-back { display: flex; align-items: center; gap: 4px; font-size: 12.5px !important; font-weight: 600 !important; color: var(--oec-brand) !important; background: none !important; border: none !important; padding: 0 !important; cursor: pointer; }
 
 .oec-region-col + .oec-region-col { margin-top: 16px !important; }
-.oec-region-label { font-size: 10.5px !important; font-weight: 700 !important; letter-spacing: .04em !important; color: #9ca3af !important; margin: 0 0 8px !important; text-transform: uppercase !important; line-height: 1.2 !important; }
-.oec-region-sublabel { font-size: 10.5px !important; font-weight: 700 !important; letter-spacing: .04em !important; color: #9ca3af !important; margin: 14px 0 6px !important; text-transform: uppercase !important; line-height: 1.2 !important; }
+.oec-region-label { font-size: 10.5px !important; font-weight: 700 !important; letter-spacing: .04em !important; color: #6b7280 !important; margin: 0 0 8px !important; text-transform: uppercase !important; line-height: 1.2 !important; }
+.oec-region-sublabel { font-size: 10.5px !important; font-weight: 700 !important; letter-spacing: .04em !important; color: #6b7280 !important; margin: 14px 0 6px !important; text-transform: uppercase !important; line-height: 1.2 !important; }
 .oec-region-sublabel:first-child { margin-top: 0 !important; line-height: 1.2 !important; }
 .oec-region-current { width: 100%; display: flex; align-items: center; justify-content: space-between; font-size: 14px !important; font-weight: 600 !important; color: #111827 !important; background: #f9fafb !important; border: 1px solid #e5e7eb !important; border-radius: 8px !important; padding: 10px 12px !important; cursor: pointer; }
 .oec-region-current:hover { background: #f3f4f6 !important; }
@@ -467,11 +476,14 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-cd-days.oec-cd-hide { display: none; }
 .oec-cd-num      { font-size: 12.5px !important; font-weight: 700 !important; color: var(--oec-brand) !important; font-variant-numeric: tabular-nums; display: inline-block; }
 .oec-cd-num.oec-cd-pulse { animation: oecCdPop .3s ease; }
+/* Misma animación con otro nombre: alternar entre las dos clases la reinicia sin forzar el diseño (v1.4.34). */
+.oec-cd-num.oec-cd-pulse2 { animation: oecCdPop2 .3s ease; }
 @keyframes oecCdPop { 0% { opacity: .45; } 100% { opacity: 1; } }
-.oec-cd-label    { font-size: 10px !important; font-weight: 600 !important; color: #9ca3af !important; }
+@keyframes oecCdPop2 { 0% { opacity: .45; } 100% { opacity: 1; } }
+.oec-cd-label    { font-size: 10px !important; font-weight: 600 !important; color: #6b7280 !important; }
 /* Versión del sticky: todavía más discreta — un solo tono gris, sin acento de marca */
 .oec-countdown--sticky { margin-top: -4px !important; margin-bottom: 14px !important; gap: 5px; }
-.oec-countdown--sticky .oec-cd-num { font-size: 11px !important; font-weight: 600 !important; color: #9ca3af !important; }
+.oec-countdown--sticky .oec-cd-num { font-size: 11px !important; font-weight: 600 !important; color: #6b7280 !important; }
 .oec-countdown--sticky .oec-cd-label { font-size: 9px !important; color: #c1c5cb !important; }
 .oec-cal-plain .oec-cal-label { margin-bottom: 2px !important; }
 .oec-cal-plain .oec-cal-date  { font-size: 16px !important; }
@@ -490,7 +502,7 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-price-row   { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0 !important; border-bottom: 1px solid #f3f4f6 !important; font-size: 14px !important; color: #374151 !important; }
 .oec-price-row:last-child { border-bottom: none !important; }
 .oec-price-row a { color: var(--oec-brand) !important; font-size: 13px !important; }
-.oec-price-date { font-size: 11px !important; color: #9ca3af !important; }
+.oec-price-date { font-size: 11px !important; color: #6b7280 !important; }
 .oec-price-date-long { display: inline !important; }
 .oec-price-date-short { display: none !important; }
 .oec-price-val   { font-weight: 600 !important; color: #111827 !important; }
@@ -508,7 +520,7 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-countdown--disc .oec-cd-num { font-size: 15px !important; font-weight: 700 !important; color: #dc2626 !important; }
 .oec-countdown--disc .oec-cd-label { font-size: 10.5px !important; color: #b91c1c !important; opacity: .75; }
 .oec-disc-note   { font-size: 11px !important; color: #6b7280 !important; margin-top: 5px !important; }
-.preciotachado   { text-decoration: line-through !important; color: #9ca3af !important; font-weight: 400 !important; }
+.preciotachado   { text-decoration: line-through !important; color: #6b7280 !important; font-weight: 400 !important; }
 .oec-btn-enroll  { display: block; width: 100%; box-sizing: border-box; background: var(--checkout-blue) !important; color: #fff !important; border: none !important; border-radius: 8px !important; padding: 14px !important; font-size: 15px !important; font-weight: 700 !important; text-align: center !important; cursor: pointer; margin-top: 16px !important; letter-spacing: .3px !important; transition: background .15s; }
 .oec-btn-enroll:hover { background: var(--checkout-blue-hover) !important; color: #fff !important; }
 .oec-rc-note     { font-size: 11px !important; color: #6b7280 !important; text-align: center !important; margin: 8px 0 0 !important; }
@@ -527,7 +539,7 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-similar-card-body { min-width: 0 !important; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
 .oec-similar-card-title { font-size: 12.5px !important; font-weight: 700 !important; color: #111827 !important; line-height: 1.35 !important; }
 .oec-similar-card-org   { font-size: 11px !important; color: #6b7280 !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap !important; }
-.oec-similar-card-meta  { font-size: 11px !important; color: #9ca3af !important; }
+.oec-similar-card-meta  { font-size: 11px !important; color: #6b7280 !important; }
 .oec-similar-card-meta i { color: #eba134 !important; }
 .oec-similar-cta { font-size: 12px !important; color: #6b7280 !important; margin: 12px 0 0 !important; text-align: center !important; }
 
@@ -544,7 +556,7 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-credits-form input:focus { border-color: var(--oec-brand) !important; }
 .oec-credits-form button { display: flex; align-items: center; justify-content: center; width: 38px; border: none !important; background: var(--oec-brand) !important; color: #fff !important; border-radius: 8px !important; font-size: 16px !important; cursor: pointer; flex-shrink: 0; }
 .oec-credits-balance { margin: 10px 0 0 !important; font-size: 13.5px !important; font-weight: 600 !important; color: #111827 !important; }
-.oec-credits-email-note { margin: 1px 0 0 !important; font-size: 11.5px !important; color: #9ca3af !important; }
+.oec-credits-email-note { margin: 1px 0 0 !important; font-size: 11.5px !important; color: #6b7280 !important; }
 .oec-credits-howto   { margin-top: 8px !important; font-size: 12px !important; color: #6b7280 !important; line-height: 1.5 !important; }
 .oec-credits-howto a { color: var(--oec-brand) !important; }
 .oec-credits-status  { font-size: 12px !important; color: #6b7280 !important; margin: 8px 0 0 !important; }
@@ -555,7 +567,7 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-coupon-action   { margin-top: 6px !important; }
 .oec-coupon-action a { display: inline-block; font-size: 12.5px !important; font-weight: 700 !important; color: var(--oec-brand) !important; border: 1.5px solid var(--oec-brand) !important; border-radius: 6px !important; padding: 5px 12px !important; cursor: pointer; text-decoration: none !important; }
 .oec-coupon-action a:hover { background: var(--oec-brand) !important; color: #fff !important; }
-.oec-coupon-action p { margin: 0 !important; font-size: 11.5px !important; color: #9ca3af !important; }
+.oec-coupon-action p { margin: 0 !important; font-size: 11.5px !important; color: #6b7280 !important; }
 #oec-po_div          { margin-top: 12px !important; padding-top: 12px !important; border-top: 1px solid #f3f4f6 !important; }
 .oec-pay-label   { font-size: 10px !important; font-weight: 700 !important; letter-spacing: .04em !important; text-transform: uppercase !important; color: #6b7280 !important; margin: 0 0 6px !important; text-align: center !important; line-height: 1.2 !important; }
 .oec-pay-grid    { display: grid; grid-template-columns: repeat(auto-fit, minmax(38px, 1fr)); gap: 5px; max-width: 260px; margin: 0 auto !important; }
@@ -635,11 +647,11 @@ body:has(#oec-bleed-wrapper.oec-c-none) p:has(> [where="oec-contacto"]) { displa
    tapar los links del footer (oec-frontend.js agrega la clase). visibility con demora: queda fuera
    del foco del teclado recién cuando terminó de desvanecerse. */
 #oec-mobile-bar.oec-mobile-bar--away { opacity: 0; transform: translateY(100%); visibility: hidden; pointer-events: none; transition: opacity .3s ease, transform .3s ease, visibility 0s linear .3s; }
-.oec-mb-date-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; font-size: 11px !important; color: #9ca3af !important; margin-bottom: 4px !important; }
+.oec-mb-date-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; font-size: 11px !important; color: #6b7280 !important; margin-bottom: 4px !important; }
 .oec-mb-date-row .oec-countdown { margin: 0 !important; gap: 3px; }
 .oec-mb-date-row .oec-cd-unit { gap: 1px; }
 .oec-mb-date-row .oec-cd-label { font-size: 9px !important; }
-.oec-cd-prefix { font-size: 11px !important; color: #9ca3af !important; line-height: 1.2 !important; }
+.oec-cd-prefix { font-size: 11px !important; color: #6b7280 !important; line-height: 1.2 !important; }
 .oec-mb-price-line { margin: 0 0 8px !important; font-size: 13px !important; font-weight: 600 !important; color: #374151 !important; }
 .oec-mb-price-line span { font-weight: 800 !important; color: var(--oec-brand) !important; }
 /* Con dos precios ("Inicia con el módulo 1 (…) o los 3 con 20% off (…)") la línea arranca con "···"
@@ -709,7 +721,7 @@ body.oec-chat-open .oec-float-chat { display: none !important; }
    sombra "de sticky" que el checkout no tiene. */
 .oec-rc-sticky { position: sticky; top: calc(var(--oec-top-offset, 0px) + var(--oec-sticky-h, 76px) + 24px); margin-top: 16px !important; background: #fff !important; border: 1px solid #e2e8f0 !important; border-radius: 16px !important; box-shadow: 0 1px 3px 0 rgba(0,0,0,.1), 0 1px 2px -1px rgba(0,0,0,.1) !important; padding: 18px 20px !important; box-sizing: border-box; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .25s ease; }
 .oec-rc-sticky.is-visible { opacity: 1; visibility: visible; pointer-events: auto; }
-.oec-rc-sticky-date { margin: 0 0 12px !important; font-size: 12px !important; color: #9ca3af !important; }
+.oec-rc-sticky-date { margin: 0 0 12px !important; font-size: 12px !important; color: #6b7280 !important; }
 .oec-rc-sticky-rows { padding: 12px 0 !important; border-top: 1px solid #f3f4f6 !important; border-bottom: 1px solid #f3f4f6 !important; margin-bottom: 14px !important; }
 #oec-sticky-pay-wrap { margin-top: 12px !important; padding-top: 12px !important; border-top: 1px solid #f3f4f6 !important; }
 .oec-rc-sticky-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 13.5px !important; color: #374151 !important; font-weight: 600 !important; padding: 3px 0 !important; }

@@ -342,10 +342,13 @@ function updateCountdowns(){
             const text = pad(val);
             if (span.textContent !== text) {
                 span.textContent = text;
-                // Reiniciar la animación de "tic" en cada cambio de valor.
-                span.classList.remove('oec-cd-pulse');
-                void span.offsetWidth;
-                span.classList.add('oec-cd-pulse');
+                // Reiniciar la animación de "tic" en cada cambio de valor: se alterna entre dos
+                // clases con la misma animación bajo otro nombre (cambiar el nombre la reinicia).
+                // Antes era quitar + "void offsetWidth" + poner: forzaba el cálculo de diseño de
+                // toda la página una vez por segundo.
+                const odd = span.classList.contains('oec-cd-pulse');
+                span.classList.toggle('oec-cd-pulse', !odd);
+                span.classList.toggle('oec-cd-pulse2', odd);
             }
         });
     });
@@ -867,6 +870,20 @@ jQuery(document).ready(function($){
     if (OEC_CONFIG.force_contact) $('.oec-sticky-more').remove();
     oecSafe('initTeacherSocialLinks', initTeacherSocialLinks);
     oecSafe('initAddToCalendar', initAddToCalendar);
+
+    // Video de "Presentación": el PHP imprime una miniatura con play (video_facade()); el
+    // reproductor de Vimeo/YouTube (~520 KiB) se crea recién al hacer click, ya con autoplay.
+    $doc.on('click', '.oec-video-facade', function(){
+        const src = this.getAttribute('data-oec-video-src');
+        if (!src) return;
+        const f = document.createElement('iframe');
+        f.src = src;
+        f.title = 'Video de presentación';
+        f.allow = 'autoplay; fullscreen; picture-in-picture';
+        f.allowFullscreen = true;
+        this.replaceWith(f);
+        f.focus();
+    });
 
     // Formulario de contacto
     $doc.on('submit','.oecMoreInfoForm',function(e){

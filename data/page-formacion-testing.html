@@ -80,14 +80,14 @@
 
 {# ══════════════════════════════════════════════════════════════
    RESOURCE HINTS — preconnect a los dominios a los que el JS del
-   navegador pega directo (precios, opciones de pago, reviews). La
+   navegador pega directo (precios, opciones de pago, reviews; las APIs
+   con crossorigin porque se piden con fetch). La
    precarga de la imagen del hero (LCP) la imprime el plugin en el
    <head>: oec_hero_preload(), oec-main.php.
 ══════════════════════════════════════════════════════════════ #}
 <link rel="preconnect" href="https://imgrsize.oe-img.center">
-<link rel="preconnect" href="https://api.onlineeducation.center">
-<link rel="preconnect" href="https://api.g-se.com">
-<link rel="preconnect" href="https://player.vimeo.com">
+<link rel="preconnect" href="https://api.onlineeducation.center" crossorigin>
+<link rel="preconnect" href="https://api.g-se.com" crossorigin>
 
 {% set module_count       = data.modules.data|length %}
 {% set module_phrase      = module_count > 1 ? module_count ~ " módulos" : "1 módulo" %}
