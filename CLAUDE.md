@@ -2762,3 +2762,18 @@ PageSpeed móvil de la ficha de VBT en g-se.com: 61 (FCP 4,6 s, LCP 8,0 s simula
   correr antes que ellos.
 - Tema hostil (375 px): la miniatura sin diferencias; queda una de antes en `#oec-float-chat`
   (`min-height` 0 → 60px con el CSS hostil).
+
+## v1.4.35 — un módulo con pago anticipado: sticky y barra de celular con el descuento (2026-10-23)
+
+Reportado en "La Fuerza Invisible del Rendimiento" (`t-76ad61e1f0004d`, un módulo, 15% anticipado): la caja
+fija y el hero mostraban ARS 42.500, pero la caja sticky y la barra de celular decían "Total ARS 50.000".
+No era una regresión: desde v1.3 esas dos solo contemplaban el descuento con MÁS de un módulo; con uno,
+siempre `.just-price`. El hero (v1.4) sí lo contemplaba.
+- Con `earlyPayDiscount` y un módulo: sticky → "Sin descuento" (`.just-price`, tachado y gris) + "Total
+  (X% off pagando ahora)" (`.total-price`); barra → "Total con X% off pagando ahora (`.total-price`)".
+  Sin descuento anticipado, igual que antes. (El descuento por pago completo no aplica con un módulo.)
+- Plantillas ya pegadas: `upgrade_template()` cambia las dos piezas (`STICKY_TOTAL_OLD/NEW`,
+  `MB_TOTAL_OLD/NEW`) salvo que ya traigan `oec-sticky-early` / `oec-mb-early`.
+- La reserva de dos renglones de la barra en celular (v1.4.9) queda solo para el texto de varios módulos
+  (`:not(:has(.oec-mb-early))`): el de un módulo entra en una línea (a 320 px pasa a dos solo con montos
+  de millones, p. ej. COP).

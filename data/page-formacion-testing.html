@@ -1409,7 +1409,7 @@
                     <div class="oec-rc-sticky-row is-total"><span>Inicia con el Módulo {{ firstModNumber }}</span><span class="price-module-{{ firstModNumber }} oec-sticky-price">···</span></div>
                 {% endif %}
             {% else %}
-                <div class="oec-rc-sticky-row is-total"><span>Total</span><span class="just-price oec-sticky-price">···</span></div>
+                {% if earlyPayDiscount %}<div class="oec-rc-sticky-row oec-sticky-early"><span>Sin descuento</span><span class="just-price preciotachado oec-sticky-price-sm">···</span></div><div class="oec-rc-sticky-row is-total"><span>Total ({{ data.prices.discounts.early_payment.percentage }}% off pagando ahora)</span><span class="total-price oec-sticky-price">···</span></div>{% else %}<div class="oec-rc-sticky-row is-total"><span>Total</span><span class="just-price oec-sticky-price">···</span></div>{% endif %}
             {% endif %}
         </div>
     {% endif %}
@@ -1497,7 +1497,7 @@
                     Inicia con el módulo {{ firstModNumber }} (<span class="price-module-{{ firstModNumber }}">···</span>)
                 {% endif %}
             {% else %}
-                Total (<span class="just-price">···</span>)
+                {% if earlyPayDiscount %}<span class="oec-mb-early"></span>Total con {{ data.prices.discounts.early_payment.percentage }}% off pagando ahora (<span class="total-price">···</span>){% else %}Total (<span class="just-price">···</span>){% endif %}
             {% endif %}
         </p>
         <div class="oec-mb-row3">

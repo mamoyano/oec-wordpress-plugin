@@ -1021,6 +1021,11 @@ if (!class_exists('OEC_Shortcodes')) {
             // < 1.4.3: el video de "Presentación" solo se buscaba pegado en short_description;
             // ahora también llega aparte en video_url.
             $content = preg_replace('/split_vimeo_intro(?!\s*\()/', "split_vimeo_intro(data.video_url|default(''))", $content);
+            // < 1.4.35: un solo módulo con pago anticipado vigente → la caja sticky y la barra de celular
+            // muestran el precio con descuento (antes, siempre el total sin descuento). La plantilla nueva
+            // trae las clases oec-sticky-early / oec-mb-early: si están, ya está al día.
+            if (strpos($content, 'oec-sticky-early') === false) $content = str_replace(self::STICKY_TOTAL_OLD, self::STICKY_TOTAL_NEW, $content);
+            if (strpos($content, 'oec-mb-early') === false) $content = str_replace(self::MB_TOTAL_OLD, self::MB_TOTAL_NEW, $content);
             // < 1.4.24: el webchat de Botmaker se dio de baja; su lugar lo ocupa el chat con IA del
             // sitio (extra.chat_ia). Regla: WhatsApp O chat con IA, nunca los dos — chat con IA si
             // atiende OEC, el sitio lo tiene y (precio < 200 o inscripción cerrada); si no, WhatsApp.
@@ -1129,6 +1134,13 @@ if (!class_exists('OEC_Shortcodes')) {
         }
 
         /** Bajada del título: headline (sin HTML) o, si viene vacío, description_oa. */
+        // < 1.4.35: con un solo módulo, la caja sticky y la barra de celular mostraban siempre el precio
+        // sin descuento ("Total"), aunque hubiera pago anticipado vigente. Las piezas viejas y su reemplazo.
+        const STICKY_TOTAL_OLD = '<div class="oec-rc-sticky-row is-total"><span>Total</span><span class="just-price oec-sticky-price">···</span></div>';
+        const STICKY_TOTAL_NEW = '{% if earlyPayDiscount %}<div class="oec-rc-sticky-row oec-sticky-early"><span>Sin descuento</span><span class="just-price preciotachado oec-sticky-price-sm">···</span></div><div class="oec-rc-sticky-row is-total"><span>Total ({{ data.prices.discounts.early_payment.percentage }}% off pagando ahora)</span><span class="total-price oec-sticky-price">···</span></div>{% else %}<div class="oec-rc-sticky-row is-total"><span>Total</span><span class="just-price oec-sticky-price">···</span></div>{% endif %}';
+        const MB_TOTAL_OLD = 'Total (<span class="just-price">···</span>)';
+        const MB_TOTAL_NEW = '{% if earlyPayDiscount %}<span class="oec-mb-early"></span>Total con {{ data.prices.discounts.early_payment.percentage }}% off pagando ahora (<span class="total-price">···</span>){% else %}Total (<span class="just-price">···</span>){% endif %}';
+
         const SUBTITLE_TWIG = "{% set headline_text = data.headline|default('')|striptags|replace({'&nbsp;':' '})|trim %}{% set oa_text = headline_text ?: data.description_oa|default('')|striptags|trim %}";
 
         /** "17 de Septiembre de 2026" (o sin año), en la hora del sitio. Filtro Twig format_date y tarjetas de [oec-list]. */
