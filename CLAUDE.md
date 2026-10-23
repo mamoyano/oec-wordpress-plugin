@@ -2755,7 +2755,10 @@ PageSpeed móvil de la ficha de VBT en g-se.com: 61 (FCP 4,6 s, LCP 8,0 s simula
 - **Del tema, no del plugin**: `region.js` se carga bloqueante SOLO en la ficha (`functions.php`:
   `is_page('formacion') ? false : defer`), con el argumento de que tiene que correr antes que el plugin.
   No hace falta: `oec-frontend.js`/`oec-formacion.js` van con `defer`, y los `defer` corren en orden de
-  documento, así que `region.js` con `defer` en el `<head>` igual corre antes. `style.css` bloquea en
-  todas las páginas (normal para la hoja principal).
+  documento, así que `region.js` con `defer` en el `<head>` igual corre antes. **Arreglado en oec-wp-theme
+  1.0.201** (probado: país guardado a mano y detección automática, precios con el país correcto desde el
+  primer pedido). `style.css` bloquea en todas las páginas (normal para la hoja principal).
+  **Ojo**: si algún día los scripts de la ficha dejan de ir con `defer`, `region.js` tiene que volver a
+  correr antes que ellos.
 - Tema hostil (375 px): la miniatura sin diferencias; queda una de antes en `#oec-float-chat`
   (`min-height` 0 → 60px con el CSS hostil).
