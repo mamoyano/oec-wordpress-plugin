@@ -1021,6 +1021,23 @@ if (!class_exists('OEC_Shortcodes')) {
             // < 1.4.3: el video de "Presentación" solo se buscaba pegado en short_description;
             // ahora también llega aparte en video_url.
             $content = preg_replace('/split_vimeo_intro(?!\s*\()/', "split_vimeo_intro(data.video_url|default(''))", $content);
+            // < 1.4.37: en las asincrónicas el anillo de cuenta regresiva decía "días para comenzar" (se
+            // empieza cuando uno quiere): ahora cuenta hasta el cierre de inscripción. Y la caja de precios
+            // ("COMIENZA CUANDO QUIERAS") suma hasta cuándo hay inscripción.
+            if (strpos($content, 'cd_fromStart') === false) {
+                $content = preg_replace(
+                    "/\{%\s*set\s+cd_target\s*=\s*beforeStart \? data\.start : data\.enrollment_end\s*%\}\s*\{%\s*set\s+cd_label\s*=\s*beforeStart \? 'días para comenzar' : 'días para inscribirte'\s*%\}/u",
+                    "{% set cd_fromStart = beforeStart and data.synchronicity not in ['ASYNC', 'ASYNC-F'] %}{% set cd_target = cd_fromStart ? data.start : data.enrollment_end %}{% set cd_label = cd_fromStart ? 'días para comenzar' : 'días para inscribirte' %}",
+                    $content, 1);
+            }
+            if (strpos($content, 'oec-cal-async-until') === false) {
+                $content = preg_replace(
+                    '/(\{% if openEnrollment %\}(?:COMIENZA CUANDO QUIERAS|COMIENCE CUANDO QUIERA)\{% else %\}INSCRIPCIONES CERRADAS\{% endif %\}<\/p>)/',
+                    '$1{% if openEnrollment %}<p class="oec-cal-label oec-cal-async-until">Inscripción hasta el {{ data.enrollment_end|format_date }}</p>{% endif %}',
+                    $content, 1);
+            }
+            // Tuteo en "Acceso extendido": quedaba "tendrá UN AÑO MÁS".
+            $content = str_replace('tendrá UN AÑO MÁS', 'tendrás UN AÑO MÁS', $content);
             // < 1.4.36: el anillo 2 del hero decía "online EN VIVO" también en formaciones asincrónicas
             // (calculaba el % en vivo por fechas sin mirar data.synchronicity). Ahora: 100% "A TU RITMO".
             if (strpos($content, 'ring2_async') === false) {

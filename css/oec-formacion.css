@@ -486,6 +486,8 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-countdown--sticky .oec-cd-num { font-size: 11px !important; font-weight: 600 !important; color: #6b7280 !important; }
 .oec-countdown--sticky .oec-cd-label { font-size: 9px !important; color: #c1c5cb !important; }
 .oec-cal-plain .oec-cal-label { margin-bottom: 2px !important; }
+/* Asincrónica con inscripción abierta: hasta cuándo, debajo de "COMIENZA CUANDO QUIERAS" (v1.4.37). */
+.oec-cal-plain .oec-cal-async-until { margin: 4px 0 0 !important; }
 .oec-cal-plain .oec-cal-date  { font-size: 16px !important; }
 
 .oec-addcal      { position: relative; margin-top: 12px !important; }

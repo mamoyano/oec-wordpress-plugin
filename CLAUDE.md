@@ -2786,3 +2786,20 @@ vivo por fechas de inicio/fin sin mirar la sincronicidad (antes del inicio → 1
 `ASYNC`/`ASYNC-F` (`ring2_async`): 100% "online A TU RITMO". SYNC y MIXED, igual que antes.
 De paso, tuteo: "Estudie a su ritmo" → "Estudia a tu ritmo" en el texto de las asincrónicas.
 Plantillas ya pegadas: `upgrade_template()` (si no traen `ring2_async`).
+
+## v1.4.37 — asincrónicas: anillo de cuenta regresiva y repaso de SYNC/ASYNC (2026-10-24)
+
+En "Biomecánica de la Carrera" (`t-T623dc4c8f1fa1`, ASYNC): el 1er anillo del hero decía "8 días para
+comenzar". Las ASYNC igual traen `start` y fechas por módulo (en esta, inicio 1/11, inscripción hasta el
+26/11), pero se empiezan cuando uno quiere. Ahora (`cd_fromStart`): en ASYNC/ASYNC-F cuenta hasta el
+cierre de inscripción ("días para inscribirte"); el de pago anticipado sigue teniendo prioridad.
+- Caja de precios de las asincrónicas: debajo de "COMIENZA CUANDO QUIERAS", "Inscripción hasta el …"
+  (`.oec-cal-async-until`) — el anillo enlaza ahí y antes no había ninguna fecha.
+- Tuteo en "Acceso extendido": "tendrá UN AÑO MÁS" → "tendrás".
+- Plantillas ya pegadas: `upgrade_template()`. OJO: las viejas dicen "COMIENCE CUANDO QUIERA" y se pasa a
+  "QUIERAS" MÁS ABAJO en la misma función → una regla que busque el texto nuevo tiene que aceptar los dos.
+- Repaso hecho de todo lo que depende de la sincronicidad (ya estaba bien): fechas de módulos en
+  Contenidos y en precios (solo `synchronic`), chip de calendario / "Añadir al calendario" / fecha de la
+  caja sticky y de la barra de celular (`showCalendarChip = synchronic and openEnrollment`), sección
+  "¿Me pierdo algo?" y su FAQ, `startDate`/`endDate` del JSON-LD (solo SYNC/MIXED), tarjetas de
+  `[oec-list]` ("Comienza cuando quieras", sin countdown), marquesina de sesiones en vivo (vacía sin sesiones).

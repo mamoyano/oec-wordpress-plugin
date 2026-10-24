@@ -63,8 +63,10 @@
     {% set cd_target = data.prices.discounts.early_payment.expiration %}
     {% set cd_label  = 'días para pago anticipado' %}
 {% else %}
-    {% set cd_target = beforeStart ? data.start : data.enrollment_end %}
-    {% set cd_label  = beforeStart ? 'días para comenzar' : 'días para inscribirte' %}
+    {# Asincrónica: se empieza cuando uno quiere — la fecha que apura es el cierre de inscripción (v1.4.37). #}
+    {% set cd_fromStart = beforeStart and data.synchronicity not in ['ASYNC', 'ASYNC-F'] %}
+    {% set cd_target = cd_fromStart ? data.start : data.enrollment_end %}
+    {% set cd_label  = cd_fromStart ? 'días para comenzar' : 'días para inscribirte' %}
 {% endif %}
 {% set cd_publishObj = date(data.publish_start|date("Y-m-d")) %}
 {% set cd_targetObj  = date(cd_target|date("Y-m-d")) %}
@@ -135,9 +137,9 @@
 {% endif %}
 
 {% if synchronicity in ["ASYNC","ASYNC-F"] %}
-    {% set access_text = "Luego de que finalice, tendrá UN AÑO MÁS para seguir accediendo al material." %}
+    {% set access_text = "Luego de que finalice, tendrás UN AÑO MÁS para seguir accediendo al material." %}
 {% else %}
-    {% set access_text = "Luego de finalizada el " ~ data.end|format_date ~ ", tendrá UN AÑO MÁS de acceso al campus." %}
+    {% set access_text = "Luego de finalizada el " ~ data.end|format_date ~ ", tendrás UN AÑO MÁS de acceso al campus." %}
 {% endif %}
 
 {% set comercial_image      = data.salesman.image|split('/') %}
@@ -1240,7 +1242,7 @@
                     <p class="oec-cal-label">{% if "now"|date("Ymd") > data.end|date("Ymd") %}Finalizó el {{ data.end|format_date }}{% else %}Inició el {{ data.start|format_date }}{% endif %}</p>
                     <p class="oec-cal-date">INSCRIPCIONES CERRADAS</p>
                 {% else %}
-                    <p class="oec-cal-date">{% if openEnrollment %}COMIENZA CUANDO QUIERAS{% else %}INSCRIPCIONES CERRADAS{% endif %}</p>
+                    <p class="oec-cal-date">{% if openEnrollment %}COMIENZA CUANDO QUIERAS{% else %}INSCRIPCIONES CERRADAS{% endif %}</p>{% if openEnrollment %}<p class="oec-cal-label oec-cal-async-until">Inscripción hasta el {{ data.enrollment_end|format_date }}</p>{% endif %}
                 {% endif %}
             </div>
         {% endif %}
