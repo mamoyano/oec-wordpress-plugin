@@ -120,10 +120,10 @@
     {% set synchronicity_text = "Combina clases grabadas con encuentros en vivo y foros sincrónicos." %}
 {% elseif synchronicity == "ASYNC-F" %}
     {% set synchronic = false %}{% set synchronicity_icon = "bi-chat-right-text" %}{% set synchronicity_title = "ASINCRÓNICA" %}
-    {% set synchronicity_text = "Clases grabadas con foros sincrónicos. Estudie a su ritmo." %}
+    {% set synchronicity_text = "Clases grabadas con foros sincrónicos. Estudia a tu ritmo." %}
 {% else %}
     {% set synchronic = false %}{% set synchronicity_icon = "bi-collection-play" %}{% set synchronicity_title = "ASINCRÓNICA" %}
-    {% set synchronicity_text = "Clases grabadas. Sin interacción sincrónica. Estudie a su ritmo." %}
+    {% set synchronicity_text = "Clases grabadas. Sin interacción sincrónica. Estudia a tu ritmo." %}
 {% endif %}
 
 {% if data.mkp_only %}
@@ -334,8 +334,10 @@
                     {% endif %}
 
                     {% if showLiveRing %}
-                        {% set ring2_val    = onlinePercent > 0 ? onlinePercent : offlinePercent %}
-                        {% set ring2_label  = onlinePercent > 0 ? 'online<br>EN VIVO' : 'offline<br>GRABADO' %}
+                        {# Asincrónica (ASYNC / ASYNC-F): no hay clases en vivo — el % por fechas no aplica (v1.4.36). #}
+                        {% set ring2_async  = data.synchronicity in ['ASYNC', 'ASYNC-F'] %}
+                        {% set ring2_val    = ring2_async ? 100 : (onlinePercent > 0 ? onlinePercent : offlinePercent) %}
+                        {% set ring2_label  = ring2_async ? 'online<br>A TU RITMO' : (onlinePercent > 0 ? 'online<br>EN VIVO' : 'offline<br>GRABADO') %}
                         {% set ring2_offset = (oec_ring_c * (1 - ring2_val / 100))|round(2) %}
                         <a href="#oec-pierdealgo" class="oec-hero-ring scroll-link" where="oec-pierdealgo">
                             <div class="oec-hero-ring-circle">

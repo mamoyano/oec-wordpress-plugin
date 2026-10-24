@@ -1021,6 +1021,20 @@ if (!class_exists('OEC_Shortcodes')) {
             // < 1.4.3: el video de "Presentación" solo se buscaba pegado en short_description;
             // ahora también llega aparte en video_url.
             $content = preg_replace('/split_vimeo_intro(?!\s*\()/', "split_vimeo_intro(data.video_url|default(''))", $content);
+            // < 1.4.36: el anillo 2 del hero decía "online EN VIVO" también en formaciones asincrónicas
+            // (calculaba el % en vivo por fechas sin mirar data.synchronicity). Ahora: 100% "A TU RITMO".
+            if (strpos($content, 'ring2_async') === false) {
+                $content = preg_replace(
+                    '/\{%\s*set\s+ring2_val\s*=\s*onlinePercent > 0 \? onlinePercent : offlinePercent\s*%\}/',
+                    "{% set ring2_async = data.synchronicity in ['ASYNC', 'ASYNC-F'] %}{% set ring2_val = ring2_async ? 100 : (onlinePercent > 0 ? onlinePercent : offlinePercent) %}",
+                    $content, 1);
+                $content = preg_replace(
+                    "/\{%\s*set\s+ring2_label\s*=\s*onlinePercent > 0 \? 'online<br>EN VIVO' : 'offline<br>GRABADO'\s*%\}/",
+                    "{% set ring2_label = ring2_async ? 'online<br>A TU RITMO' : (onlinePercent > 0 ? 'online<br>EN VIVO' : 'offline<br>GRABADO') %}",
+                    $content, 1);
+            }
+            // Tuteo en el texto de las asincrónicas ("¿Por qué elegir…?"): quedaba "Estudie a su ritmo".
+            $content = str_replace('. Estudie a su ritmo.', '. Estudia a tu ritmo.', $content);
             // < 1.4.35: un solo módulo con pago anticipado vigente → la caja sticky y la barra de celular
             // muestran el precio con descuento (antes, siempre el total sin descuento). La plantilla nueva
             // trae las clases oec-sticky-early / oec-mb-early: si están, ya está al día.

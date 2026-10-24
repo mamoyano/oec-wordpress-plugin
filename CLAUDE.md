@@ -2777,3 +2777,12 @@ siempre `.just-price`. El hero (v1.4) sí lo contemplaba.
 - La reserva de dos renglones de la barra en celular (v1.4.9) queda solo para el texto de varios módulos
   (`:not(:has(.oec-mb-early))`): el de un módulo entra en una línea (a 320 px pasa a dos solo con montos
   de millones, p. ej. COP).
+
+## v1.4.36 — anillo "EN VIVO" en formaciones asincrónicas (2026-10-24)
+
+Reportado en "Análisis biomecánico…" (`t-T623dc4c8f1fa1`, `synchronicity: ASYNC`): el 2º anillo del hero
+decía "100% online EN VIVO". El anillo (`showLiveRing`, todo lo que no sea `mkp_only`) calculaba el % en
+vivo por fechas de inicio/fin sin mirar la sincronicidad (antes del inicio → 100% "EN VIVO"). Ahora, con
+`ASYNC`/`ASYNC-F` (`ring2_async`): 100% "online A TU RITMO". SYNC y MIXED, igual que antes.
+De paso, tuteo: "Estudie a su ritmo" → "Estudia a tu ritmo" en el texto de las asincrónicas.
+Plantillas ya pegadas: `upgrade_template()` (si no traen `ring2_async`).
