@@ -2178,6 +2178,15 @@ OEC comparta sus datos con el socio educativo.
   lo pisa el QUIT posterior → se captura el primer `SERVER -> CLIENT: 4xx/5xx` con `Debugoutput` (solo
   respuestas del servidor; nunca loguear lo del cliente, lleva la contraseña). No volver a clasificar
   errores buscando palabras en inglés.
+- **Diagnóstico (v1.5.1)**: en producción (biokinetics.site, SiteGround) la prueba fallaba con el
+  mensaje genérico y no había forma de saber por qué. Ahora: (1) al guardar, una contraseña que no sea
+  16 letras se rechaza (el caso típico: el navegador o 1Password completa el campo con la contraseña
+  normal de Google); (2) `inspect_phpmailer()` (`phpmailer_init` en `PHP_INT_MAX`) anota con qué
+  servidor/usuario se envía de verdad → si otro plugin pisa la config, la prueba lo dice; (3) se guarda
+  el saludo `220` del servidor: si no es de Google (hosting que intercepta el 587), la prueba reintenta
+  por el 465/SSL y, si anda, lo deja en `oec_gmail_port`; (4) el error muestra la respuesta de Google
+  (`535 5.7.8`, `534 5.7.9` = pide contraseña de aplicación, `534 5.7.14` = Google bloqueó el acceso
+  desde ese servidor). Guardar una contraseña nueva vuelve al puerto 587.
 - **Tablas** (por sitio): `oec_mail_campaigns`, `oec_mail_queue` (cola + registro: queued/sending/sent/
   failed/skipped) y `oec_mail_unsubs`. `maybe_install()` en `init` según `oec_mail_db_version`.
 - **Envío**: el navegador manda solo los emails elegidos; `ajax_send` vuelve a pedir la etapa a Zoho

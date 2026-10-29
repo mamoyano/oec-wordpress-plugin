@@ -191,7 +191,9 @@ if (!class_exists('OEC_Admin')) {
 
             // 0b. CAJA "ENVIAR DESDE TU GMAIL"
             if ((isset($_POST['oec_gmail_save']) || isset($_POST['oec_gmail_remove'])) && check_admin_referer('oec_gmail_action', 'oec_gmail_nonce') && class_exists('OEC_Mailer')) {
-                echo '<div class="updated" style="margin: 20px 0;"><p>' . esc_html(OEC_Mailer::save_settings($_POST)) . '</p></div>';
+                $gm_msg = OEC_Mailer::save_settings($_POST);
+                $gm_bad = strpos($gm_msg, 'No se guardó') !== false || strpos($gm_msg, 'no es válido') !== false;
+                echo '<div class="' . ($gm_bad ? 'error' : 'updated') . '" style="margin: 20px 0;"><p>' . esc_html($gm_msg) . '</p></div>';
             }
 
             // 1. PROCESAR GUARDADO MANUAL

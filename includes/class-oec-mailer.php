@@ -31,10 +31,13 @@ if (!class_exists('OEC_Mailer')) {
         private static $last_error = '';
         private static $last_smtp  = 0;
         private static $smtp_detail = '';
+        /** Lo que de verdad se usó en el último envío por Gmail, para diagnosticar (sin la contraseña). */
+        private static $diag = [];
 
         public static function init() {
             add_action('init', [__CLASS__, 'maybe_install']);
             add_action('phpmailer_init', [__CLASS__, 'configure_phpmailer'], 99);
+            add_action('phpmailer_init', [__CLASS__, 'inspect_phpmailer'], PHP_INT_MAX);
             add_action('wp_mail_failed', [__CLASS__, 'capture_error']);
             add_action('oec_mail_tick', [__CLASS__, 'cron_tick']);
 
@@ -144,7 +147,15 @@ if (!class_exists('OEC_Mailer')) {
             update_option('oec_gmail_user', $user, false);
             // Google la muestra en 4 grupos ("abcd efgh ijkl mnop"): los espacios no van.
             $pass = preg_replace('/\s+/', '', wp_unslash($post['oec_gmail_pass'] ?? ''));
-            if ($pass !== '') update_option('oec_gmail_pass', self::encrypt($pass), false);
+            if ($pass !== '') {
+                // Las contraseñas de aplicación son 16 letras. Otra cosa suele ser la contraseña
+                // normal de Google (la completa sola el navegador o el gestor de contraseñas).
+                if (!preg_match('/^[a-z]{16}$/i', $pass)) {
+                    return 'Esa no es una contraseña de aplicación: tienen 16 letras (Google las muestra en 4 grupos de 4). No se guardó. Si el navegador o tu gestor de contraseñas completó el campo solo, bórralo y pega la contraseña de aplicación.';
+                }
+                update_option('oec_gmail_pass', self::encrypt($pass), false);
+                delete_option('oec_gmail_port'); // credenciales nuevas: se vuelve a probar el puerto normal
+            }
             return 'Configuración de email guardada.';
         }
 
@@ -167,7 +178,8 @@ if (!class_exists('OEC_Mailer')) {
             if (self::$alt_body !== '') $phpmailer->AltBody = self::$alt_body;
             $g = self::gmail();
             if (!$g) return;
-            $smtp = apply_filters('oec_gmail_smtp', ['host' => 'smtp.gmail.com', 'port' => 587, 'secure' => 'tls', 'auth' => true]);
+            $ssl  = (int) get_option('oec_gmail_port', 587) === 465;
+            $smtp = apply_filters('oec_gmail_smtp', ['host' => 'smtp.gmail.com', 'port' => $ssl ? 465 : 587, 'secure' => $ssl ? 'ssl' : 'tls', 'auth' => true]);
             $phpmailer->isSMTP();
             $phpmailer->Host       = $smtp['host'];
             $phpmailer->Port       = $smtp['port'];
@@ -182,6 +194,11 @@ if (!class_exists('OEC_Mailer')) {
             // leen las respuestas del servidor, nunca lo que manda el cliente.
             $phpmailer->SMTPDebug   = 2;
             $phpmailer->Debugoutput = function ($str) {
+                // Saludo del servidor ("220 smtp.gmail.com ESMTP … - gsmtp"): dice si de verdad
+                // nos atendió Google o un servidor del hosting que intercepta el puerto.
+                if (empty(self::$diag['greeting']) && preg_match('/SERVER -> CLIENT: 220[ -]([^\r\n]*)/', $str, $m)) {
+                    self::$diag['greeting'] = mb_substr(trim($m[1]), 0, 150);
+                }
                 if (!self::$last_smtp && preg_match('/SERVER -> CLIENT: ([45]\d\d)[ -]([^\r\n]*)/', $str, $m)) {
                     self::$last_smtp   = (int) $m[1];
                     self::$smtp_detail = mb_substr(trim($m[2]), 0, 150);
@@ -189,6 +206,18 @@ if (!class_exists('OEC_Mailer')) {
             };
             // Gmail reescribe el remitente a la cuenta autenticada: se pone igual.
             $phpmailer->setFrom($g['user'], $g['name'], false);
+        }
+
+        /** Corre después de cualquier otro plugin: anota con qué servidor y usuario se va a enviar de verdad. */
+        public static function inspect_phpmailer($phpmailer) {
+            if (!self::$sending || !self::gmail()) return;
+            $g = self::gmail();
+            self::$diag += [
+                'host'      => (string) $phpmailer->Host,
+                'port'      => (int) $phpmailer->Port,
+                'user'      => (string) $phpmailer->Username,
+                'pass_ours' => $phpmailer->Password === $g['pass'],
+            ];
         }
 
         public static function capture_error($wp_error) {
@@ -201,7 +230,10 @@ if (!class_exists('OEC_Mailer')) {
         private static function human_error($e, $code) {
             $g = self::gmail() !== null;
             if (in_array($code, [534, 535], true)) {
-                return $g ? 'Gmail rechazó el email o la contraseña de aplicación. Revísalos en OEC → Configuración.' : 'El servidor de correo rechazó el usuario o la contraseña.';
+                if (!$g) return 'El servidor de correo rechazó el usuario o la contraseña.';
+                if (stripos(self::$smtp_detail, '5.7.9') !== false) return 'Gmail pide una contraseña de aplicación: la que guardaste parece ser tu contraseña normal de Google. Crea una en myaccount.google.com/apppasswords.';
+                if (stripos(self::$smtp_detail, '5.7.14') !== false) return 'Google bloqueó el inicio de sesión desde tu servidor. Entra a tu cuenta de Google, revisa las alertas de seguridad y confirma que fuiste tú; después vuelve a probar.';
+                return 'Gmail rechazó el email o la contraseña de aplicación. Revísalos en OEC → Configuración.';
             }
             if ($code === 550 && stripos($e, '5.4.5') !== false || $code === 421 || stripos($e, 'limit exceeded') !== false) {
                 return 'Se alcanzó el límite de envíos de la cuenta de correo. Se reintenta más tarde.';
@@ -224,6 +256,7 @@ if (!class_exists('OEC_Mailer')) {
             self::$last_error = '';
             self::$last_smtp  = 0;
             self::$smtp_detail = '';
+            self::$diag        = [];
             $ok = wp_mail($to, $subject, $html, $headers);
             self::$sending  = false;
             self::$alt_body = '';
@@ -238,6 +271,33 @@ if (!class_exists('OEC_Mailer')) {
             $err = self::send($to, 'Prueba de envío — ' . get_bloginfo('name'),
                 '<p>¡Funciona! Este es un email de prueba del plugin de Online Education Center.</p><p>' . ($g ? 'Salió desde tu Gmail (' . esc_html($g['user']) . ').' : 'Salió con el correo del sitio (no hay Gmail configurado).') . '</p>',
                 "¡Funciona! Este es un email de prueba del plugin de Online Education Center.");
+            if ($err && $g) {
+                $d = self::$diag;
+                // Otro plugin cambió el servidor, el usuario o la contraseña después de nosotros.
+                if (!empty($d['host']) && ($d['host'] !== 'smtp.gmail.com' || strcasecmp($d['user'], $g['user']) !== 0 || empty($d['pass_ours']))
+                    && !has_filter('oec_gmail_smtp')) {
+                    wp_send_json_error(['message' => 'Otro plugin de tu sitio cambia la configuración de correo y pisa la de Gmail (se intentó enviar con ' . $d['host'] . ' como ' . ($d['user'] ?: 'sin usuario') . '). Desactiva ese plugin de correo o configura tu Gmail en él.']);
+                }
+                // El hosting atiende el puerto 587 con su propio servidor: se prueba por el 465 (SSL).
+                $google = isset($d['greeting']) && preg_match('/gsmtp|google/i', $d['greeting']);
+                if (!$google && (int) get_option('oec_gmail_port', 587) !== 465 && !has_filter('oec_gmail_smtp')) {
+                    $first = $err;
+                    update_option('oec_gmail_port', 465, false);
+                    $err = self::send($to, 'Prueba de envío — ' . get_bloginfo('name'),
+                        '<p>¡Funciona! Este es un email de prueba del plugin de Online Education Center.</p><p>Salió desde tu Gmail (' . esc_html($g['user']) . '), por el puerto 465.</p>',
+                        "¡Funciona! Este es un email de prueba del plugin de Online Education Center.");
+                    if ($err) {
+                        delete_option('oec_gmail_port');
+                        $err = $first . ' Tu servidor no se conecta directo con Gmail' . (isset($d['greeting']) ? ' (respondió: ' . $d['greeting'] . ')' : '') . ': consulta a tu hosting si permite conexiones SMTP salientes a smtp.gmail.com.';
+                        wp_send_json_error(['message' => $err]);
+                    }
+                    wp_send_json_success(['message' => 'Listo: tu servidor no deja salir el correo por el puerto habitual, así que se configuró el 465 y funcionó. Te enviamos un email de prueba a ' . $to . '.']);
+                }
+                $tech = trim(self::$last_smtp ? self::$last_smtp . ' ' . self::$smtp_detail : '');
+                if ($tech !== '') $err .= ' (Respuesta de Gmail: ' . $tech . ')';
+                $len = strlen($g['pass']);
+                if ($len !== 16) $err .= ' La contraseña guardada tiene ' . $len . ' caracteres y las de aplicación tienen 16: vuelve a pegarla.';
+            }
             if ($err) wp_send_json_error(['message' => $err]);
             wp_send_json_success(['message' => 'Listo: te enviamos un email de prueba a ' . $to . '. Revisa tu bandeja (y la carpeta de spam).']);
         }
