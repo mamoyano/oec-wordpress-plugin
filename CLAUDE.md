@@ -2193,6 +2193,13 @@ OEC comparta sus datos con el socio educativo.
   probaba, y con la vieja revocada en Google daba 535 una y otra vez (le pasó a Mario en BioKinetics).
   Con el campo vacío prueba la guardada y dice de cuándo es (`oec_gmail_pass_at`). Se aceptan los
   espacios no separables (U+00A0/U+202F) que se copian de la pantalla de Google.
+- **v1.5.3 — chequeo directo**: si Gmail responde 534/535, la prueba se conecta ella misma con
+  smtp.gmail.com (`direct_auth_check()`: socket + STARTTLS + `AUTH PLAIN`, sin PHPMailer ni `wp_mail`,
+  corta antes de enviar) con el usuario y la contraseña guardados. Si ahí Google acepta → algo del sitio
+  cambia los datos al enviar (plugins como WP Mail SMTP aplican sus credenciales DESPUÉS de
+  `phpmailer_init`, donde `inspect_phpmailer()` no llega) y lista lo enganchado al correo
+  (`mail_hooks()`: `phpmailer_init`, `pre_wp_mail`, `wp_mail()` reemplazada). Si también rechaza → es
+  entre Google y ese servidor. Muestra la primera y la última letra de la contraseña probada.
 - **Tablas** (por sitio): `oec_mail_campaigns`, `oec_mail_queue` (cola + registro: queued/sending/sent/
   failed/skipped) y `oec_mail_unsubs`. `maybe_install()` en `init` según `oec_mail_db_version`.
 - **Envío**: el navegador manda solo los emails elegidos; `ajax_send` vuelve a pedir la etapa a Zoho

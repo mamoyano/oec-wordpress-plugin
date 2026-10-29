@@ -317,6 +317,21 @@ if (!class_exists('OEC_Mailer')) {
                 }
                 $tech = trim(self::$last_smtp ? self::$last_smtp . ' ' . self::$smtp_detail : '');
                 if ($tech !== '') $err .= ' (Respuesta de Gmail: ' . $tech . ')';
+                // Chequeo directo, sin wp_mail(): ¿Google acepta este usuario y esta contraseña
+                // desde este servidor? Separa "algo del sitio cambia los datos" de "Google no deja".
+                if (in_array(self::$last_smtp, [534, 535], true) && !has_filter('oec_gmail_smtp')) {
+                    $direct = self::direct_auth_check($g['user'], $g['pass'], (int) get_option('oec_gmail_port', 587));
+                    $hint   = ' [contraseña probada: ' . substr($g['pass'], 0, 1) . str_repeat('•', 14) . substr($g['pass'], -1) . ']';
+                    if ($direct['ok']) {
+                        $hooks = self::mail_hooks();
+                        $err = 'Gmail acepta tu email y tu contraseña cuando se le pregunta directo, pero no cuando envía WordPress: algo en tu sitio cambia los datos al enviar (otro plugin de correo, o un fragmento de código como los de WPCode).'
+                             . ($hooks ? ' Enganchados al correo: ' . implode(', ', $hooks) . '.' : '') . $hint;
+                    } elseif ($direct['code']) {
+                        $err .= ' Chequeo directo: Gmail también la rechaza desde este servidor (' . $direct['code'] . ' ' . $direct['text'] . ').' . $hint;
+                    } else {
+                        $err .= ' (Chequeo directo: ' . $direct['text'] . ')';
+                    }
+                }
                 $len = strlen($g['pass']);
                 if ($len !== 16) $err .= ' La contraseña guardada tiene ' . $len . ' caracteres y las de aplicación tienen 16: vuelve a pegarla.';
                 if (!$new) {
@@ -657,6 +672,73 @@ if (!class_exists('OEC_Mailer')) {
             }
             if ($remaining > 0 && $budget <= 0) $paused = true;
             return ['remaining' => $remaining, 'paused' => $paused, 'error' => ''];
+        }
+
+        /**
+         * Pregunta a smtp.gmail.com, sin PHPMailer ni wp_mail(), si acepta este usuario y esta
+         * contraseña (AUTH PLAIN) y corta antes de enviar nada. ['ok' => bool, 'code' => int, 'text' => string].
+         */
+        private static function direct_auth_check($user, $pass, $port) {
+            $ssl = $port === 465;
+            $ctx = stream_context_create(['ssl' => ['peer_name' => 'smtp.gmail.com', 'verify_peer' => true]]);
+            $fp  = @stream_socket_client(($ssl ? 'ssl' : 'tcp') . '://smtp.gmail.com:' . ($ssl ? 465 : 587), $errno, $errstr, 10, STREAM_CLIENT_CONNECT, $ctx);
+            if (!$fp) return ['ok' => false, 'code' => 0, 'text' => 'no se pudo conectar (' . $errstr . ')'];
+            stream_set_timeout($fp, 10);
+            $read = function () use ($fp) {
+                $all = '';
+                while (($line = fgets($fp, 1024)) !== false) {
+                    $all .= $line;
+                    if (strlen($line) < 4 || $line[3] === ' ') break;
+                }
+                return [(int) substr($all, 0, 3), trim(preg_replace('/^\d{3}[ -]/m', '', $all))];
+            };
+            $cmd = function ($c) use ($fp, $read) { fwrite($fp, $c . "\r\n"); return $read(); };
+            $out = ['ok' => false, 'code' => 0, 'text' => ''];
+            [$code] = $read();
+            if ($code !== 220) { fclose($fp); return ['ok' => false, 'code' => 0, 'text' => 'el servidor no respondió como Gmail']; }
+            $cmd('EHLO ' . (parse_url(home_url(), PHP_URL_HOST) ?: 'localhost'));
+            if (!$ssl) {
+                [$code] = $cmd('STARTTLS');
+                if ($code !== 220 || !@stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+                    fclose($fp);
+                    return ['ok' => false, 'code' => 0, 'text' => 'no se pudo cifrar la conexión'];
+                }
+                $cmd('EHLO ' . (parse_url(home_url(), PHP_URL_HOST) ?: 'localhost'));
+            }
+            [$code, $text] = $cmd('AUTH PLAIN ' . base64_encode("\0" . $user . "\0" . $pass));
+            $out = ['ok' => $code === 235, 'code' => $code, 'text' => mb_substr(strtok($text, "\n"), 0, 120)];
+            $cmd('QUIT');
+            fclose($fp);
+            return $out;
+        }
+
+        /** Funciones y plugins enganchados al correo de WordPress, para el diagnóstico (sin los nuestros). */
+        private static function mail_hooks() {
+            global $wp_filter;
+            $out = [];
+            foreach (['phpmailer_init', 'pre_wp_mail', 'wp_mail'] as $hook) {
+                if (empty($wp_filter[$hook])) continue;
+                foreach ($wp_filter[$hook]->callbacks as $cbs) {
+                    foreach ($cbs as $cb) {
+                        $f = $cb['function'];
+                        if (is_array($f)) $name = (is_object($f[0]) ? get_class($f[0]) : $f[0]) . '::' . $f[1];
+                        elseif (is_string($f)) $name = $f;
+                        else {
+                            try { $r = new ReflectionFunction($f); $name = 'función de ' . str_replace(ABSPATH, '', (string) $r->getFileName()); }
+                            catch (Exception $e) { $name = 'función anónima'; }
+                        }
+                        if (strpos($name, 'OEC_Mailer') === 0) continue;
+                        $out[] = $name;
+                    }
+                }
+            }
+            $out = array_unique($out);
+            // wp_mail() reemplazada por un plugin (es "pluggable").
+            try {
+                $file = (new ReflectionFunction('wp_mail'))->getFileName();
+                if (strpos($file, WPINC . '/pluggable.php') === false) array_unshift($out, 'wp_mail() reemplazada en ' . str_replace(ABSPATH, '', $file));
+            } catch (Exception $e) {}
+            return array_values($out);
         }
 
         /** Lo que acepta WordPress y lo que acepta PHPMailer (más estricto en algunos casos). */
