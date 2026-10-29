@@ -21,7 +21,12 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Robots-Tag: noindex');
 
-const STAGES      = ['Cold Prospects', 'More Info Request', 'Hot Prospects', 'Orders Not Finished', 'Students - Won'];
+const STAGES      = ['Cold Prospects', 'More Info Request', 'Hot Prospects', 'Orders Not Finished', 'Students - Won', 'Lost'];
+// Sub-etapas que el equipo de ventas crea en Zoho para ir moviendo los negocios
+// ("HP - Teléfono", "HP -  Enviado", "ONF - Sent"…): cuentan como la etapa base.
+const STAGE_PREFIXES = ['Hot Prospects' => 'HP -', 'Orders Not Finished' => 'ONF -'];
+// Otras etapas que se cuentan dentro de una de las de arriba.
+const STAGE_ALSO     = ['Lost' => ['Cancelled']];
 const DATA_DIR    = __DIR__ . '/data';
 const OAS_API     = 'https://oas-api.onlineeducation.center/api-oas/v1/';
 const ZOHO_API    = 'https://www.zohoapis.com/crm/v8/';
@@ -161,12 +166,16 @@ $zh = ['Authorization: Zoho-oauthtoken ' . zoho_token($config)];
 
 // Una edición de otra formación nunca coincide: el filtro exige las dos cosas.
 function criteria($uid, $stage, $edition) {
+    $or = ['(Stage:equals:' . $stage . ')'];
+    foreach (STAGE_ALSO[$stage] ?? [] as $also) $or[] = '(Stage:equals:' . $also . ')';
+    if (isset(STAGE_PREFIXES[$stage])) $or[] = '(Stage:starts_with:' . STAGE_PREFIXES[$stage] . ')';
+    $st = count($or) > 1 ? '(' . implode('or', $or) . ')' : $or[0];
     return '((Training_UID:equals:' . $uid . ')'
          . ($edition !== '' ? 'and(Edition_UID:equals:' . $edition . ')' : '')
-         . 'and(Stage:equals:' . $stage . '))';
+         . 'and' . $st . ')';
 }
 
-// --- Números por etapa (5 conteos en paralelo, ~1 s) ---
+// --- Números por etapa (6 conteos en paralelo, ~1 s) ---
 if ($action === 'counts') {
     $ckey   = 'counts_' . $uid . ($edition !== '' ? '_' . $edition : '');
     $cached = cache_get($ckey, COUNTS_TTL);

@@ -137,12 +137,13 @@ if (!class_exists('OEC_Ajax')) {
             $cuerpo .= "País:           {$country}\n";
             $cuerpo .= "\n— Enviado desde el plugin OEC WordPress";
 
-            $headers = [
-                'Content-Type: text/plain; charset=UTF-8',
-                'Reply-To: ' . $email,  // Responder directamente al interesado
-            ];
-
-            $enviado = wp_mail($destino, $asunto, $cuerpo, $headers);
+            // Por el Gmail del socio si lo configuró (OEC → Configuración); si no, wp_mail().
+            // Reply-To: responder directamente al interesado.
+            if (class_exists('OEC_Mailer')) {
+                $enviado = OEC_Mailer::send($destino, $asunto, '<pre style="font-family:inherit;white-space:pre-wrap;">' . esc_html($cuerpo) . '</pre>', $cuerpo, [], $email) === '';
+            } else {
+                $enviado = wp_mail($destino, $asunto, $cuerpo, ['Content-Type: text/plain; charset=UTF-8', 'Reply-To: ' . $email]);
+            }
 
             if ($enviado) {
                 // Mismo texto que enviar_a_api_oec() más abajo — un solo

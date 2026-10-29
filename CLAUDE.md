@@ -2115,7 +2115,16 @@ el `?ver=` a todo CSS/JS que no fuera del tema, incluido el plugin — y el plug
 Todo en `includes/class-oec-stats.php` (`OEC_Stats`; `OEC_Admin::page_stats()` solo delega).
 **Decisión de Mario: NO usar `sales-analytics`** (datos internos de OEC) — los números y los contactos
 salen de Zoho, que replica las etapas. Etapas (sin "Leads"): `Cold Prospects`, `More Info Request`,
-`Hot Prospects`, `Orders Not Finished`, `Students - Won`. El usuario, al pedir info, consiente que
+`Hot Prospects`, `Orders Not Finished`, `Students - Won`. **Sub-etapas** (2026-10-29): ventas crea
+etapas propias para ir moviendo los negocios (`HP - Teléfono`, `HP -  Enviado` —con doble espacio—,
+`HP - Contactado 1/2`, `ONF - Sent`); cuentan como la base vía `STAGE_PREFIXES` en
+`partner-contacts.php` (`(Stage:equals:X)or(Stage:starts_with:HP -)`; Zoho acepta `starts_with` en
+Stage, probado). Una familia nueva con otro prefijo = una línea ahí; el plugin no cambia. `Lost` y
+**Perdidos** (`Lost` + `Cancelled`, sumados por `STAGE_ALSO` en el endpoint, 2026-10-29): sexta celda, separada con
+borde punteado y gris, con tooltip "Descartados por el equipo de ventas de OEC: pueden seguir siendo
+una oportunidad para ti" — perdidos para OEC, no necesariamente para el socio. Clickeable/CSV igual que
+las demás. Si el endpoint de SiteGround todavía es el viejo (no trae `Lost`), la celda muestra "–" en
+vez de un 0 falso: subir el endpoint ANTES de publicar la versión del plugin. El usuario, al pedir info, consiente que
 OEC comparta sus datos con el socio educativo.
 
 **Arquitectura** — las claves de Zoho NUNCA van en el plugin (se instala en sitios de socios):
@@ -2155,6 +2164,60 @@ OEC comparta sus datos con el socio educativo.
   y un mu-plugin temporal con el filtro `oec_zoho_contacts_endpoint`. **Ojo**: `download_csv()` hace
   `exit` → si se llama desde un script, vuelca el CSV (con datos personales) a la salida; probar
   `OEC_Stats::write_csv()` sobre `php://memory` y contar filas.
+
+**Enviar email a los contactos** (v1.5.0, 2026-10-29): `includes/class-oec-mailer.php`
+(`OEC_Mailer`, se inicia también fuera de wp-admin: cron y link de baja).
+- **Gmail integrado** (OEC → Configuración, caja "Enviar desde tu Gmail", `#oec-gmail`): email +
+  contraseña de aplicación (cifrada AES-256-GCM con `wp_salt('auth')`; si cambian las salts hay que
+  volver a cargarla) + nombre del remitente + tope diario (default 400). Solo se aplica a los mails del
+  plugin (`OEC_Mailer::send()`, bandera `$sending` en `phpmailer_init` prioridad 99): envíos a contactos
+  y la consulta de la ficha que va al email del socio. Sin Gmail, sale por `wp_mail()` tal cual (el
+  plugin de SMTP del sitio, o el Elastic Email de `oec-wp-theme/inc/mail.php`). Filtro `oec_gmail_smtp`
+  (host/port/secure/auth) para probar contra Mailpit.
+- **Errores de SMTP**: el texto de PHPMailer viene TRADUCIDO al idioma del sitio y el código real (535)
+  lo pisa el QUIT posterior → se captura el primer `SERVER -> CLIENT: 4xx/5xx` con `Debugoutput` (solo
+  respuestas del servidor; nunca loguear lo del cliente, lleva la contraseña). No volver a clasificar
+  errores buscando palabras en inglés.
+- **Tablas** (por sitio): `oec_mail_campaigns`, `oec_mail_queue` (cola + registro: queued/sending/sent/
+  failed/skipped) y `oec_mail_unsubs`. `maybe_install()` en `init` según `oec_mail_db_version`.
+- **Envío**: el navegador manda solo los emails elegidos; `ajax_send` vuelve a pedir la etapa a Zoho
+  (`OEC_Stats::contacts_for()`) y encola solo los que están ahí (no se le puede escribir a otro). Despacho:
+  WP-Cron `oec_mail_tick` (15 por pasada, cada 60 s) + `oec_mail_progress` mientras la ventana está
+  abierta (3 por pedido). Cada fila se toma con un UPDATE condicional (dos procesos no mandan el mismo
+  mail). Tope diario: lo que sobra sale mañana. Email inválido → `failed` sin frenar al resto; cualquier
+  otro error (contraseña, conexión, límite) devuelve la fila a la cola, corta la pasada y reintenta en
+  1 h (reintentar cada minuto puede hacer que Google bloquee la cuenta). Fila "sending" de más de 10 min
+  → `failed` ("Se interrumpió"), no se reenvía.
+- **Bajas**: link al pie + `List-Unsubscribe` / `List-Unsubscribe-Post` (un clic), por
+  `admin-post.php?action=oec_unsub` (wp-admin no se cachea en Cloudflare), firmado con HMAC
+  (`wp_salt('nonce')`). Se aplica a todas las formaciones del sitio.
+- **Pantalla** (ventana de contactos de Estadísticas): casillas (por defecto todos los que pueden recibir,
+  menos a quienes ya se les escribió por esa formación), columna "Email enviado" (fecha y cantidad / En cola
+  / Se dio de baja), "Enviar email (N)" → redactar: plantillas (`oec_mail_templates`, con una de ejemplo),
+  responder-a, asunto, mensaje en texto con variables `{nombre} {apellido} {email} {telefono} {pais}
+  {formacion} {link}`, vista previa por persona, "Enviarme una prueba", progreso. Nombres en MAYÚSCULAS
+  se pasan a "Nombre Propio". `.button` de WordPress le gana al atributo `hidden`: usar `style.display`.
+- **Cómo se probó** (sin sesión de wp-admin en el navegador): PHP de Local por CLI con
+  `-d mysqli.default_socket=…/run/<id>/mysql/mysqld.sock`, SMTP a Mailpit (puerto 10001, API en 10000),
+  Gmail real con una cuenta inventada para el error 535, endpoint de Zoho falso con `php -S`, y la
+  página de Estadísticas generada por CLI + `fetch` simulado en el navegador.
+
+**Seguimiento de contactos: WhatsApp, llamar, estado y nota** (v1.5.0, 2026-10-29):
+`includes/class-oec-contacts.php` (`OEC_Contacts`, solo en wp-admin). Todo es POR FORMACIÓN; la clave de
+cada persona es su email en minúsculas o, sin email, `tel:<dígitos>`.
+- **Teléfonos** (`normalize_phone($phone, $country)`): en Zoho vienen casi siempre como dígitos con código
+  de país (`5491150084412`); se reparan los que no lo traen con el `Country_Code` ISO del contacto (mapa
+  `DIAL`), ceros adelante, `+`/espacios/guiones, y el 9 de los celulares argentinos. Con letras
+  (`CO.2261…`) o sin país y corto → no se usa (se muestra gris con aviso). El CSV sale con `+` y código.
+  Ojo: la mayoría de las "Compra sin terminar" no tiene teléfono en Zoho; los Hot Prospects casi todos.
+- **Por fila**: botones WhatsApp (`wa.me` con el mensaje armado, uno por sitio, `oec_wa_message`, mismas
+  variables que el email), Llamar (`tel:`) y Copiar; cada clic en WhatsApp/Llamar queda registrado
+  (`oec_contact_events`). Columna "Último contacto" = lo más reciente entre email, WhatsApp y llamada.
+  Estado (`oec_contact_state`: Sin contactar / Contactado / No responde / Interesado / Se inscribió / No le
+  interesa) y nota corta. Sin estado guardado pero con algún contacto → se muestra "Contactado". "Se
+  inscribió" y "No le interesa" no se eligen solos para el email. Filtro por estado arriba.
+- En celular (≤700 px) la tabla pasa a tarjetas, para que los botones de llamar/WhatsApp queden a la vista.
+- NO se muestran las sub-etapas de Zoho (`HP - Teléfono`…) al socio: decisión de Mario.
 
 **v1.4.0** (2026-09-29): Estadísticas desde Zoho + íconos alineados en wp-admin → Contáctenos. Gotcha de
 wp-admin: un `.dashicons` dentro de `.button` hereda el `line-height` del botón (34 px) y el glifo se
