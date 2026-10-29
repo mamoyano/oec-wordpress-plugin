@@ -487,9 +487,12 @@ if (!class_exists('OEC_Admin')) {
                                 var b = document.getElementById('oec-gmail-test'), m = document.getElementById('oec-gmail-test-msg');
                                 b.addEventListener('click', function () {
                                     b.disabled = true; m.style.color = '#50575e'; m.textContent = 'Enviando…';
-                                    fetch(<?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>, { method: 'POST', credentials: 'same-origin', body: new URLSearchParams({ action: 'oec_mail_test', nonce: <?php echo wp_json_encode(wp_create_nonce('oec_mail')); ?> }) })
+                                    fetch(<?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>, { method: 'POST', credentials: 'same-origin', body: new URLSearchParams({ action: 'oec_mail_test', nonce: <?php echo wp_json_encode(wp_create_nonce('oec_mail')); ?>, user: document.getElementById('oec_gmail_user').value, pass: document.getElementById('oec_gmail_pass').value, name: document.getElementById('oec_gmail_name').value }) })
                                         .then(function (r) { return r.json(); })
-                                        .then(function (res) { m.style.color = res.success ? '#1a7a33' : '#b32d2e'; m.textContent = (res.data && res.data.message) || 'No se pudo enviar.'; })
+                                        .then(function (res) {
+                                            m.style.color = res.success ? '#1a7a33' : '#b32d2e'; m.textContent = (res.data && res.data.message) || 'No se pudo enviar.';
+                                            if (res.success && res.data.saved) { var p = document.getElementById('oec_gmail_pass'); p.value = ''; p.placeholder = 'Guardada · escribe una nueva para cambiarla'; }
+                                        })
                                         .catch(function () { m.style.color = '#b32d2e'; m.textContent = 'No se pudo enviar.'; })
                                         .then(function () { b.disabled = false; });
                                 });

@@ -33,6 +33,8 @@ if (!class_exists('OEC_Mailer')) {
         private static $smtp_detail = '';
         /** Lo que de verdad se usó en el último envío por Gmail, para diagnosticar (sin la contraseña). */
         private static $diag = [];
+        /** Datos del formulario que se están probando antes de guardarlos (ajax_test). */
+        private static $trial = null;
 
         public static function init() {
             add_action('init', [__CLASS__, 'maybe_install']);
@@ -127,6 +129,7 @@ if (!class_exists('OEC_Mailer')) {
 
         /** ['user' => …, 'pass' => …, 'name' => …] o null si no está configurado (o no se puede descifrar). */
         public static function gmail() {
+            if (self::$trial) return self::$trial;
             $user = get_option('oec_gmail_user', '');
             $pass = $user ? self::decrypt(get_option('oec_gmail_pass', '')) : '';
             if (!$user || $pass === '') return null;
@@ -146,7 +149,7 @@ if (!class_exists('OEC_Mailer')) {
             if ($user && !is_email($user)) return 'El email de Gmail no es válido.';
             update_option('oec_gmail_user', $user, false);
             // Google la muestra en 4 grupos ("abcd efgh ijkl mnop"): los espacios no van.
-            $pass = preg_replace('/\s+/', '', wp_unslash($post['oec_gmail_pass'] ?? ''));
+            $pass = preg_replace('/[\s\x{00A0}\x{202F}]+/u', '', wp_unslash($post['oec_gmail_pass'] ?? ''));
             if ($pass !== '') {
                 // Las contraseñas de aplicación son 16 letras. Otra cosa suele ser la contraseña
                 // normal de Google (la completa sola el navegador o el gestor de contraseñas).
@@ -154,6 +157,7 @@ if (!class_exists('OEC_Mailer')) {
                     return 'Esa no es una contraseña de aplicación: tienen 16 letras (Google las muestra en 4 grupos de 4). No se guardó. Si el navegador o tu gestor de contraseñas completó el campo solo, bórralo y pega la contraseña de aplicación.';
                 }
                 update_option('oec_gmail_pass', self::encrypt($pass), false);
+                update_option('oec_gmail_pass_at', time(), false);
                 delete_option('oec_gmail_port'); // credenciales nuevas: se vuelve a probar el puerto normal
             }
             return 'Configuración de email guardada.';
@@ -267,6 +271,24 @@ if (!class_exists('OEC_Mailer')) {
             check_ajax_referer('oec_mail', 'nonce');
             if (!current_user_can('manage_options')) wp_send_json_error(null, 403);
             $to  = wp_get_current_user()->user_email;
+
+            // Se prueba lo que está escrito en el formulario (aunque no se haya guardado);
+            // si funciona, se guarda. Antes se probaba siempre lo guardado, y una contraseña
+            // recién pegada sin tocar "Guardar" nunca se probaba.
+            $f_user = sanitize_email(wp_unslash($_POST['user'] ?? ''));
+            $f_pass = preg_replace('/[\s\x{00A0}\x{202F}]+/u', '', wp_unslash($_POST['pass'] ?? ''));
+            $f_name = sanitize_text_field(wp_unslash($_POST['name'] ?? ''));
+            $saved  = self::gmail();
+            $new    = $f_pass !== '' || ($f_user !== '' && $saved && strcasecmp($f_user, $saved['user']) !== 0);
+            if ($new) {
+                if (!is_email($f_user)) wp_send_json_error(['message' => 'Escribe tu dirección de Gmail.']);
+                if ($f_pass === '') $f_pass = $saved['pass'] ?? '';
+                if (!preg_match('/^[a-z]{16}$/i', $f_pass)) {
+                    wp_send_json_error(['message' => 'Esa no es una contraseña de aplicación: tienen 16 letras (Google las muestra en 4 grupos de 4).']);
+                }
+                self::$trial = ['user' => $f_user, 'pass' => $f_pass, 'name' => $f_name ?: (get_option('oec_gmail_name', '') ?: get_bloginfo('name'))];
+                delete_option('oec_gmail_port');
+            }
             $g   = self::gmail();
             $err = self::send($to, 'Prueba de envío — ' . get_bloginfo('name'),
                 '<p>¡Funciona! Este es un email de prueba del plugin de Online Education Center.</p><p>' . ($g ? 'Salió desde tu Gmail (' . esc_html($g['user']) . ').' : 'Salió con el correo del sitio (no hay Gmail configurado).') . '</p>',
@@ -297,8 +319,21 @@ if (!class_exists('OEC_Mailer')) {
                 if ($tech !== '') $err .= ' (Respuesta de Gmail: ' . $tech . ')';
                 $len = strlen($g['pass']);
                 if ($len !== 16) $err .= ' La contraseña guardada tiene ' . $len . ' caracteres y las de aplicación tienen 16: vuelve a pegarla.';
+                if (!$new) {
+                    $at   = (int) get_option('oec_gmail_pass_at', 0);
+                    $err .= ' Se probó la contraseña guardada' . ($at ? ' el ' . wp_date('j/n/Y \a \l\a\s H:i', $at) : '') . ': si creaste una nueva, pégala en el campo y vuelve a probar.';
+                }
             }
             if ($err) wp_send_json_error(['message' => $err]);
+            if ($new) {
+                // Funcionó con lo del formulario: queda guardado.
+                update_option('oec_gmail_user', self::$trial['user'], false);
+                update_option('oec_gmail_pass', self::encrypt(self::$trial['pass']), false);
+                update_option('oec_gmail_pass_at', time(), false);
+                if ($f_name !== '') update_option('oec_gmail_name', $f_name, false);
+                delete_option('oec_mail_last_error');
+                wp_send_json_success(['message' => 'Funcionó y quedó guardado: te enviamos un email de prueba a ' . $to . '. Revisa tu bandeja (y la carpeta de spam).', 'saved' => true]);
+            }
             wp_send_json_success(['message' => 'Listo: te enviamos un email de prueba a ' . $to . '. Revisa tu bandeja (y la carpeta de spam).']);
         }
 
