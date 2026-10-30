@@ -2155,11 +2155,13 @@ OEC comparta sus datos con el socio educativo.
   `Students - Won` / `enrollments_goal` de la API de OEC.
 - Días a cierre/inicio: día calendario de la fecha de la API tal cual (`days_until()`); pasarlo a hora
   de Argentina corría `…T00:00:00+00:00` al día anterior.
-- **Seguridad pendiente del lado de OEC**: `list-deals.php` (el Thickbox viejo de "Hot Prospects")
-  responde SIN autenticación y el `training_uid` se inyecta en el `criteria` (probado: devolvía 419 Hot
-  Prospects de todas las formaciones). Además imprime el uid sin escapar (XSS). El plugin nuevo ya no
-  lo usa; hay que borrarlo cuando los socios actualicen, o parcharlo antes. Las claves de Zoho de ese
-  archivo quedaron expuestas en la sesión del 2026-09-29: rotarlas después de las pruebas.
+- **`list-deals.php` (RESUELTO 2026-10-30)**: el Thickbox viejo de "Hot Prospects" (lo usaban las versiones
+  ≤ 1.3.3) respondía SIN autenticación, inyectaba el `training_uid` en el `criteria` y tenía XSS. Mario lo
+  reemplazó por un aviso que responde **410** ("actualiza el plugin") y rotó las claves de Zoho. Ojo con
+  el **caché dinámico de SiteGround** en onlineeducation.center (`x-proxy-cache`): cachea las respuestas
+  200 de `connections/` que no manden `Cache-Control: no-store` — la página vieja con datos siguió
+  saliendo del caché hasta vaciarlo. `partner-contacts.php` y `google/callback.php` mandan `no-store`
+  (verificado: siempre MISS); todo endpoint nuevo ahí tiene que mandarlo también.
 - Probar sin loguearse al navegador: el endpoint se levanta con `php -S` + `zoho-config.php` de prueba,
   y un mu-plugin temporal con el filtro `oec_zoho_contacts_endpoint`. **Ojo**: `download_csv()` hace
   `exit` → si se llama desde un script, vuelca el CSV (con datos personales) a la salida; probar
@@ -2276,6 +2278,14 @@ cada persona es su email en minúsculas o, sin email, `tel:<dígitos>`.
   inscribió" y "No le interesa" no se eligen solos para el email. Filtro por estado arriba.
 - En celular (≤700 px) la tabla pasa a tarjetas, para que los botones de llamar/WhatsApp queden a la vista.
 - NO se muestran las sub-etapas de Zoho (`HP - Teléfono`…) al socio: decisión de Mario.
+- **WhatsApp en serie** (2026-10-30, botón junto a "Enviar email"): toma la lista que se está viendo
+  (filtro "Mostrar"), solo con teléfono usable, sin "Se inscribió"/"No le interesa" y, por defecto, sin
+  quienes ya tienen un WhatsApp anotado. Pantalla previa con el mensaje de la primera persona y "Abrir
+  en": WhatsApp Web (`web.whatsapp.com/send`, siempre en la misma pestaña, `target="oec_wa"`) o la app
+  (`whatsapp://send`; default en pantallas táctiles, preferencia en `localStorage` `oec_st_wa_how`).
+  Después, una tarjeta por persona (mismo patrón que el email uno por uno): cada clic anota un evento `wa`.
+  Ojo: `logEvent()` solo redibuja la lista si se está viendo la lista (`curView`); antes la respuesta
+  pisaba la tarjeta de la serie (afectaba también al email uno por uno).
 
 **v1.4.0** (2026-09-29): Estadísticas desde Zoho + íconos alineados en wp-admin → Contáctenos. Gotcha de
 wp-admin: un `.dashicons` dentro de `.button` hereda el `line-height` del botón (34 px) y el glifo se
@@ -2689,9 +2699,14 @@ Causa: `/formacion/{slug}-t-XXXXXXXXXXXXXX` con un ID que la API no conoce rende
    de ventas de OEC + monto de la formación) — ver "Sección de Contacto
    — chat anónimo hardcodeado + reglas por precio" para el detalle
    completo y la tabla de verdad.
-7. Estadísticas desde Zoho (ver su sección): subir `server/zoho/partner-contacts.php`
-   + `zoho-config.php` a onlineeducation.center, probar, sacar `list-deals.php` y
-   rotar las claves de Zoho.
+7. ~~Estadísticas desde Zoho: subir el endpoint, sacar `list-deals.php`, rotar las claves~~ — resuelto
+   2026-10-30.
+8. Verificación de la app de Google ("Conectar con Google"): textos y guion en
+   `server/google/VERIFICACION.md`. **Enviada el 2026-10-30**: marca verificada (sin logo: con logo Google
+   la objetó), app "En producción", acceso a los datos (`gmail.send`) en revisión. En el cuestionario se
+   respondió "No" a "¿complemento de SMTP de Gmail para admins de WordPress?" (no reemplaza `wp_mail`, usa
+   la API, un solo cliente para todos los socios). Mientras tanto: aviso de "app no verificada" y tope de
+   100 usuarios, sin vencimiento a los 7 días. Google responde al email del desarrollador.
 
 ## v1.4.22 — chat directo: mensaje inicial y burbuja (2026-10-08)
 

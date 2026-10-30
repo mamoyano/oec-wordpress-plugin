@@ -230,6 +230,12 @@ if (!class_exists('OEC_Stats')) {
                 .oec-st-serial .button-hero { display: inline-flex; align-items: center; gap: 6px; margin: 14px 0 6px; white-space: normal; text-align: center; }
                 .oec-st-serial .button-hero .dashicons { font-size: 20px; width: 20px; height: 20px; line-height: 20px; }
                 .oec-st-serial .button-link { display: block; margin: 0 auto 8px; }
+                .oec-st-serial .button-hero.oec-st-wa-go { background: #1a8d48; border-color: #1a8d48; color: #fff; }
+                .oec-st-serial .button-hero.oec-st-wa-go:hover, .oec-st-serial .button-hero.oec-st-wa-go:focus-visible { background: #15753b; border-color: #15753b; }
+                #oec-st-wa-serial .dashicons { color: #1a8d48; }
+                .oec-st-wa-msg { white-space: pre-wrap; overflow-wrap: anywhere; text-align: left; background: #f0fdf4; border: 1px solid #d5f0de; border-radius: 10px; padding: 10px 14px; margin: 12px 0; font-size: 13.5px; line-height: 1.5; color: #1d2327; }
+                .oec-st-wa-opts { display: flex; flex-direction: column; gap: 8px; align-items: center; margin: 14px 0 4px; font-size: 13px; }
+                .oec-st-wa-opts label { display: inline-flex; gap: 6px; align-items: center; }
                 .oec-st-prev { border: 1px solid #dcdcde; border-radius: 10px; background: #fff; display: flex; flex-direction: column; min-height: 100%; }
                 .oec-st-prev-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #f0f0f1; font-size: 12px; color: #646970; }
                 .oec-st-prev-head button { padding: 0 6px; min-height: 26px; line-height: 24px; }
@@ -375,6 +381,7 @@ if (!class_exists('OEC_Stats')) {
                         <div class="oec-st-dlg-actions">
                             <span id="oec-st-list-actions" style="display:contents;">
                                 <button type="button" class="button button-primary" id="oec-st-write" disabled><span class="dashicons dashicons-email-alt"></span> <span>Enviar email</span></button>
+                                <button type="button" class="button" id="oec-st-wa-serial" disabled><span class="dashicons dashicons-whatsapp"></span> <span>WhatsApp en serie</span></button>
                                 <button type="button" class="button" id="oec-st-copy" disabled><span class="dashicons dashicons-admin-page"></span> Copiar emails</button>
                                 <a class="button" id="oec-st-csv" href="#"><span class="dashicons dashicons-download"></span> Descargar CSV</a>
                             </span>
@@ -389,7 +396,7 @@ if (!class_exists('OEC_Stats')) {
                         <button type="button" class="button button-small" id="oec-st-wa-edit"><span class="dashicons dashicons-whatsapp"></span> Mensaje de WhatsApp</button>
                     </div>
                     <div class="oec-st-wapanel" id="oec-st-wa-panel" hidden>
-                        <label for="oec-st-wa-text">Mensaje que se arma al tocar WhatsApp en cada persona</label>
+                        <label for="oec-st-wa-text">Mensaje que se arma al abrir WhatsApp para cada persona (en la lista y en serie)</label>
                         <textarea id="oec-st-wa-text" rows="3"></textarea>
                         <p class="oec-st-hint">Variables: {nombre} {apellido} {email} {telefono} {pais} {formacion} {link}. Antes de enviarlo lo puedes cambiar en WhatsApp.</p>
                         <p><button type="button" class="button button-primary" id="oec-st-wa-save">Guardar</button> <button type="button" class="button" id="oec-st-wa-cancel">Cancelar</button> <span id="oec-st-wa-flash" class="oec-st-hint"></span></p>
@@ -491,8 +498,9 @@ if (!class_exists('OEC_Stats')) {
                 var backBtn = document.getElementById('oec-st-back');
                 var filterSel = document.getElementById('oec-st-filter');
                 var waPanel = document.getElementById('oec-st-wa-panel');
+                var waSerialBtn = document.getElementById('oec-st-wa-serial');
                 var mail = <?php echo wp_json_encode(self::mail_config()); ?>;
-                var emails = [], contacts = [], ctx = null, picked = {}, poll = null;
+                var emails = [], contacts = [], ctx = null, picked = {}, poll = null, curView = 'list';
 
                 function el(tag, attrs, text) {
                     var n = document.createElement(tag);
@@ -511,6 +519,7 @@ if (!class_exists('OEC_Stats')) {
                 function lastEmail(c) { return [c.sent, c.last_mail].filter(Boolean).sort().pop() || null; }
                 function view(which) {
                     var list = which === 'list';
+                    curView = which;
                     listActions.style.display = list ? 'contents' : 'none';
                     backBtn.style.display = list ? 'none' : ''; // .button le gana al atributo hidden
                     selbar.hidden = !list || !contacts.length;
@@ -551,7 +560,8 @@ if (!class_exists('OEC_Stats')) {
                         if (!res || !res.success) return;
                         c[{ wa: 'last_wa', call: 'last_call', mail: 'last_mail' }[type]] = res.data.at;
                         if (!c.status) c.status = 'contactado';
-                        refresh();
+                        if (curView === 'list') refresh(); // en una serie, la tarjeta se redibuja sola
+
                     });
                 }
                 function saveContact(c, data, done) {
@@ -676,7 +686,7 @@ if (!class_exists('OEC_Stats')) {
                 }
                 function refresh() { var y = body.scrollTop; showList(); body.scrollTop = y; }
                 function loadContacts() {
-                    emails = []; contacts = []; picked = {}; copyBtn.disabled = true; writeBtn.disabled = true;
+                    emails = []; contacts = []; picked = {}; copyBtn.disabled = true; writeBtn.disabled = true; waSerialBtn.disabled = true;
                     view('list'); selbar.hidden = true;
                     msg('Cargando contactos…');
                     post({ action: 'oec_stats_contacts', id: ctx.id, edition: ctx.edition, stage: ctx.stage }).then(function (res) {
@@ -686,6 +696,7 @@ if (!class_exists('OEC_Stats')) {
                         if (!contacts.length) { msg('No hay contactos en esta etapa.'); return; }
                         emails = contacts.map(function (c) { return c.email; }).filter(Boolean);
                         copyBtn.disabled = !emails.length;
+                        waSerialBtn.disabled = !contacts.some(function (c) { return c.phone_e164; });
                         autoPick();
                         showList();
                     }).catch(function () { msg('No se pudieron cargar los contactos.'); });
@@ -931,6 +942,89 @@ if (!class_exists('OEC_Stats')) {
                     draw();
                 }
 
+                /**
+                 * WhatsApp en serie: la gente de la lista que se está viendo (filtro "Mostrar") que tiene
+                 * teléfono, una tarjeta por persona con el mensaje armado. WhatsApp Web se abre siempre en
+                 * la misma pestaña (target "oec_wa"); la app, con whatsapp://.
+                 */
+                function waUrl(how, c) {
+                    var t = encodeURIComponent(fill(mail.wa, varsFor(c)));
+                    return how === 'app' ? 'whatsapp://send?phone=' + c.phone_e164 + '&text=' + t : 'https://web.whatsapp.com/send?phone=' + c.phone_e164 + '&text=' + t;
+                }
+                function waIntro() {
+                    view('wa');
+                    var base = filtered().filter(function (c) { return c.phone_e164 && !STATUS_OFF[c.status]; });
+                    var box = el('div', { 'class': 'oec-st-progress oec-st-serial' });
+                    box.appendChild(el('h3', null, 'WhatsApp en serie'));
+                    box.appendChild(el('p', null, 'Se abre WhatsApp con el mensaje ya escrito para cada persona: lo envías y vuelves acá para pasar a la siguiente.'));
+                    var count = box.appendChild(el('p', { 'class': 'oec-st-dim' }));
+                    var opts = box.appendChild(el('div', { 'class': 'oec-st-wa-opts' }));
+                    var skipL = opts.appendChild(el('label'));
+                    var skip = skipL.appendChild(el('input', { type: 'checkbox' }));
+                    skip.checked = true;
+                    skipL.appendChild(document.createTextNode('No incluir a quienes ya les escribí por WhatsApp'));
+                    var howL = opts.appendChild(el('label', null, 'Abrir en '));
+                    var how = howL.appendChild(el('select'));
+                    how.append(el('option', { value: 'web' }, 'WhatsApp Web (navegador)'), el('option', { value: 'app' }, 'La app de WhatsApp'));
+                    how.value = pref('wa_how') || (window.matchMedia && matchMedia('(pointer: coarse)').matches ? 'app' : 'web');
+                    how.addEventListener('change', function () { pref('wa_how', how.value); });
+                    var prev = box.appendChild(el('div', { 'class': 'oec-st-wa-msg' }));
+                    box.appendChild(el('p', { 'class': 'oec-st-hint' }, 'Así le llega a la primera persona. El texto se cambia con "Mensaje de WhatsApp", arriba de la lista.'));
+                    var go = box.appendChild(el('button', { type: 'button', 'class': 'button button-primary button-hero oec-st-wa-go' }));
+                    function list() { return base.filter(function (c) { return !(skip.checked && c.last_wa); }); }
+                    function upd() {
+                        var l = list(), off = filtered().filter(function (c) { return c.phone_e164 && STATUS_OFF[c.status]; }).length;
+                        count.textContent = l.length + (l.length === 1 ? ' persona' : ' personas') + ' con teléfono' + (filterSel.value !== 'all' ? ' (con el filtro "' + filterSel.options[filterSel.selectedIndex].text.replace(/ \(\d+\)$/, '') + '")' : '') + '.' + (off ? ' No se incluyen las que ya se inscribieron o no les interesa.' : '');
+                        prev.textContent = l.length ? fill(mail.wa, varsFor(l[0])) : '';
+                        prev.style.display = l.length ? '' : 'none';
+                        go.disabled = !l.length;
+                        go.replaceChildren(icon('whatsapp'), document.createTextNode(' Empezar (' + l.length + ')'));
+                    }
+                    skip.addEventListener('change', upd);
+                    go.addEventListener('click', function () { waSerial(list(), how.value); });
+                    upd();
+                    body.replaceChildren(box);
+                }
+                function waSerial(list, how) {
+                    var i = 0, opened = 0;
+                    function draw() {
+                        var box = el('div', { 'class': 'oec-st-progress oec-st-serial' });
+                        var bar = el('div', { 'class': 'oec-st-bar' });
+                        bar.appendChild(el('span', { style: 'width:' + Math.round(i * 100 / list.length) + '%' }));
+                        if (i >= list.length) {
+                            box.append(el('h3', null, '¡Listo!'), bar, el('p', null, opened + (opened === 1 ? ' chat abierto' : ' chats abiertos') + ' en WhatsApp. Quedaron anotados en "Último contacto".'));
+                            box.appendChild(el('p', { 'class': 'oec-st-dim' }, 'En unos días, marca a quienes no respondieron como "No responde" para volver a intentarlo.'));
+                            var back = box.appendChild(el('button', { type: 'button', 'class': 'button button-primary' }, 'Volver a la lista'));
+                            back.addEventListener('click', showList);
+                            body.replaceChildren(box);
+                            return;
+                        }
+                        var c = list[i], v = varsFor(c);
+                        box.append(el('p', { 'class': 'oec-st-dim' }, 'Persona ' + (i + 1) + ' de ' + list.length), bar);
+                        box.appendChild(el('h3', null, niceCase(c.name) || ('+' + c.phone_e164)));
+                        box.appendChild(el('p', null, '+' + c.phone_e164 + (c.country ? ' · ' + countryName(c.country) : '')));
+                        if (c.note) box.appendChild(el('p', { 'class': 'oec-st-dim' }, 'Nota: ' + c.note));
+                        box.appendChild(el('div', { 'class': 'oec-st-wa-msg' }, fill(mail.wa, v)));
+                        var attrs = { 'class': 'button button-primary button-hero oec-st-wa-go', href: waUrl(how, c) };
+                        if (how !== 'app') { attrs.target = 'oec_wa'; attrs.rel = 'noopener'; }
+                        var go = box.appendChild(el('a', attrs));
+                        go.append(icon('whatsapp'), document.createTextNode(' Abrir WhatsApp de ' + (v.nombre || ('+' + c.phone_e164))));
+                        go.addEventListener('click', function () {
+                            opened++;
+                            logEvent(c, 'wa');
+                            i++;
+                            setTimeout(draw, 300); // que el navegador abra el link antes de cambiar la tarjeta
+                        });
+                        var skipB = box.appendChild(el('button', { type: 'button', 'class': 'button button-link' }, 'Saltar a la siguiente'));
+                        skipB.addEventListener('click', function () { i++; draw(); });
+                        box.appendChild(el('p', { 'class': 'oec-st-dim' }, how === 'app'
+                            ? 'Se abre la app de WhatsApp con el mensaje escrito: revísalo, toca Enviar y vuelve acá.'
+                            : 'Se abre WhatsApp Web en otra pestaña (siempre la misma) con el mensaje escrito: revísalo, toca Enviar y vuelve acá.'));
+                        body.replaceChildren(box);
+                    }
+                    draw();
+                }
+
                 function progress(cid, p) {
                     var box = el('div', { 'class': 'oec-st-progress' });
                     var h = box.appendChild(el('h3'));
@@ -965,6 +1059,7 @@ if (!class_exists('OEC_Stats')) {
                 }
 
                 writeBtn.addEventListener('click', compose);
+                waSerialBtn.addEventListener('click', waIntro);
                 backBtn.addEventListener('click', function () {
                     if (poll) { clearTimeout(poll); poll = null; }
                     if (body.querySelector('.oec-st-progress:not(.oec-st-serial)')) loadContacts(); else showList();
