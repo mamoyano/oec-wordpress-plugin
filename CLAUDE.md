@@ -2165,7 +2165,20 @@ OEC comparta sus datos con el socio educativo.
   `exit` → si se llama desde un script, vuelca el CSV (con datos personales) a la salida; probar
   `OEC_Stats::write_csv()` sobre `php://memory` y contar filas.
 
-**Enviar email a los contactos** (v1.5.0, 2026-10-29): `includes/class-oec-mailer.php`
+**Envío de email desde el correo del socio (v1.5.4, 2026-10-30) — REEMPLAZA a lo de abajo**: Google NO
+acepta contraseñas de aplicación desde servidores (probado: SiteGround y Cloudways dan `535 5.7.8` con una
+contraseña que desde la Mac de Mario funciona; el chequeo directo por socket confirmó que responde Google).
+Mario descartó enviar por Elastic Email/OEC (cuida la reputación) y por SMTP (los socios no son técnicos).
+Ahora: el socio redacta (plantillas, variables, vista previa) y toca "Empezar (N)" → una tarjeta por persona
+con "Abrir email para X en Gmail" (`mail.google.com/mail/?view=cm&fs=1&to=&su=&body=&authuser=`), Outlook
+(`outlook.office.com/mail/deeplink/compose`) o `mailto:` (preferencia y cuenta en `localStorage`). Cada clic
+se registra como evento `mail` de `OEC_Contacts` (columna "Último contacto", estado "Contactado"). Sin
+envío automático, sin caja de Gmail en Configuración; `OEC_Mailer` quedó con plantillas, historial y bajas.
+La migración (`oec_mail_db_version` 1 → 2) borra la contraseña guardada, el cron y marca lo encolado como
+`skipped`. **Pendiente**: "Conectar con Google" (OAuth + API de Gmail, app de OEC verificada por Google)
+para volver al envío automático desde el Gmail del socio; el código de la cola está en git (v1.5.0–v1.5.3).
+
+**(Historia) Enviar email a los contactos** (v1.5.0, 2026-10-29): `includes/class-oec-mailer.php`
 (`OEC_Mailer`, se inicia también fuera de wp-admin: cron y link de baja).
 - **Gmail integrado** (OEC → Configuración, caja "Enviar desde tu Gmail", `#oec-gmail`): email +
   contraseña de aplicación (cifrada AES-256-GCM con `wp_salt('auth')`; si cambian las salts hay que

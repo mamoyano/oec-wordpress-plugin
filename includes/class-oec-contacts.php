@@ -2,14 +2,14 @@
 /**
  * Seguimiento de los contactos de Estadísticas: teléfono normalizado (para
  * WhatsApp y llamadas), estado y nota que elige el socio, y registro de cada
- * WhatsApp/llamada que abre desde la ventana de contactos.
+ * WhatsApp, llamada o email que abre desde la ventana de contactos.
  *
  * Todo es por formación: la misma persona puede estar "Interesada" en una y
  * "No le interesa" en otra. La clave de cada persona es su email (en
  * minúsculas) o, si no tiene, su teléfono normalizado ("tel:5491150084412").
  *
  * Tablas por sitio: oec_contact_state (estado + nota) y oec_contact_events
- * (WhatsApp/llamadas). Los emails ya quedan en oec_mail_queue (OEC_Mailer).
+ * (wa / call / mail). Los envíos automáticos de v1.5.0–1.5.3 están en oec_mail_queue.
  */
 if (!class_exists('OEC_Contacts')) {
     class OEC_Contacts {
@@ -136,8 +136,9 @@ if (!class_exists('OEC_Contacts')) {
                 $c['note']      = $state[$k]['note'] ?? '';
                 $c['last_wa']   = $events[$k]['wa']['at'] ?? null;
                 $c['last_call'] = $events[$k]['call']['at'] ?? null;
+                $c['last_mail'] = $events[$k]['mail']['at'] ?? null;
                 // Alguien a quien ya se le escribió o llamó y no tiene estado: "Contactado".
-                if ($c['status'] === '' && ($c['last_wa'] || $c['last_call'] || !empty($c['sent']))) $c['status'] = 'contactado';
+                if ($c['status'] === '' && ($c['last_wa'] || $c['last_call'] || $c['last_mail'] || !empty($c['sent']))) $c['status'] = 'contactado';
             }
             unset($c);
             return $contacts;
@@ -163,11 +164,11 @@ if (!class_exists('OEC_Contacts')) {
             return [$uid, $key];
         }
 
-        /** Se abrió WhatsApp o se tocó "Llamar" para esta persona. */
+        /** Se abrió WhatsApp, se tocó "Llamar" o se abrió el email armado para esta persona. */
         public static function ajax_event() {
             self::require_ajax_admin();
             [$uid, $key] = self::post_target();
-            $type = in_array($_POST['type'] ?? '', ['wa', 'call'], true) ? $_POST['type'] : '';
+            $type = in_array($_POST['type'] ?? '', ['wa', 'call', 'mail'], true) ? $_POST['type'] : '';
             if (!$type) wp_send_json_error(null, 400);
             global $wpdb;
             $now = current_time('mysql', true);

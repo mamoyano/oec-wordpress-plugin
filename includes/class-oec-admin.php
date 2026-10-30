@@ -189,13 +189,6 @@ if (!class_exists('OEC_Admin')) {
                 echo '<div class="updated" style="margin: 20px 0;"><p>Caché actualizado. Las fichas, listados y colores se vuelven a pedir a la API en la próxima visita.</p></div>';
             }
 
-            // 0b. CAJA "ENVIAR DESDE TU GMAIL"
-            if ((isset($_POST['oec_gmail_save']) || isset($_POST['oec_gmail_remove'])) && check_admin_referer('oec_gmail_action', 'oec_gmail_nonce') && class_exists('OEC_Mailer')) {
-                $gm_msg = OEC_Mailer::save_settings($_POST);
-                $gm_bad = strpos($gm_msg, 'No se guardó') !== false || strpos($gm_msg, 'no es válido') !== false;
-                echo '<div class="' . ($gm_bad ? 'error' : 'updated') . '" style="margin: 20px 0;"><p>' . esc_html($gm_msg) . '</p></div>';
-            }
-
             // 1. PROCESAR GUARDADO MANUAL
             if (isset($_POST['oec_save'])) {
                 update_option('oec_token', sanitize_text_field($_POST['oec_token']));
@@ -408,99 +401,6 @@ if (!class_exists('OEC_Admin')) {
                             </form>
                         </div>
                     </div>
-
-                    <hr style="margin: 40px 0;">
-
-                    <?php if (class_exists('OEC_Mailer')) :
-                        $gm_user  = get_option('oec_gmail_user', '');
-                        $gm_ready = OEC_Mailer::gmail() !== null;
-                        $gm_saved = (bool) get_option('oec_gmail_pass', '');
-                        $gm_other = OEC_Mailer::other_smtp_plugin();
-                        $gm_err   = get_option('oec_mail_last_error');
-                    ?>
-                    <div style="width: 100%;" id="oec-gmail">
-                        <div style="background: #fff; padding: 30px; border: 1px solid #ccd0d4; border-radius: 4px;">
-                            <h2 style="margin-top:0;">Enviar emails desde tu Gmail</h2>
-                            <p class="description" style="margin-bottom: 16px; max-width: 800px;">
-                                Los emails que envíes a tus contactos desde <a href="<?php echo esc_url(admin_url('admin.php?page=oec-stats')); ?>">Estadísticas</a>
-                                (y las consultas de tus formaciones) salen desde tu casilla de Gmail o Google Workspace: llegan mejor y las respuestas te
-                                llegan directo. Solo se usa para los emails de este plugin; el resto del correo de tu sitio no cambia.
-                            </p>
-                            <?php if ($gm_ready) : ?>
-                                <p style="color:#1a7a33; font-weight:600;"><span class="dashicons dashicons-yes-alt"></span> Conectado: los emails salen desde <?php echo esc_html($gm_user); ?>.</p>
-                            <?php elseif ($gm_user && $gm_saved) : ?>
-                                <p style="color:#b32d2e; font-weight:600;"><span class="dashicons dashicons-warning"></span> No se pudo leer la contraseña guardada. Vuelve a ingresarla.</p>
-                            <?php elseif ($gm_other) : ?>
-                                <p style="color:#50575e;"><span class="dashicons dashicons-info"></span> Tu sitio ya envía emails con <?php echo esc_html($gm_other); ?>. Si no configuras tu Gmail acá, los emails del plugin salen por ahí.</p>
-                            <?php endif; ?>
-                            <?php if ($gm_ready && is_array($gm_err) && ($gm_err['at'] ?? 0) > time() - DAY_IN_SECONDS) : ?>
-                                <p style="color:#b32d2e;"><span class="dashicons dashicons-warning"></span> Último error (<?php echo esc_html(human_time_diff($gm_err['at'])); ?>): <?php echo esc_html($gm_err['message']); ?></p>
-                            <?php endif; ?>
-
-                            <details <?php echo $gm_ready ? '' : 'open'; ?> style="margin: 0 0 16px; max-width: 800px; background: #f6f7f7; border-radius: 6px; padding: 12px 16px;">
-                                <summary style="cursor: pointer; font-weight: 600;">Cómo conseguir tu contraseña de aplicación (2 minutos)</summary>
-                                <ol style="margin: 12px 0 4px 20px; line-height: 1.6;">
-                                    <li>Tu cuenta de Google necesita tener activada la <a href="https://myaccount.google.com/signinoptions/twosv" target="_blank" rel="noopener">verificación en 2 pasos</a>.</li>
-                                    <li>Entra a <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener"><strong>myaccount.google.com/apppasswords</strong></a>, escribe un nombre (por ejemplo, "Sitio web") y toca <strong>Crear</strong>.</li>
-                                    <li>Google te muestra una contraseña de 16 letras. Cópiala y pégala abajo. No es tu contraseña de Gmail: sirve solo para esto y la puedes borrar cuando quieras.</li>
-                                </ol>
-                                <p class="description" style="margin: 6px 0 0;">Si usas Google Workspace y no ves esa opción, pídele a quien administra tu cuenta que habilite las contraseñas de aplicación.</p>
-                            </details>
-
-                            <form method="post">
-                                <?php wp_nonce_field('oec_gmail_action', 'oec_gmail_nonce'); ?>
-                                <table class="form-table">
-                                    <tr>
-                                        <th scope="row"><label for="oec_gmail_user">Tu Gmail</label></th>
-                                        <td><input type="email" id="oec_gmail_user" name="oec_gmail_user" value="<?php echo esc_attr($gm_user); ?>" class="regular-text" placeholder="tunombre@gmail.com" autocomplete="off"></td>
-                                    </tr>
-                                    <tr>
-                                        <th scope="row"><label for="oec_gmail_pass">Contraseña de aplicación</label></th>
-                                        <td>
-                                            <input type="password" id="oec_gmail_pass" name="oec_gmail_pass" value="" class="regular-text" placeholder="<?php echo $gm_saved ? 'Guardada · escribe una nueva para cambiarla' : 'abcd efgh ijkl mnop'; ?>" autocomplete="new-password">
-                                            <p class="description">Se guarda cifrada y no se vuelve a mostrar.</p>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th scope="row"><label for="oec_gmail_name">Nombre del remitente</label></th>
-                                        <td><input type="text" id="oec_gmail_name" name="oec_gmail_name" value="<?php echo esc_attr(get_option('oec_gmail_name', '')); ?>" class="regular-text" placeholder="<?php echo esc_attr(get_bloginfo('name')); ?>"></td>
-                                    </tr>
-                                    <tr>
-                                        <th scope="row"><label for="oec_mail_daily_limit">Máximo de emails por día</label></th>
-                                        <td>
-                                            <input type="number" id="oec_mail_daily_limit" name="oec_mail_daily_limit" value="<?php echo intval(OEC_Mailer::daily_limit()); ?>" min="1" max="2000" style="width: 90px;">
-                                            <p class="description">Gmail permite unos 500 por día (Google Workspace, 2.000). Lo que pase el límite sale al día siguiente.</p>
-                                        </td>
-                                    </tr>
-                                </table>
-                                <p style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
-                                    <?php submit_button('Guardar', 'primary', 'oec_gmail_save', false); ?>
-                                    <button type="button" class="button" id="oec-gmail-test">Enviarme un email de prueba</button>
-                                    <?php if ($gm_user) : ?>
-                                        <button type="submit" name="oec_gmail_remove" value="1" class="button button-link-delete" onclick="return confirm('¿Quitar el Gmail? Los emails van a salir con el correo del sitio.');">Quitar Gmail</button>
-                                    <?php endif; ?>
-                                    <span id="oec-gmail-test-msg" style="font-size: 13px;"></span>
-                                </p>
-                            </form>
-                            <script>
-                            (function () {
-                                var b = document.getElementById('oec-gmail-test'), m = document.getElementById('oec-gmail-test-msg');
-                                b.addEventListener('click', function () {
-                                    b.disabled = true; m.style.color = '#50575e'; m.textContent = 'Enviando…';
-                                    fetch(<?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>, { method: 'POST', credentials: 'same-origin', body: new URLSearchParams({ action: 'oec_mail_test', nonce: <?php echo wp_json_encode(wp_create_nonce('oec_mail')); ?>, user: document.getElementById('oec_gmail_user').value, pass: document.getElementById('oec_gmail_pass').value, name: document.getElementById('oec_gmail_name').value }) })
-                                        .then(function (r) { return r.json(); })
-                                        .then(function (res) {
-                                            m.style.color = res.success ? '#1a7a33' : '#b32d2e'; m.textContent = (res.data && res.data.message) || 'No se pudo enviar.';
-                                            if (res.success && res.data.saved) { var p = document.getElementById('oec_gmail_pass'); p.value = ''; p.placeholder = 'Guardada · escribe una nueva para cambiarla'; }
-                                        })
-                                        .catch(function () { m.style.color = '#b32d2e'; m.textContent = 'No se pudo enviar.'; })
-                                        .then(function () { b.disabled = false; });
-                                });
-                            })();
-                            </script>
-                        </div>
-                    </div>
-                    <?php endif; ?>
 
                     <hr style="margin: 40px 0;">
 

@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.5.3
+Version: 1.5.4
 Author: Online Education Center
 */
 
@@ -1251,7 +1251,7 @@ if (is_admin()) {
     OEC_Stats::init();
 }
 
-OEC_Mailer::init(); // también fuera de wp-admin: cron y link de baja
+OEC_Mailer::init(); // también fuera de wp-admin: link de baja
 if (is_admin()) OEC_Contacts::init();
 new OEC_Shortcodes();
 new OEC_Ajax();

@@ -167,7 +167,6 @@ if (!class_exists('OEC_Stats')) {
                 .oec-st-table .oec-st-col-chk { width: 28px; padding-right: 0; }
                 .oec-st-mailtag { display: inline-block; font-size: 11px; line-height: 1; padding: 4px 7px; border-radius: 20px; background: #f0f0f1; color: #50575e; white-space: nowrap; }
                 .oec-st-mailtag--sent { background: #edfaef; color: #1a7a33; }
-                .oec-st-mailtag--queued { background: #fcf9e8; color: #8a6d00; }
                 .oec-st-mailtag--unsub { background: #fcf0f1; color: #b32d2e; }
                 .oec-st-selbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding: 10px 20px; background: #f6f7f7; border-bottom: 1px solid #f0f0f1; font-size: 12.5px; color: #50575e; }
                 .oec-st-selbar[hidden], .oec-st-wapanel[hidden] { display: none; }
@@ -218,15 +217,19 @@ if (!class_exists('OEC_Stats')) {
                 .oec-st-from .dashicons { flex: 0 0 auto; margin-top: 1px; }
                 .oec-st-from--ok { background: #edfaef; color: #1a3d1f; }
                 .oec-st-from--warn { background: #fcf9e8; color: #6b4c00; }
+                .oec-st-from--info { background: #f0f6fc; color: #1d2327; }
+                .oec-st-from--info .dashicons { color: #2271b1; }
+                .oec-st-serial h3 { margin: 18px 0 2px; }
+                .oec-st-serial .button-hero { display: inline-flex; align-items: center; gap: 6px; margin: 14px 0 6px; white-space: normal; text-align: center; }
+                .oec-st-serial .button-hero .dashicons { font-size: 20px; width: 20px; height: 20px; line-height: 20px; }
+                .oec-st-serial .button-link { display: block; margin: 0 auto 8px; }
                 .oec-st-prev { border: 1px solid #dcdcde; border-radius: 10px; background: #fff; display: flex; flex-direction: column; min-height: 100%; }
                 .oec-st-prev-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #f0f0f1; font-size: 12px; color: #646970; }
                 .oec-st-prev-head button { padding: 0 6px; min-height: 26px; line-height: 24px; }
                 .oec-st-prev-subj { padding: 12px 16px 0; font-weight: 600; font-size: 15px; color: #1d2327; }
                 .oec-st-prev-body { padding: 4px 16px 16px; font-size: 14px; line-height: 1.55; color: #1f2937; overflow-wrap: anywhere; }
                 .oec-st-prev-body p { margin: 10px 0; font-size: 14px; }
-                .oec-st-prev-foot { margin-top: 24px; padding-top: 10px; border-top: 1px solid #e5e7eb; font-size: 11.5px; color: #6b7280; }
                 .oec-st-compose-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; border-top: 1px solid #f0f0f1; padding-top: 14px; }
-                .oec-st-compose-actions .oec-st-note { margin-right: auto; font-size: 12px; color: #646970; }
                 .oec-st-flash { font-size: 12.5px; }
                 .oec-st-flash.is-ok { color: #1a7a33; }
                 .oec-st-flash.is-err { color: #b32d2e; }
@@ -234,7 +237,6 @@ if (!class_exists('OEC_Stats')) {
                 .oec-st-progress h3 { margin: 0 0 14px; font-size: 18px; }
                 .oec-st-progress .oec-st-bar { height: 10px; margin: 0 0 12px; }
                 .oec-st-progress p { color: #50575e; margin: 6px 0; }
-                .oec-st-progress .oec-st-err { color: #b32d2e; }
                 @media (max-width: 820px) { .oec-st-compose { grid-template-columns: 1fr; } }
                 /* Celular: cada persona es una tarjeta (los botones de llamar/WhatsApp, a la vista). */
                 @media (max-width: 700px) {
@@ -386,14 +388,17 @@ if (!class_exists('OEC_Stats')) {
                         <p><button type="button" class="button button-primary" id="oec-st-wa-save">Guardar</button> <button type="button" class="button" id="oec-st-wa-cancel">Cancelar</button> <span id="oec-st-wa-flash" class="oec-st-hint"></span></p>
                     </div>
                     <div class="oec-st-dlg-body" id="oec-st-dlg-body"></div>
-                    <div class="oec-st-dlg-foot">Estas personas aceptaron compartir sus datos con los organizadores de la formación. Úsalos solo para comunicaciones sobre ella. Cada email lleva un link para darse de baja. El CSV se puede importar en Google Sheets o en Google Contacts.</div>
+                    <div class="oec-st-dlg-foot">Estas personas aceptaron compartir sus datos con los organizadores de la formación. Úsalos solo para comunicaciones sobre ella. El CSV se puede importar en Google Sheets o en Google Contacts.</div>
                 </div>
             </dialog>
 
             <template id="oec-st-compose-tpl">
                 <div class="oec-st-compose">
                     <div>
-                        <div class="oec-st-from" data-from></div>
+                        <div class="oec-st-from oec-st-from--info">
+                            <span class="dashicons dashicons-info"></span>
+                            <span>Para cada persona se abre un email ya escrito en tu correo: lo revisas y tocas <strong>Enviar</strong>. Sale desde tu propia casilla, con tu nombre, y las respuestas te llegan ahí.</span>
+                        </div>
                         <div class="oec-st-field">
                             <label for="oec-st-tpl">Plantilla</label>
                             <div class="oec-st-row2">
@@ -403,10 +408,6 @@ if (!class_exists('OEC_Stats')) {
                             </div>
                         </div>
                         <div class="oec-st-field">
-                            <label for="oec-st-reply">Las respuestas llegan a</label>
-                            <input type="email" id="oec-st-reply">
-                        </div>
-                        <div class="oec-st-field">
                             <label for="oec-st-subject">Asunto</label>
                             <input type="text" id="oec-st-subject" maxlength="200">
                         </div>
@@ -414,7 +415,18 @@ if (!class_exists('OEC_Stats')) {
                             <label for="oec-st-body">Mensaje</label>
                             <div class="oec-st-vars" data-vars></div>
                             <textarea id="oec-st-body"></textarea>
-                            <p class="oec-st-hint">Toca una variable para insertarla: se reemplaza por el dato de cada persona. Los links se vuelven clickeables solos. Al pie se agrega el link para darse de baja.</p>
+                            <p class="oec-st-hint">Toca una variable para insertarla: se reemplaza por el dato de cada persona.</p>
+                        </div>
+                        <div class="oec-st-field">
+                            <label for="oec-st-client">Abrir en</label>
+                            <div class="oec-st-row2">
+                                <select id="oec-st-client">
+                                    <option value="gmail">Gmail</option>
+                                    <option value="outlook">Outlook / Microsoft 365</option>
+                                    <option value="mailto">Mi programa de correo (Apple Mail, Outlook de escritorio…)</option>
+                                </select>
+                            </div>
+                            <input type="email" id="oec-st-account" placeholder="Tu cuenta de Gmail (opcional, si tienes varias abiertas)" style="margin-top:8px;">
                         </div>
                     </div>
                     <div class="oec-st-prev">
@@ -427,9 +439,7 @@ if (!class_exists('OEC_Stats')) {
                         <div class="oec-st-prev-body" data-prev-body></div>
                     </div>
                     <div class="oec-st-compose-actions">
-                        <span class="oec-st-note" data-quota></span>
                         <span class="oec-st-flash" data-flash></span>
-                        <button type="button" class="button" data-test>Enviarme una prueba</button>
                         <button type="button" class="button button-primary" data-send></button>
                     </div>
                 </div>
@@ -475,7 +485,7 @@ if (!class_exists('OEC_Stats')) {
                 var filterSel = document.getElementById('oec-st-filter');
                 var waPanel = document.getElementById('oec-st-wa-panel');
                 var mail = <?php echo wp_json_encode(self::mail_config()); ?>;
-                var emails = [], contacts = [], ctx = null, picked = {}, poll = null;
+                var emails = [], contacts = [], ctx = null, picked = {};
 
                 function el(tag, attrs, text) {
                     var n = document.createElement(tag);
@@ -490,14 +500,14 @@ if (!class_exists('OEC_Stats')) {
                     return isNaN(d) ? '' : d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
                 }
                 var STATUS_OFF = { inscripto: 1, no_interesa: 1 }; // no se eligen solos para el email
-                function canMail(c) { return !!c.email && !c.unsub && !c.queued; }
+                function canMail(c) { return !!c.email && !c.unsub; }
+                function lastEmail(c) { return [c.sent, c.last_mail].filter(Boolean).sort().pop() || null; }
                 function view(which) {
                     var list = which === 'list';
                     listActions.style.display = list ? 'contents' : 'none';
                     backBtn.style.display = list ? 'none' : ''; // .button le gana al atributo hidden
                     selbar.hidden = !list || !contacts.length;
                     if (!list) waPanel.hidden = true;
-                    if (poll && list) { clearTimeout(poll); poll = null; }
                 }
                 function updateSel() {
                     var n = Object.keys(picked).length;
@@ -508,7 +518,7 @@ if (!class_exists('OEC_Stats')) {
                 }
                 function autoPick() {
                     picked = {};
-                    contacts.forEach(function (c) { if (canMail(c) && !STATUS_OFF[c.status] && !(skipSent.checked && c.sent)) picked[c.email] = true; });
+                    contacts.forEach(function (c) { if (canMail(c) && !STATUS_OFF[c.status] && !(skipSent.checked && lastEmail(c))) picked[c.email] = true; });
                 }
                 function filtered() {
                     var f = filterSel.value;
@@ -531,7 +541,7 @@ if (!class_exists('OEC_Stats')) {
                 function logEvent(c, type) {
                     mailPost({ action: 'oec_contact_event', id: ctx.id, key: c.key, type: type }).then(function (res) {
                         if (!res || !res.success) return;
-                        c[type === 'wa' ? 'last_wa' : 'last_call'] = res.data.at;
+                        c[{ wa: 'last_wa', call: 'last_call', mail: 'last_mail' }[type]] = res.data.at;
                         if (!c.status) c.status = 'contactado';
                         refresh();
                     });
@@ -544,13 +554,12 @@ if (!class_exists('OEC_Stats')) {
                 }
                 function lastContactCell(c, td) {
                     if (c.unsub) td.appendChild(el('span', { 'class': 'oec-st-mailtag oec-st-mailtag--unsub' }, 'Se dio de baja'));
-                    if (c.queued) td.appendChild(el('span', { 'class': 'oec-st-mailtag oec-st-mailtag--queued' }, 'Email en cola'));
                     var ev = [
-                        { at: c.sent, ico: 'email-alt', txt: 'Email' + (c.sent_count > 1 ? ' (' + c.sent_count + ')' : '') },
+                        { at: lastEmail(c), ico: 'email-alt', txt: 'Email' },
                         { at: c.last_wa, ico: 'whatsapp', txt: 'WhatsApp' },
                         { at: c.last_call, ico: 'phone', txt: 'Llamada' }
                     ].filter(function (e) { return e.at; }).sort(function (a, b) { return a.at < b.at ? 1 : -1; });
-                    if (!ev.length) { if (!c.unsub && !c.queued) td.appendChild(el('span', { 'class': 'oec-st-dim' }, '—')); return; }
+                    if (!ev.length) { if (!c.unsub) td.appendChild(el('span', { 'class': 'oec-st-dim' }, '—')); return; }
                     var line = td.appendChild(el('span', { 'class': 'oec-st-last', title: ev.map(function (e) { return e.txt + ': ' + fmtDate(e.at); }).join('\n') }));
                     line.append(icon(ev[0].ico), document.createTextNode(fmtDate(ev[0].at)));
                     if (ev.length > 1) line.appendChild(el('span', { 'class': 'oec-st-dim' }, ' +' + (ev.length - 1)));
@@ -701,7 +710,7 @@ if (!class_exists('OEC_Stats')) {
                     loadContacts();
                 });
 
-                // --- Redactar y enviar ---
+                // --- Redactar y enviar desde el correo del socio ---
                 var countryName = (function () {
                     try { var dn = new Intl.DisplayNames(['es'], { type: 'region' }); return function (c) { try { return c && c.length === 2 ? dn.of(c.toUpperCase()) : (c || ''); } catch (e) { return c || ''; } }; }
                     catch (e) { return function (c) { return c || ''; }; }
@@ -732,7 +741,17 @@ if (!class_exists('OEC_Stats')) {
                             });
                         });
                     });
-                    box.appendChild(el('div', { 'class': 'oec-st-prev-foot' }, 'Recibes este email porque te interesaste en ' + ctx.title + '. No quiero recibir más emails de ' + mail.siteName + '.'));
+                }
+                // Preferencias de este navegador (dónde abrir el email y con qué cuenta).
+                function pref(k, v) {
+                    try { if (v === undefined) return localStorage.getItem('oec_st_' + k) || ''; localStorage.setItem('oec_st_' + k, v); } catch (e) { return ''; }
+                }
+                /** Link que abre el email ya escrito para una persona. */
+                function composeUrl(client, account, to, subject, text) {
+                    var e = encodeURIComponent;
+                    if (client === 'outlook') return 'https://outlook.office.com/mail/deeplink/compose?to=' + e(to) + '&subject=' + e(subject) + '&body=' + e(text);
+                    if (client === 'mailto') return 'mailto:' + e(to).replace(/%40/g, '@') + '?subject=' + e(subject) + '&body=' + e(text);
+                    return 'https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=' + e(to) + '&su=' + e(subject) + '&body=' + e(text) + (account ? '&authuser=' + e(account) : '');
                 }
 
                 function compose() {
@@ -742,20 +761,17 @@ if (!class_exists('OEC_Stats')) {
                     var node = document.getElementById('oec-st-compose-tpl').content.cloneNode(true);
                     body.replaceChildren(node);
                     var q = function (s) { return body.querySelector(s); };
-                    var from = q('[data-from]'), sel = q('#oec-st-tpl'), reply = q('#oec-st-reply'), subj = q('#oec-st-subject'), txt = q('#oec-st-body');
-                    var flash = q('[data-flash]'), sendBtn = q('[data-send]'), testBtn = q('[data-test]');
+                    var sel = q('#oec-st-tpl'), subj = q('#oec-st-subject'), txt = q('#oec-st-body');
+                    var client = q('#oec-st-client'), account = q('#oec-st-account');
+                    var flash = q('[data-flash]'), sendBtn = q('[data-send]');
                     var idx = 0, lastField = txt;
 
-                    if (mail.gmail) {
-                        from.className += ' oec-st-from--ok';
-                        from.append(el('span', { 'class': 'dashicons dashicons-yes-alt' }), el('span', null, 'Sale desde tu Gmail: ' + mail.gmail + '.'));
-                    } else {
-                        from.className += ' oec-st-from--warn';
-                        var w = el('span', null, mail.otherSmtp ? 'Sale con ' + mail.otherSmtp + ', el plugin de correo de tu sitio. ' : 'No configuraste tu Gmail: el email sale con el correo del sitio y es más probable que llegue a spam. ');
-                        w.appendChild(el('a', { href: mail.configUrl, target: '_blank' }, 'Configurar Gmail'));
-                        from.append(el('span', { 'class': 'dashicons dashicons-warning' }), w);
-                    }
-                    reply.value = mail.replyTo;
+                    client.value = pref('client') || 'gmail';
+                    account.value = pref('account');
+                    function syncClient() { account.style.display = client.value === 'gmail' ? '' : 'none'; }
+                    client.addEventListener('change', function () { pref('client', client.value); syncClient(); });
+                    account.addEventListener('change', function () { pref('account', account.value.trim()); });
+                    syncClient();
 
                     function fillTemplates(selKey) {
                         sel.replaceChildren(el('option', { value: '' }, '— Mensaje nuevo —'));
@@ -818,59 +834,52 @@ if (!class_exists('OEC_Stats')) {
                         b.addEventListener('click', function () { idx = (idx + Number(b.dataset.prev) + chosen.length) % chosen.length; preview(); });
                     });
                     function say(text, err) { flash.textContent = text; flash.className = 'oec-st-flash ' + (err ? 'is-err' : 'is-ok'); }
-                    function payload(extra) {
-                        return Object.assign({ subject: subj.value, body: txt.value, reply_to: reply.value, title: ctx.title, slug: ctx.slug }, extra);
-                    }
 
-                    var left = Math.max(0, mail.limit - mail.sentToday);
-                    q('[data-quota]').textContent = 'Hoy se enviaron ' + mail.sentToday + ' de ' + mail.limit + ' emails permitidos por día.' + (chosen.length > left ? ' Los que pasen el límite salen mañana.' : '');
-                    sendBtn.textContent = 'Enviar a ' + chosen.length + (chosen.length === 1 ? ' persona' : ' personas');
-
-                    testBtn.addEventListener('click', function () {
-                        testBtn.disabled = true; say('Enviando prueba…');
-                        mailPost(Object.assign(payload({ action: 'oec_mail_preview_test' }), { sample: JSON.stringify(chosen[idx]) })).then(function (res) {
-                            say(res && res.data && res.data.message || 'No se pudo enviar la prueba.', !(res && res.success));
-                        }).catch(function () { say('No se pudo enviar la prueba.', true); }).then(function () { testBtn.disabled = false; });
-                    });
+                    sendBtn.textContent = 'Empezar (' + chosen.length + (chosen.length === 1 ? ' persona)' : ' personas)');
                     sendBtn.addEventListener('click', function () {
                         if (!subj.value.trim() || !txt.value.trim()) return say('Completa el asunto y el mensaje.', true);
-                        if (!window.confirm('¿Enviar este email a ' + chosen.length + (chosen.length === 1 ? ' persona?' : ' personas?'))) return;
-                        sendBtn.disabled = true; testBtn.disabled = true; say('Preparando el envío…');
-                        mailPost(payload({ action: 'oec_mail_send', id: ctx.id, edition: ctx.edition, stage: ctx.stage, emails: JSON.stringify(chosen.map(function (c) { return c.email; })) })).then(function (res) {
-                            if (!res || !res.success) { sendBtn.disabled = false; testBtn.disabled = false; return say((res && res.data && res.data.message) || 'No se pudo iniciar el envío.', true); }
-                            progress(res.data.campaign, res.data.progress);
-                        }).catch(function () { sendBtn.disabled = false; testBtn.disabled = false; say('No se pudo iniciar el envío.', true); });
+                        serial(chosen, { subject: subj.value, body: txt.value, client: client.value, account: client.value === 'gmail' ? account.value.trim() : '' });
                     });
                     preview();
                     subj.focus();
                 }
 
-                function progress(cid, p) {
-                    var box = el('div', { 'class': 'oec-st-progress' });
-                    var h = box.appendChild(el('h3'));
-                    var bar = box.appendChild(el('div', { 'class': 'oec-st-bar' })).appendChild(el('span', { style: 'width:0%' }));
-                    var line = box.appendChild(el('p'));
-                    var err = box.appendChild(el('p', { 'class': 'oec-st-err' }));
-                    var note = box.appendChild(el('p', { 'class': 'oec-st-dim' }, 'Puedes cerrar esta ventana: el envío sigue en segundo plano.'));
-                    body.replaceChildren(box);
-                    function draw(p) {
-                        var total = p.sent + p.pending + p.failed + p.skipped, done = total - p.pending;
-                        bar.style.width = (total ? Math.round(done * 100 / total) : 100) + '%';
-                        line.textContent = p.sent + ' enviados' + (p.failed ? ' · ' + p.failed + ' con error' : '') + (p.skipped ? ' · ' + p.skipped + ' omitidos (se dieron de baja)' : '') + (p.pending ? ' · ' + p.pending + ' en espera' : '');
-                        err.textContent = p.error || (p.errors && p.errors.length ? 'Error: ' + p.errors.join(' · ') : '');
-                        if (!p.pending) { h.textContent = p.failed && !p.sent ? 'No se pudo enviar' : '¡Listo!'; note.textContent = ''; mail.sentToday += p.sent; return true; }
-                        if (p.paused) { h.textContent = 'Se alcanzó el límite de hoy'; note.textContent = 'Los que faltan salen mañana automáticamente.'; return true; }
-                        if (p.error) { h.textContent = 'El envío está en pausa'; note.textContent = 'Se reintenta solo en un rato. Revisa tu Gmail en OEC → Configuración.'; return true; }
-                        h.textContent = 'Enviando… ' + done + ' de ' + total;
-                        return false;
+                /** Una tarjeta por persona: "Abrir email para X" → se abre ya escrito, se anota y pasa a la siguiente. */
+                function serial(list, msgData) {
+                    var i = 0, opened = 0;
+                    var where = msgData.client === 'outlook' ? 'Outlook' : (msgData.client === 'mailto' ? 'tu programa de correo' : 'Gmail');
+                    function draw() {
+                        var box = el('div', { 'class': 'oec-st-progress oec-st-serial' });
+                        var bar = el('div', { 'class': 'oec-st-bar' });
+                        bar.appendChild(el('span', { style: 'width:' + Math.round(i * 100 / list.length) + '%' }));
+                        if (i >= list.length) {
+                            box.append(el('h3', null, '¡Listo!'), bar, el('p', null, opened + (opened === 1 ? ' email abierto' : ' emails abiertos') + ' en ' + where + '. Quedaron anotados en "Último contacto".'));
+                            var back = box.appendChild(el('button', { type: 'button', 'class': 'button button-primary' }, 'Volver a la lista'));
+                            back.addEventListener('click', function () { autoPick(); showList(); }); // a quienes ya se les escribió no se los vuelve a elegir
+                            body.replaceChildren(box);
+                            return;
+                        }
+                        var c = list[i], v = varsFor(c);
+                        box.append(el('p', { 'class': 'oec-st-dim' }, 'Persona ' + (i + 1) + ' de ' + list.length), bar);
+                        box.appendChild(el('h3', null, niceCase(c.name) || c.email));
+                        box.appendChild(el('p', null, c.email));
+                        var url = composeUrl(msgData.client, msgData.account, c.email, fill(msgData.subject, v), fill(msgData.body, v));
+                        var attrs = { 'class': 'button button-primary button-hero', href: url };
+                        if (msgData.client !== 'mailto') { attrs.target = '_blank'; attrs.rel = 'noopener'; }
+                        var go = box.appendChild(el('a', attrs));
+                        go.append(el('span', { 'class': 'dashicons dashicons-email-alt' }), document.createTextNode(' Abrir email para ' + (v.nombre || c.email) + ' en ' + where));
+                        go.addEventListener('click', function () {
+                            opened++;
+                            logEvent(c, 'mail');
+                            i++;
+                            setTimeout(draw, 300); // que el navegador abra el link antes de cambiar la tarjeta
+                        });
+                        var skip = box.appendChild(el('button', { type: 'button', 'class': 'button button-link' }, 'Saltar a la siguiente'));
+                        skip.addEventListener('click', function () { i++; draw(); });
+                        box.appendChild(el('p', { 'class': 'oec-st-dim' }, 'Se abre en otra pestaña con el email escrito: revísalo, toca Enviar y vuelve acá.'));
+                        body.replaceChildren(box);
                     }
-                    if (draw(p)) return;
-                    (function tick() {
-                        mailPost({ action: 'oec_mail_progress', campaign: cid }).then(function (res) {
-                            if (res && res.success && draw(res.data)) return;
-                            poll = setTimeout(tick, 800);
-                        }).catch(function () { poll = setTimeout(tick, 3000); });
-                    })();
+                    draw();
                 }
 
                 function mailPost(data) {
@@ -879,39 +888,25 @@ if (!class_exists('OEC_Stats')) {
                 }
 
                 writeBtn.addEventListener('click', compose);
-                backBtn.addEventListener('click', function () {
-                    if (poll) { clearTimeout(poll); poll = null; }
-                    if (body.querySelector('.oec-st-progress')) loadContacts(); else showList();
-                });
+                backBtn.addEventListener('click', showList);
                 copyBtn.addEventListener('click', function () {
                     copyText(emails.join(', '), function () { copyBtn.lastChild.textContent = ' ¡Copiados ' + emails.length + '!'; setTimeout(function () { copyBtn.lastChild.textContent = ' Copiar emails'; }, 2000); });
                 });
                 document.getElementById('oec-st-close').addEventListener('click', function () { dlg.close(); });
                 dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
-                dlg.addEventListener('close', function () { if (poll) { clearTimeout(poll); poll = null; } });
             })();
             </script>
             <?php
         }
 
-        /** Lo que necesita la ventana de redactar email (sin datos sensibles). */
+        /** Lo que necesita la ventana de contactos (plantillas, mensaje de WhatsApp, estados). */
         private static function mail_config() {
-            $gmail = class_exists('OEC_Mailer') ? OEC_Mailer::gmail() : null;
-            $reply = $gmail['user'] ?? '';
-            if (!$reply) $reply = get_option('oec_ventas_email', '') ?: get_option('admin_email');
             return [
                 'nonce'     => wp_create_nonce('oec_mail'),
-                'gmail'     => $gmail['user'] ?? '',
-                'otherSmtp' => class_exists('OEC_Mailer') ? OEC_Mailer::other_smtp_plugin() : '',
-                'replyTo'   => $reply,
                 'templates' => class_exists('OEC_Mailer') ? (object) OEC_Mailer::templates() : (object) [],
-                'limit'     => class_exists('OEC_Mailer') ? OEC_Mailer::daily_limit() : 0,
-                'sentToday' => class_exists('OEC_Mailer') ? OEC_Mailer::sent_today() : 0,
                 'wa'        => class_exists('OEC_Contacts') ? OEC_Contacts::wa_message() : '',
                 'statuses'  => class_exists('OEC_Contacts') ? (object) OEC_Contacts::STATUSES : (object) [],
-                'configUrl' => admin_url('admin.php?page=oec-main#oec-gmail'),
                 'siteUrl'   => trailingslashit(home_url('/')),
-                'siteName'  => get_bloginfo('name'),
             ];
         }
 
@@ -1096,8 +1091,6 @@ if (!class_exists('OEC_Stats')) {
                 foreach ($contacts as &$c) {
                     $e = strtolower($c['email']);
                     $c['sent']       = $hist[$e]['sent'] ?? null;
-                    $c['sent_count'] = $hist[$e]['count'] ?? 0;
-                    $c['queued']     = !empty($hist[$e]['queued']);
                     $c['unsub']      = isset($unsubs[$e]);
                 }
                 unset($c);
