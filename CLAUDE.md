@@ -2279,7 +2279,14 @@ cada persona es su email en minúsculas o, sin email, `tel:<dígitos>`.
 
 **v1.4.0** (2026-09-29): Estadísticas desde Zoho + íconos alineados en wp-admin → Contáctenos. Gotcha de
 wp-admin: un `.dashicons` dentro de `.button` hereda el `line-height` del botón (34 px) y el glifo se
-dibuja ~8 px más abajo que su caja de 18 px; fijarle `line-height` igual a su alto.
+dibuja ~8 px más abajo que su caja de 18 px; fijarle `line-height` igual a su alto. **Desde 2026-10-30**: WordPress
+(`buttons.css`) pone `.wp-core-ui .button .dashicons { line-height: 1.9 }` (2.3 en `.button-hero`) y los
+botones miden 32 o 40 px según versión/pantalla, así que los `margin-top: 4px` a mano dejaban el ícono
+corrido. Ahora `OEC_Admin::button_icon_css()` (admin_head, solo pantallas `oec-`) hace los botones con ícono
+`inline-flex` centrados y fuerza `line-height: 1 !important` en el ícono: no volver a poner márgenes a
+mano en íconos de botones. Ojo también: la ventana de contactos (`<dialog>`) va FUERA de `.oec-st`, así que
+las variables CSS definidas en `.oec-st` (`--oec-st-brand`) hay que definirlas también en `.oec-st-dlg`
+(la barra de progreso salía sin color por eso).
 
 ## v1.4.1 — "¿estamos en la comunidad?" compara solo el dominio (2026-09-30)
 

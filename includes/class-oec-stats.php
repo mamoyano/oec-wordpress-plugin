@@ -103,7 +103,8 @@ if (!class_exists('OEC_Stats')) {
             $base  = add_query_arg(array_map('rawurlencode', $query), admin_url('admin.php'));
             ?>
             <style>
-                .oec-st { --oec-st-brand: <?php echo esc_html($brand); ?>; max-width: 1400px; }
+                .oec-st, .oec-st-dlg { --oec-st-brand: <?php echo esc_html($brand); ?>; } /* la ventana de contactos va aparte de .oec-st */
+                .oec-st { max-width: 1400px; }
                 .oec-st-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 0 6px; }
                 .oec-st-head h1 { margin: 0; padding: 0; }
                 .oec-st-sub { color: #646970; margin: 0 0 16px; }
@@ -155,6 +156,8 @@ if (!class_exists('OEC_Stats')) {
                 .oec-st-dlg-head h2 { margin: 0 0 4px; font-size: 17px; }
                 .oec-st-dlg-head p { margin: 0; color: #646970; font-size: 12px; }
                 .oec-st-dlg-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+                #oec-st-close { text-decoration: none; box-shadow: none; color: #50575e; }
+                #oec-st-close:hover, #oec-st-close:focus-visible { color: #1d2327; }
                 .oec-st-dlg-body { overflow: auto; padding: 0 20px; }
                 .oec-st-dlg-foot { padding: 10px 20px; border-top: 1px solid #f0f0f1; color: #646970; font-size: 11.5px; }
                 .oec-st-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -171,7 +174,7 @@ if (!class_exists('OEC_Stats')) {
                 .oec-st-selbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding: 10px 20px; background: #f6f7f7; border-bottom: 1px solid #f0f0f1; font-size: 12.5px; color: #50575e; }
                 .oec-st-selbar[hidden], .oec-st-wapanel[hidden] { display: none; }
                 .oec-st-selbar select { min-height: 28px; font-size: 12.5px; }
-                .oec-st-selbar .button-small .dashicons { font-size: 16px; width: 16px; height: 16px; line-height: 16px; vertical-align: -3px; color: #1a8d48; }
+                .oec-st-selbar .button-small .dashicons { font-size: 16px; width: 16px; height: 16px; line-height: 16px; color: #1a8d48; }
                 .oec-st-wapanel { padding: 12px 20px; background: #f6fff9; border-bottom: 1px solid #d5f0de; }
                 .oec-st-wapanel label { display: block; font-weight: 600; font-size: 12px; margin-bottom: 5px; }
                 .oec-st-wapanel textarea { width: 100%; font-size: 13px; }
@@ -287,7 +290,7 @@ if (!class_exists('OEC_Stats')) {
                         <form method="post">
                             <?php wp_nonce_field('oec_stats_refresh_action', 'oec_stats_refresh_nonce'); ?>
                             <button type="submit" name="oec_stats_refresh" value="1" class="button" title="Los números se guardan 15 minutos">
-                                <span class="dashicons dashicons-update" style="font-size:16px; margin-top:4px;"></span> Actualizar datos
+                                <span class="dashicons dashicons-update" style="font-size:16px;"></span> Actualizar datos
                             </button>
                         </form>
                     </div>
@@ -371,11 +374,11 @@ if (!class_exists('OEC_Stats')) {
                         </div>
                         <div class="oec-st-dlg-actions">
                             <span id="oec-st-list-actions" style="display:contents;">
-                                <button type="button" class="button button-primary" id="oec-st-write" disabled><span class="dashicons dashicons-email-alt" style="margin-top:4px;"></span> <span>Enviar email</span></button>
-                                <button type="button" class="button" id="oec-st-copy" disabled><span class="dashicons dashicons-admin-page" style="margin-top:4px;"></span> Copiar emails</button>
-                                <a class="button" id="oec-st-csv" href="#"><span class="dashicons dashicons-download" style="margin-top:4px;"></span> Descargar CSV</a>
+                                <button type="button" class="button button-primary" id="oec-st-write" disabled><span class="dashicons dashicons-email-alt"></span> <span>Enviar email</span></button>
+                                <button type="button" class="button" id="oec-st-copy" disabled><span class="dashicons dashicons-admin-page"></span> Copiar emails</button>
+                                <a class="button" id="oec-st-csv" href="#"><span class="dashicons dashicons-download"></span> Descargar CSV</a>
                             </span>
-                            <button type="button" class="button" id="oec-st-back" style="display:none;"><span class="dashicons dashicons-arrow-left-alt2" style="margin-top:4px;"></span> Volver a la lista</button>
+                            <button type="button" class="button" id="oec-st-back" style="display:none;"><span class="dashicons dashicons-arrow-left-alt2"></span> Volver a la lista</button>
                             <button type="button" class="button button-link" id="oec-st-close" aria-label="Cerrar"><span class="dashicons dashicons-no-alt" style="font-size:22px;"></span></button>
                         </div>
                     </div>

@@ -8,7 +8,19 @@ if (!class_exists('OEC_Admin')) {
             // inicial) para que también se cree sola en sitios donde el plugin
             // ya estaba instalado antes de que existiera el sistema de créditos.
             add_action('admin_init', [$this, 'oec_ensure_redeem_confirm_page']);
+            add_action('admin_head', [$this, 'button_icon_css']);
+        }
 
+        /**
+         * Íconos centrados en los botones de las pantallas del plugin. Antes cada botón
+         * tenía un margin-top a mano pensado para botones de 30px; WordPress los hace de
+         * 32 o 40px según la versión y el ancho de pantalla, y el ícono quedaba corrido.
+         */
+        public function button_icon_css() {
+            $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+            if (!$screen || strpos($screen->id, 'oec-') === false) return;
+            echo '<style>.button:has(> .dashicons){display:inline-flex;align-items:center;justify-content:center;gap:6px}'
+               . '.button > .dashicons{margin:0!important;width:1em;height:1em;line-height:1!important}</style>'; // WordPress les pone line-height 1.9/2.3 (.wp-core-ui .button .dashicons)
         }
 
         /**
@@ -77,7 +89,7 @@ if (!class_exists('OEC_Admin')) {
                         <button onclick="clearOECSession();" 
                                 class="button button-small oec-btn-reconnect" 
                                 style="display:none; border-color:#d63638; color:#d63638; background: #fff8f7;">
-                            <span class="dashicons dashicons-update" style="font-size: 14px; margin-top: 4px;"></span> 
+                            <span class="dashicons dashicons-update" style="font-size: 14px;"></span> 
                             Reconectar aquí
                         </button>
                         <?php endif; ?>
@@ -86,7 +98,7 @@ if (!class_exists('OEC_Admin')) {
                            target="_blank" 
                            class="button button-small" 
                            title="Abrir en una nueva pestaña">
-                            <span class="dashicons dashicons-external" style="font-size: 14px; margin-top: 4px;"></span> 
+                            <span class="dashicons dashicons-external" style="font-size: 14px;"></span> 
                             En otra pestaña
                         </a>
 
@@ -395,7 +407,7 @@ if (!class_exists('OEC_Admin')) {
                             <form method="post" style="margin: 0;">
                                 <?php wp_nonce_field('oec_clear_cache_action', 'oec_clear_cache_nonce'); ?>
                                 <button type="submit" name="oec_clear_cache" value="1" class="button button-primary">
-                                    <span class="dashicons dashicons-update" style="font-size: 16px; margin-top: 4px;"></span>
+                                    <span class="dashicons dashicons-update" style="font-size: 16px;"></span>
                                     Actualizar caché
                                 </button>
                             </form>
@@ -438,10 +450,16 @@ if (!class_exists('OEC_Admin')) {
                             <?php endif; ?>
 
                             <p style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin: 0 0 8px;">
-                                <a class="button <?php echo $g_email && !$g_broken ? '' : 'button-primary'; ?>" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=oec_google_connect'), 'oec_google_connect')); ?>">
-                                    <span class="dashicons dashicons-google" style="margin-top:4px;"></span>
-                                    <?php echo $g_email && !$g_broken ? 'Conectar otra cuenta' : ($g_broken ? 'Volver a conectar con Google' : 'Conectar con Google'); ?>
+                                <a class="oec-google-btn" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=oec_google_connect'), 'oec_google_connect')); ?>">
+                                    <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                                    <span><?php echo $g_email && !$g_broken ? 'Conectar otra cuenta' : ($g_broken ? 'Volver a conectar con Google' : 'Conectar con Google'); ?></span>
                                 </a>
+                                <style>
+                                    .oec-google-btn { display: inline-flex; align-items: center; justify-content: center; gap: 12px; height: 40px; padding: 0 16px 0 12px; border: 1px solid #747775; border-radius: 20px; background: #fff; color: #1f1f1f; font: 500 14px/1 Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-decoration: none; box-sizing: border-box; transition: background .15s, box-shadow .15s; }
+                                    .oec-google-btn svg { flex: 0 0 18px; display: block; }
+                                    .oec-google-btn:hover, .oec-google-btn:focus { background: #f8f9fa; color: #1f1f1f; box-shadow: 0 1px 3px rgba(60,64,67,.3); outline: none; }
+                                    .oec-google-btn:focus-visible { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #2271b1; }
+                                </style>
                                 <?php if ($g_email && !$g_broken) : ?>
                                     <button type="button" class="button" id="oec-gmail-test">Enviarme un email de prueba</button>
                                 <?php endif; ?>
@@ -594,7 +612,7 @@ if (!class_exists('OEC_Admin')) {
                                 <code>|format_date_short</code> (fecha corta: "06 de Ago.") y <code>|truncate(n)</code> (corta textos largos en (n) caracteres).
                             </p>
                             <a href="https://twig.symfony.com/doc/3.x/" target="_blank" class="button button-secondary">
-                                <span class="dashicons dashicons-external" style="font-size: 16px; margin-top: 4px;"></span> Saber más sobre Twig
+                                <span class="dashicons dashicons-external" style="font-size: 16px;"></span> Saber más sobre Twig
                             </a>
                         </div>
 
