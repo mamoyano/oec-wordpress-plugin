@@ -3,3 +3,5 @@
 .claude/
 server/zoho/zoho-config.php
 server/zoho/data/
+server/google/google-config.php
+server/google/data/

@@ -404,6 +404,95 @@ if (!class_exists('OEC_Admin')) {
 
                     <hr style="margin: 40px 0;">
 
+                    <?php if (class_exists('OEC_Mailer')) :
+                        $g_email  = OEC_Mailer::google_email();
+                        $g_broken = OEC_Mailer::google_broken();
+                        $g_msgs   = [
+                            'connected'    => ['ok', 'Listo: tu cuenta de Google quedó conectada. Prueba el envío con el botón de abajo.'],
+                            'disconnected' => ['ok', 'Se desconectó tu cuenta de Google.'],
+                            'saved'        => ['ok', 'Guardado.'],
+                            'denied'       => ['err', 'No se conectó: en la pantalla de Google se canceló el permiso.'],
+                            'scope'        => ['err', 'No se conectó: en la pantalla de Google hay que dejar marcada la opción de enviar emails en tu nombre.'],
+                            'expired'      => ['err', 'Pasó demasiado tiempo. Vuelve a tocar "Conectar con Google".'],
+                            'error'        => ['err', 'No se pudo completar la conexión con Google. Prueba de nuevo en unos minutos.'],
+                        ];
+                        $g_msg = $g_msgs[sanitize_key($_GET['oec_google'] ?? '')] ?? null;
+                    ?>
+                    <div style="width: 100%;" id="oec-gmail">
+                        <div style="background: #fff; padding: 30px; border: 1px solid #ccd0d4; border-radius: 4px;">
+                            <h2 style="margin-top:0;">Enviar emails desde tu Gmail</h2>
+                            <p class="description" style="margin-bottom: 16px; max-width: 800px;">
+                                Conecta tu cuenta de Google y los emails que envíes a tus contactos desde
+                                <a href="<?php echo esc_url(admin_url('admin.php?page=oec-stats')); ?>">Estadísticas</a> salen
+                                automáticamente desde tu Gmail (o Google Workspace): con tu nombre, quedan en tus "Enviados" y
+                                las respuestas te llegan ahí. El permiso es solo para enviar: no se puede leer tu correo.
+                            </p>
+                            <?php if ($g_msg) : ?>
+                                <div class="notice <?php echo $g_msg[0] === 'ok' ? 'notice-success' : 'notice-error'; ?> inline" style="margin: 0 0 16px;"><p><?php echo esc_html($g_msg[1]); ?></p></div>
+                            <?php endif; ?>
+
+                            <?php if ($g_email && !$g_broken) : ?>
+                                <p style="color:#1a7a33; font-weight:600; margin: 0 0 16px;"><span class="dashicons dashicons-yes-alt"></span> Conectado: los emails salen desde <?php echo esc_html($g_email); ?>.</p>
+                            <?php elseif ($g_email && $g_broken) : ?>
+                                <p style="color:#b32d2e; font-weight:600; margin: 0 0 16px;"><span class="dashicons dashicons-warning"></span> Google ya no permite enviar desde <?php echo esc_html($g_email); ?> (se quitó el permiso o venció). Vuelve a conectar tu cuenta.</p>
+                            <?php endif; ?>
+
+                            <p style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin: 0 0 8px;">
+                                <a class="button <?php echo $g_email && !$g_broken ? '' : 'button-primary'; ?>" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=oec_google_connect'), 'oec_google_connect')); ?>">
+                                    <span class="dashicons dashicons-google" style="margin-top:4px;"></span>
+                                    <?php echo $g_email && !$g_broken ? 'Conectar otra cuenta' : ($g_broken ? 'Volver a conectar con Google' : 'Conectar con Google'); ?>
+                                </a>
+                                <?php if ($g_email && !$g_broken) : ?>
+                                    <button type="button" class="button" id="oec-gmail-test">Enviarme un email de prueba</button>
+                                <?php endif; ?>
+                                <?php if ($g_email) : ?>
+                                    <a class="button button-link-delete" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=oec_google_disconnect'), 'oec_google_disconnect')); ?>" onclick="return confirm('¿Desconectar tu cuenta de Google? Los envíos automáticos se van a detener.');">Desconectar</a>
+                                <?php endif; ?>
+                                <span id="oec-gmail-test-msg" style="font-size: 13px;"></span>
+                            </p>
+                            <?php if (!$g_email) : ?>
+                                <p class="description">Sin conectar tu cuenta también puedes escribirles: en Estadísticas se abre cada email ya escrito en tu Gmail, uno por uno.</p>
+                            <?php endif; ?>
+
+                            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin-top: 16px;">
+                                <input type="hidden" name="action" value="oec_google_settings">
+                                <?php wp_nonce_field('oec_google_settings'); ?>
+                                <table class="form-table">
+                                    <tr>
+                                        <th scope="row"><label for="oec_mail_from_name">Nombre del remitente</label></th>
+                                        <td><input type="text" id="oec_mail_from_name" name="oec_mail_from_name" value="<?php echo esc_attr(get_option('oec_mail_from_name', '')); ?>" class="regular-text" placeholder="<?php echo esc_attr(get_bloginfo('name')); ?>"></td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row"><label for="oec_mail_daily_limit">Máximo de emails por día</label></th>
+                                        <td>
+                                            <input type="number" id="oec_mail_daily_limit" name="oec_mail_daily_limit" value="<?php echo intval(OEC_Mailer::daily_limit()); ?>" min="1" max="2000" style="width: 90px;">
+                                            <p class="description">Gmail permite unos 500 por día (Google Workspace, 2.000). Lo que pase el límite sale al día siguiente.</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <?php submit_button('Guardar', 'secondary', 'submit', false); ?>
+                            </form>
+                            <?php if ($g_email && !$g_broken) : ?>
+                            <script>
+                            (function () {
+                                var b = document.getElementById('oec-gmail-test'), m = document.getElementById('oec-gmail-test-msg');
+                                b.addEventListener('click', function () {
+                                    b.disabled = true; m.style.color = '#50575e'; m.textContent = 'Enviando…';
+                                    fetch(<?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>, { method: 'POST', credentials: 'same-origin', body: new URLSearchParams({ action: 'oec_mail_test', nonce: <?php echo wp_json_encode(wp_create_nonce('oec_mail')); ?> }) })
+                                        .then(function (r) { return r.json(); })
+                                        .then(function (res) { m.style.color = res.success ? '#1a7a33' : '#b32d2e'; m.textContent = (res.data && res.data.message) || 'No se pudo enviar.'; })
+                                        .catch(function () { m.style.color = '#b32d2e'; m.textContent = 'No se pudo enviar.'; })
+                                        .then(function () { b.disabled = false; });
+                                });
+                            })();
+                            </script>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <hr style="margin: 40px 0;">
+
                     <div style="width: 100%;">
                         <div style="background: #fff; padding: 30px; border: 1px solid #ccd0d4; border-radius: 4px;">
                             <h2 style="margin-top:0;">Configuración de Conexión</h2>

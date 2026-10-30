@@ -2165,7 +2165,31 @@ OEC comparta sus datos con el socio educativo.
   `exit` → si se llama desde un script, vuelca el CSV (con datos personales) a la salida; probar
   `OEC_Stats::write_csv()` sobre `php://memory` y contar filas.
 
-**Envío de email desde el correo del socio (v1.5.4, 2026-10-30) — REEMPLAZA a lo de abajo**: Google NO
+**"Conectar con Google" (v1.5.5, 2026-10-30) — la forma vigente de enviar emails**:
+- App de Google Cloud "OEC Plugin Wordpress" (organización onlineeducation.center, público Externo, permiso
+  `gmail.send` + `openid email`, en modo prueba: solo cuentas agregadas como usuarios de prueba, y el
+  permiso vence a los 7 días → hay que reconectar; se va cuando Google verifique la app).
+- **Intermediario** `server/google/callback.php` (+ `google-config.php` con client_id/secret, en .gitignore;
+  NO va en el zip) → `onlineeducation.center/connections/google/callback.php` (es la URI autorizada en la
+  consola). Único lugar con el secreto. `?action=start` → Google (`access_type=offline`,
+  `prompt=consent select_account`, `state` firmado con HMAC del secreto, vence a los 15 min, solo vuelve a
+  un `…/wp-admin/admin-post.php` https o .local/.test). Vuelta de Google → canjea el código, verifica que
+  se otorgó `gmail.send`, guarda {email, refresh_token} 5 min bajo un código de un solo uso (`data/`) y
+  vuelve al sitio con ese código (nunca el token en la URL). POST `exchange` (una vez) y POST `refresh`
+  (token de acceso de 1 h). No guarda tokens ni envía emails.
+- **Plugin** (`OEC_Mailer`): Configuración → caja "Enviar emails desde tu Gmail" con "Conectar con Google"
+  (`admin-post` `oec_google_connect` / `_return` / `_disconnect` / `_settings`), nombre del remitente y tope
+  diario. Refresh token cifrado (AES-GCM, `wp_salt('auth')`) en `oec_google_refresh`; token de acceso en un
+  transient. Envío: PHPMailer solo ARMA el MIME y lo manda la API de Gmail (`users/me/messages/send`).
+  Ojo: las cabeceras propias (List-Unsubscribe) se agregan crudas al MIME: con `addCustomHeader()` PHPMailer
+  las codifica (`=?us-ascii?Q?…`) si pasan de 76 caracteres y Gmail no reconoce la baja.
+  `invalid_grant` o 403 sin permiso → `oec_google_broken` (la cola espera la reconexión); 429/límite →
+  sigue mañana; dirección inválida → `failed` sin frenar al resto. Filtro `oec_google_broker` / constante
+  `OEC_GOOGLE_BROKER` para apuntar a otro intermediario.
+- **Estadísticas**: con Google conectado, "Enviar desde tu Gmail (N)" (cola automática, progreso, prueba) y
+  "Abrir uno por uno" como alternativa; sin Google, solo uno por uno (lo de abajo).
+
+**Envío de email desde el correo del socio, uno por uno (v1.5.4, 2026-10-30)** — sigue existiendo como alternativa: Google NO
 acepta contraseñas de aplicación desde servidores (probado: SiteGround y Cloudways dan `535 5.7.8` con una
 contraseña que desde la Mac de Mario funciona; el chequeo directo por socket confirmó que responde Google).
 Mario descartó enviar por Elastic Email/OEC (cuida la reputación) y por SMTP (los socios no son técnicos).
@@ -2175,8 +2199,7 @@ con "Abrir email para X en Gmail" (`mail.google.com/mail/?view=cm&fs=1&to=&su=&b
 se registra como evento `mail` de `OEC_Contacts` (columna "Último contacto", estado "Contactado"). Sin
 envío automático, sin caja de Gmail en Configuración; `OEC_Mailer` quedó con plantillas, historial y bajas.
 La migración (`oec_mail_db_version` 1 → 2) borra la contraseña guardada, el cron y marca lo encolado como
-`skipped`. **Pendiente**: "Conectar con Google" (OAuth + API de Gmail, app de OEC verificada por Google)
-para volver al envío automático desde el Gmail del socio; el código de la cola está en git (v1.5.0–v1.5.3).
+`skipped`. (v1.5.5 volvió a sumar el envío automático, ahora con "Conectar con Google".)
 
 **(Historia) Enviar email a los contactos** (v1.5.0, 2026-10-29): `includes/class-oec-mailer.php`
 (`OEC_Mailer`, se inicia también fuera de wp-admin: cron y link de baja).
