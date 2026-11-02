@@ -2707,6 +2707,11 @@ Causa: `/formacion/{slug}-t-XXXXXXXXXXXXXX` con un ID que la API no conoce rende
    respondió "No" a "¿complemento de SMTP de Gmail para admins de WordPress?" (no reemplaza `wp_mail`, usa
    la API, un solo cliente para todos los socios). Mientras tanto: aviso de "app no verificada" y tope de
    100 usuarios, sin vencimiento a los 7 días. Google responde al email del desarrollador.
+   **2026-11-02**: Google pidió protección de datos en la política, video más completo (consentimiento
+   desplegado, emails en "Enviados", permisos idénticos a los declarados: faltaban `openid` y
+   `userinfo.email` en Acceso a los datos) y un sitio de prueba. Todo en la "Segunda ronda" de
+   `VERIFICACION.md`; el sitio de prueba usa `server/google/oec-review-demo.php` (mu-plugin con contactos
+   ficticios que llegan a casillas de OEC — nunca en un sitio real).
 
 ## v1.4.22 — chat directo: mensaje inicial y burbuja (2026-10-08)
 

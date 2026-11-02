@@ -166,3 +166,157 @@ hilo.
 
 Mientras dura la revisión, la app "En producción" pero sin verificar muestra el aviso de "app no
 verificada" y tiene un tope de 100 usuarios; no vence a los 7 días.
+
+---
+
+# Segunda ronda (respuesta de Google del 2026-11-02)
+
+Google pidió: (1) que la política de privacidad diga cómo se protegen los datos, (2) un video nuevo y más
+completo, y (3) un sitio y credenciales de prueba con instrucciones paso a paso. Se responde **por email, en
+el mismo hilo**.
+
+## A. Agregar a la política de privacidad — "Cómo protegemos tus datos"
+
+Agregar esta sección (antes de "Cómo revocar el acceso"). Va también en inglés porque el revisor lee en
+inglés: se puede publicar la versión en español y, debajo, la inglesa.
+
+**Cómo protegemos tus datos**
+- **Cifrado en tránsito.** Toda comunicación con Google, con el servicio de conexión de OEC y con tu sitio se
+  hace por HTTPS (TLS). El plugin no acepta volver de Google a una dirección sin HTTPS.
+- **Cifrado en reposo.** El permiso de Google (token de actualización) y el token de acceso temporal se
+  guardan cifrados con AES-256-GCM, con una clave derivada de las claves secretas propias de tu instalación
+  de WordPress. Nunca se guardan en texto plano.
+- **Sin copias en servidores de OEC.** El servicio de conexión de OEC no guarda tus tokens: el resultado de
+  la conexión se guarda un máximo de 5 minutos, bajo un código de un solo uso, en una carpeta sin acceso
+  desde la web y con permisos restringidos al sistema, y se borra en cuanto tu sitio lo retira.
+- **Credenciales de la app protegidas.** El secreto de cliente de Google de la app vive solo en el servidor
+  de conexión de OEC; no se distribuye con el plugin ni llega a los sitios de los socios.
+- **Protección contra solicitudes falsas.** Cada conexión usa un parámetro de estado firmado
+  criptográficamente (HMAC-SHA256) que vence a los 15 minutos, y solo se vuelve a la pantalla de
+  administración de WordPress que la inició.
+- **Control de acceso.** Solo los administradores de tu sitio de WordPress pueden conectar la cuenta,
+  enviar emails o ver los contactos; cada acción se verifica con la sesión y un código anti-falsificación
+  (nonce) de WordPress.
+- **Minimización.** Solo pedimos permiso para enviar emails y para conocer la dirección de la cuenta. No
+  leemos tu correo. El historial de envíos (destinatario, fecha, estado y el texto de cada campaña) queda
+  solo en la base de datos de tu sitio, para mostrarte a quién ya le escribiste.
+- **Sin registros de credenciales.** Los tokens nunca se escriben en registros (logs) ni se muestran en
+  pantalla.
+- **Revocación inmediata.** Al tocar "Desconectar", el plugin revoca el permiso en Google y borra los
+  tokens guardados.
+- **Incidentes.** Si detectamos un acceso no autorizado que afecte datos de Google, revocaremos los
+  permisos afectados y avisaremos a los usuarios afectados sin demoras indebidas.
+
+**How we protect your data**
+- **Encryption in transit.** All communication with Google, with OEC's connection service and with your
+  site uses HTTPS (TLS). The plugin refuses to return from Google to a non-HTTPS address.
+- **Encryption at rest.** The Google refresh token and the short-lived access token are stored encrypted
+  with AES-256-GCM, using a key derived from your WordPress installation's own secret keys. They are never
+  stored in plain text.
+- **No copies on OEC servers.** OEC's connection service does not keep your tokens: the result of a
+  connection is held for at most 5 minutes under a single-use code, in a folder with no web access and
+  system-restricted permissions, and is deleted as soon as your site retrieves it.
+- **App credentials protected.** The app's Google client secret exists only on OEC's connection server;
+  it is not distributed with the plugin and never reaches partner sites.
+- **Request forgery protection.** Each connection uses a cryptographically signed state parameter
+  (HMAC-SHA256) that expires after 15 minutes, and only returns to the WordPress admin screen that started it.
+- **Access control.** Only administrators of your WordPress site can connect the account, send emails or
+  see contacts; every action is checked against the WordPress session and an anti-forgery token (nonce).
+- **Data minimization.** We only request permission to send email and to know the account's address. We
+  do not read your mail. The sending history (recipient, date, status and each campaign's text) is kept
+  only in your site's database, to show you whom you have already contacted.
+- **No credential logging.** Tokens are never written to logs or shown on screen.
+- **Immediate revocation.** "Disconnect" revokes the permission at Google and deletes the stored tokens.
+- **Incidents.** If we detect unauthorized access affecting Google user data, we will revoke the affected
+  permissions and notify affected users without undue delay.
+
+## B. Que los permisos coincidan ("Scope Matching")
+
+La app pide `openid`, `email` y `gmail.send`, pero en **Acceso a los datos** solo está declarado
+`gmail.send`. Antes de grabar: Acceso a los datos → "Agregar o quitar permisos" → tildar `openid` y
+`.../auth/userinfo.email` → Actualizar → Save. Quedan 2 no sensibles + 1 sensible, iguales a los que pide
+la app.
+
+## C. Sitio de prueba para el revisor — biokinetics.site
+
+1. Plugin actualizado (≥ 1.5.7) y con su token de OEC (ya lo tiene).
+2. Subir `server/google/oec-review-demo.php` a `wp-content/mu-plugins/` (crear la carpeta si no existe).
+   **Solo actúa para el usuario `google-review`**: para él, Estadísticas muestra 6 personas ficticias cuyos
+   emails son `mamoyano+ana@onlineeducation.center`, `mamoyano+bruno@…` (te llegan a vos), sin llamar a
+   Zoho, y aparece un aviso de "Sitio de demostración". Los demás administradores siguen viendo lo real.
+   Cambiar las casillas: `define('OEC_REVIEW_INBOX', '…')` en `wp-config.php`.
+3. Usuarios → Añadir nuevo: `google-review`, rol **Administrador**, contraseña fuerte, sin 2FA, captcha ni
+   bloqueo por país en el login (revisar plugins de seguridad tipo Wordfence / reCAPTCHA).
+4. La conexión con Google es UNA por sitio: cuando el revisor conecte su cuenta, reemplaza la que haya, y
+   lo que se envíe mientras tanto sale desde la suya. Si BioKinetics usa "Enviar desde tu Gmail", avisar o
+   reconectar después de la aprobación.
+5. Cuando Google apruebe: borrar el usuario `google-review` y el mu-plugin.
+
+## D. Video nuevo (en inglés, 2–3 minutos, YouTube "No listado")
+
+Grabar en el sitio de prueba, con la cuenta de Google en inglés. Lo que pidió Google, explícitamente:
+- **Pantalla de consentimiento completa**: si aparece "Show all"/"Ver todo", tocarlo; desplegar cada permiso
+  (tocar sobre él) para que se lea su descripción. Detenerse 3–4 segundos.
+- **Impacto en la cuenta de Google**: mostrar en Gmail → **Enviados** cada email que mandó la app.
+- **Máximo uso de la función**: email de prueba + envío a varios contactos.
+
+Escenas:
+1. URL del sitio de prueba, wp-admin → OEC → Configuración → "Send emails from your Gmail". Voz: what the
+   plugin is and that partners use it to follow up with people interested in their courses.
+2. "Connect with Google" → elegir cuenta → **mostrar la barra de direcciones** con `client_id=…` y
+   `scope=openid email https://www.googleapis.com/auth/gmail.send`.
+3. Pantalla de consentimiento: "Show all", desplegar "Send email on your behalf", tildar/aceptar. Voz: "This
+   is the only Gmail permission we request; there is no narrower scope that allows sending email, and the
+   app never reads, modifies or deletes mail."
+4. De vuelta: "Connected: emails are sent from …". "Send me a test email" → éxito.
+5. Abrir Gmail en otra pestaña → **Sent** → el email de prueba.
+6. Estadísticas → una formación → "Hot prospects" (3) → los 3 elegidos → "Send email" → plantilla, variables,
+   vista previa de cada persona → "Send from your Gmail (3)" → barra de progreso → "Done".
+7. Gmail → **Sent**: los 3 emails, abrir uno (destinatario, texto personalizado, link de baja al pie). Abrir
+   la casilla de destino y mostrar que llegaron.
+8. Volver al plugin: la columna de envíos muestra la fecha. Voz: "Only emails the administrator explicitly
+   sends are delivered; nothing is sent automatically."
+9. "Disconnect" → abrir https://myaccount.google.com/permissions y mostrar que "Online Education Center" ya
+   no tiene acceso. Voz: "Disconnecting revokes the token at Google and deletes it from the site."
+
+## E. Respuesta a Google (pegar en el mismo hilo, completando los datos)
+
+> Hello,
+>
+> Thank you for the review. We have addressed each item:
+>
+> **1. Privacy policy – data protection.** Our privacy policy now includes a "How we protect your data"
+> section (encryption in transit and at rest, no token storage on our servers, protection of app
+> credentials, signed OAuth state, access control, data minimization, no credential logging, revocation and
+> incident handling): [URL de la política]
+>
+> **2. Scopes.** The scopes configured in Cloud Console now exactly match those requested by the app:
+> `openid`, `https://www.googleapis.com/auth/userinfo.email` and `https://www.googleapis.com/auth/gmail.send`.
+>
+> **3. New demo video:** [link de YouTube]. It shows the full OAuth flow with the consent screen and all
+> scopes expanded, every feature that uses gmail.send (test email and sending to selected contacts), the
+> resulting messages in the Gmail "Sent" folder of the connected account, and disconnection (token revoked,
+> app removed from the Google Account permissions page). gmail.send is the narrowest scope that allows
+> sending email; the app has no feature that reads, modifies or deletes mail.
+>
+> **4. Test environment.** The app is a WordPress plugin; we set up a test site for you:
+> - URL: https://biokinetics.site/wp-admin/
+> - Username: google-review  Password: [contraseña]
+> - No phone verification, 2FA or payment is required.
+>
+> Steps:
+> 1. Log in at the URL above.
+> 2. Go to **OEC → Configuración** (Settings) and click **"Conectar con Google"** (Connect with Google). Sign
+>    in with any Google account and accept the permission.
+> 3. Click **"Enviarme un email de prueba"** (Send me a test email): a message is sent to the connected
+>    account; check its Gmail "Sent" folder.
+> 4. Go to **OEC → Estadísticas** (Statistics). In any course row, click the number under **"Prospectos
+>    calientes"** (Hot prospects). A window lists 3 fictitious contacts (their addresses are our own test
+>    inboxes, so it is safe to send).
+> 5. Click **"Enviar email"** (Send email), review the message and the preview, and click **"Enviar desde tu
+>    Gmail (3)"** (Send from your Gmail). The progress bar shows the sending; the 3 messages appear in the
+>    connected account's "Sent" folder.
+> 6. Back in **OEC → Configuración**, click **"Desconectar"** (Disconnect) to revoke access.
+>
+> Best regards,
+> [nombre] — Online Education Center
