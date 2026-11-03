@@ -2169,8 +2169,9 @@ OEC comparta sus datos con el socio educativo.
 
 **"Conectar con Google" (v1.5.5, 2026-10-30) — la forma vigente de enviar emails**:
 - App de Google Cloud "OEC Plugin Wordpress" (organización onlineeducation.center, público Externo, permiso
-  `gmail.send` + `openid email`, en modo prueba: solo cuentas agregadas como usuarios de prueba, y el
-  permiso vence a los 7 días → hay que reconectar; se va cuando Google verifique la app).
+  `gmail.send` + `openid email`). **Verificada por Google el 2026-11-03**: cualquier cuenta se conecta sin
+  aviso de "app no verificada" ni tope de usuarios, y el permiso no vence. Tocar la pantalla de
+  consentimiento (nombre, logo, dominios) o pedir otro permiso obliga a pedir la verificación de nuevo.
 - **Intermediario** `server/google/callback.php` (+ `google-config.php` con client_id/secret, en .gitignore;
   NO va en el zip) → `onlineeducation.center/connections/google/callback.php` (es la URI autorizada en la
   consola). Único lugar con el secreto. `?action=start` → Google (`access_type=offline`,
@@ -2701,7 +2702,9 @@ Causa: `/formacion/{slug}-t-XXXXXXXXXXXXXX` con un ID que la API no conoce rende
    completo y la tabla de verdad.
 7. ~~Estadísticas desde Zoho: subir el endpoint, sacar `list-deals.php`, rotar las claves~~ — resuelto
    2026-10-30.
-8. Verificación de la app de Google ("Conectar con Google"): textos y guion en
+8. ~~Verificación de la app de Google~~ — **APROBADA el 2026-11-03** (`gmail.send`). Cambiar la pantalla de
+   consentimiento o sumar permisos obliga a verificar de nuevo. Falta limpiar BioKinetics: borrar el
+   usuario `google-review` y el mu-plugin. Historia: textos y guion en
    `server/google/VERIFICACION.md`. **Enviada el 2026-10-30**: marca verificada (sin logo: con logo Google
    la objetó), app "En producción", acceso a los datos (`gmail.send`) en revisión. En el cuestionario se
    respondió "No" a "¿complemento de SMTP de Gmail para admins de WordPress?" (no reemplaza `wp_mail`, usa
