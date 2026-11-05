@@ -141,6 +141,8 @@
 {% else %}
     {% set access_text = "Luego de finalizada el " ~ data.end|format_date ~ ", tendrás UN AÑO MÁS de acceso al campus." %}
 {% endif %}
+{# Regla de acceso (OEC_Shortcodes::access_info()): fecha exacta en sincrónicas/mixtas, un año desde la inscripción en asincrónicas. #}
+{% if extra.access.short|default('') %}{% set access_text = extra.access.short %}{% endif %}
 
 {% set comercial_image      = data.salesman.image|split('/') %}
 {% set comercial_image_last = comercial_image|last %}
@@ -991,6 +993,7 @@
                         {% else %}
                             <p style="font-size:14px !important">Todo el material está grabado. Estudia a tu ritmo{% if synchronicity == "ASYNC-F" %}, con foros sincrónicos{% endif %}.</p>
                         {% endif %}
+                        {% if extra.access.html|default('') %}<p class="oec-access-note"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>{{ extra.access.html|raw }}</span></p>{% endif %}
                     </div>
                 </div>
             {% endif %}
@@ -1053,7 +1056,7 @@
         {% else %}
             {% set faq_schedule = 'Todo el material está grabado, así que puedes estudiar a tu propio ritmo' ~ (synchronicity == "ASYNC-F" ? ', con foros sincrónicos para tus consultas' : '') ~ '.' %}
         {% endif %}
-        {% set faq_answer = (faq_method ~ faq_schedule)|trim %}
+        {% set faq_answer = (faq_method ~ faq_schedule ~ (extra.access.text|default('') ? ' ' ~ extra.access.text : ''))|trim %}
         {% set faq_entries = faq_entries|merge(['{"@type":"Question","name":"' ~ faq_q.method|e('js') ~ '","acceptedAnswer":{"@type":"Answer","text":"' ~ faq_answer|e('js') ~ '"}}']) %}
     {% endif %}
     {% if faq_entries is not empty %}

@@ -2681,6 +2681,25 @@ igual que antes; sin chat con IA en el sitio → siempre WhatsApp).
   7/12 no; con el día de hoy en `closed`, se ven chat y su flotante y se ocultan los de WhatsApp. Sin
   errores de consola.
 
+## v1.5.9 — hasta cuándo hay acceso al campus (2026-11-05)
+
+Regla de Mario: SYNC / MIXED → acceso hasta un año después del fin del último módulo (fecha exacta; un
+29/02 pasa al 28/02); ASYNC / ASYNC-F → un año desde la inscripción de cada alumno. Con LMS externo
+(`mkp_only`) no se muestra nada (es el campus del socio).
+- **Una sola fuente**: `OEC_Shortcodes::access_info($data)` → `extra.access` (`until`, `html`, `text`,
+  `short`). Si `data.methodology` (texto de la coordinación, el recuadro azul) trae texto, se suma "salvo que
+  la coordinación indique otra fecha más arriba" ("…otra fecha" a secas en el FAQPage); si viene vacío, no.
+  Fin del último módulo = el `end` más tardío de `modules.data` y `data.end` (en la API coinciden; vienen
+  como `T03:00:00+00:00`, medianoche de Argentina → día del sitio).
+- Se muestra en tres lugares: `<p class="oec-access-note">` al pie de "¿Cómo son los horarios y la
+  metodología?", la respuesta de esa pregunta en el FAQPage (`faq_answer`) y el bullet "Acceso extendido"
+  (`access_text` = `extra.access.short`; antes decía "UN AÑO MÁS" desde `data.end`, y en asincrónicas
+  "luego de que finalice", que contradecía la regla).
+- Plantillas ya pegadas: `upgrade_template()` (si no traen `extra.access.`) inserta `ACCESS_NOTE` después del
+  párrafo "Todo el material está grabado…", y reescribe `faq_answer` y el `access_text`.
+- Probado en local con la plantilla vieja de la base y con la nueva (puesta un rato en `wp_2_posts` ID 8 y
+  restaurada byte a byte): SYNC con y sin metodología, ASYNC y mkp_only (sin nota ni bullet); 1366 y 375 px.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

@@ -450,6 +450,10 @@ h1.oec-h1.m { font-size: 22px !important; }
 .oec-aval p    { font-size: 11px !important; color: #6b7280 !important; margin: 0 !important; line-height: 1.35 !important; }
 .oec-methodol  { display: flex; align-items: flex-start; gap: 10px; background: #eff6ff !important; border-radius: 8px !important; padding: 14px 16px !important; color: #1e40af !important; font-size: 14px !important; font-weight: 600 !important; line-height: 1.6 !important; margin-bottom: 14px !important; }
 .oec-methodol i { font-size: 17px !important; flex-shrink: 0; margin-top: 1px !important; }
+/* Hasta cuándo hay acceso al campus (v1.5.9, OEC_Shortcodes::access_info()), al pie de "¿Cómo son los horarios…?". */
+.oec-access-note { display: flex; gap: 10px; align-items: flex-start; margin: 16px 0 0 !important; padding: 12px 14px !important; background: #f8fafc !important; border: 1px solid #e2e8f0 !important; border-radius: 10px !important; font-size: 14px !important; line-height: 1.6 !important; color: #374151 !important; }
+.oec-access-note > i { flex: none; margin: 2px 0 0 !important; font-size: 16px !important; line-height: 1 !important; color: var(--oec-brand) !important; }
+.oec-access-note strong { color: #111827 !important; font-weight: 700 !important; }
 .oec-sched-legend { display: flex; justify-content: space-between; align-items: center; font-size: 13px !important; margin: 14px 0 8px !important; }
 .oec-sched-legend span { display: inline-flex; align-items: center; gap: 6px; color: #6b7280 !important; font-weight: 600 !important; }
 .oec-sched-legend span.cm_main_color { color: var(--oec-brand) !important; }

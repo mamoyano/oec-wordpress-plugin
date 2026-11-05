@@ -686,6 +686,9 @@ if (!class_exists('OEC_Shortcodes')) {
                     'embedded'            => $embed,
                     // Landing de la organización en ESTE sitio (vacío si el sitio no la tiene, ver organization_url()).
                     'org_url'             => $this->organization_url($data),
+                    // Hasta cuándo hay acceso al campus (access_info()): lo usan "¿Cómo son los horarios…?",
+                    // su respuesta del FAQPage y el bullet "Acceso extendido".
+                    'access'              => self::access_info($data),
                     'brand_color'         => $brand_color,
                     'detail_url'          => get_site_url() . ($embed ? '/formacion-incrustada/' : '/formacion/'),
                     'equipo_oec'          => get_option('oec_equipo_ventas', '1') === '1',
@@ -797,6 +800,66 @@ if (!class_exists('OEC_Shortcodes')) {
          * los que tengan un dígito alcanza para encontrar la temática sin
          * mantener una lista hardcodeada de campañas.
          */
+        /**
+         * Hasta cuándo hay acceso a la formación en el campus de OEC (regla de Mario, 2026-11-05):
+         * - SYNC / MIXED: un año después del fin del último módulo (fecha exacta; un 29/02 pasa al 28/02).
+         * - ASYNC / ASYNC-F: un año desde la inscripción de cada alumno (no hay fecha única).
+         * - LMS externo (mkp_only): se cursa en el campus del socio, no aplica → todo vacío.
+         * Si la coordinación escribió algo en "metodología" (data.methodology), se aclara que manda lo que
+         * diga ahí; si viene vacío, no se nombra (no habría nada "más arriba").
+         * @return array until (fecha legible o ''), html (párrafo del acordeón), text (lo mismo sin HTML, para
+         *               el FAQPage) y short (bullet "Acceso extendido"). Todo '' si no aplica.
+         */
+        public static function access_info($data) {
+            $empty = ['until' => '', 'html' => '', 'text' => '', 'short' => ''];
+            if (!is_array($data) || !empty($data['mkp_only'])) return $empty;
+
+            $sync  = strtoupper((string) ($data['synchronicity'] ?? ''));
+            $async = in_array($sync, ['ASYNC', 'ASYNC-F'], true);
+            $has_coord = trim(html_entity_decode(wp_strip_all_tags((string) ($data['methodology'] ?? '')), ENT_QUOTES, 'UTF-8'), " \t\n\r\0\x0B\xC2\xA0") !== '';
+            // En la página el texto de la coordinación está "más arriba"; en el FAQPage va justo antes, sin "arriba".
+            $coord  = $has_coord ? ', salvo que la coordinación indique otra fecha más arriba' : '';
+            $coordT = $has_coord ? ', salvo que la coordinación indique otra fecha' : '';
+            $todo  = 'asegúrate de rendir las evaluaciones pendientes y de descargar el material y tus certificados: después ya no vas a poder ingresar a la formación.';
+
+            if ($async) {
+                $lead = 'Acceso al campus durante un año desde tu inscripción';
+                return [
+                    'until' => '',
+                    'html'  => '<strong>' . $lead . '</strong>' . esc_html($coord) . '. Antes de que se cumpla ese año, ' . esc_html($todo),
+                    'text'  => $lead . $coordT . '. Antes de que se cumpla ese año, ' . $todo,
+                    'short' => 'Tendrás acceso al campus durante un año desde el día en que te inscribas.',
+                ];
+            }
+
+            // Fin del último módulo (en la API coincide con data.end; se toma el más tardío por las dudas).
+            $ends = [];
+            foreach ((array) ($data['modules']['data'] ?? []) as $m) {
+                if (!empty($m['end'])) $ends[] = (string) $m['end'];
+            }
+            if (!empty($data['end'])) $ends[] = (string) $data['end'];
+            $last = null;
+            foreach ($ends as $e) {
+                try { $dt = new \DateTime($e, wp_timezone()); } catch (\Exception $ex) { continue; }
+                $dt->setTimezone(wp_timezone());
+                if (!$last || $dt > $last) $last = $dt;
+            }
+            if (!$last) return $empty;
+
+            [$y, $mo, $d] = array_map('intval', explode('-', $last->format('Y-m-d')));
+            $y++;
+            if ($mo === 2 && $d === 29 && !checkdate(2, 29, $y)) $d = 28;
+            $until = self::format_date_es(sprintf('%04d-%02d-%02d', $y, $mo, $d));
+            $lead  = 'Acceso al campus hasta el ' . $until;
+            $why   = ', un año después de que termine el último módulo%s. Antes de esa fecha, ';
+            return [
+                'until' => $until,
+                'html'  => '<strong>' . esc_html($lead) . '</strong>' . esc_html(sprintf($why, $coord) . $todo),
+                'text'  => $lead . sprintf($why, $coordT) . $todo,
+                'short' => 'Tendrás acceso al campus hasta el ' . $until . ', un año después de que termine la formación.',
+            ];
+        }
+
         /**
          * URL de la landing de la organización que dicta la formación, en ESTE sitio:
          * {página "organizacion"}?slug={organization.data.slug} (la arma oec-wp-theme,
@@ -1034,6 +1097,10 @@ if (!class_exists('OEC_Shortcodes')) {
     <i class="bi bi-stars"></i>
 </a>';
 
+        // < 1.5.9: hasta cuándo hay acceso al campus (access_info()), en el acordeón de horarios, su FAQ y el
+        // bullet "Acceso extendido".
+        const ACCESS_NOTE = '{% if extra.access.html|default(\'\') %}<p class="oec-access-note"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>{{ extra.access.html|raw }}</span></p>{% endif %}';
+
         private function upgrade_template($content) {
             $content = (string) $content;
             // < 1.4.1: "¿es la comunidad dueña?" buscaba la URL de la comunidad como texto dentro
@@ -1189,6 +1256,12 @@ if (!class_exists('OEC_Shortcodes')) {
                 ],
                 $content
             );
+            // < 1.5.9: hasta cuándo hay acceso al campus (ver ACCESS_NOTE y access_info()).
+            if (strpos($content, 'extra.access.') === false) {
+                $content = preg_replace('/(Todo el material está grabado\..*?<\/p>\s*\{%\s*endif\s*%\})/s', '$1' . "\n" . self::ACCESS_NOTE, $content, 1);
+                $content = preg_replace('/\{%\s*set\s+faq_answer\s*=\s*\(faq_method\s*~\s*faq_schedule\)\|trim\s*%\}/', "{% set faq_answer = (faq_method ~ faq_schedule ~ (extra.access.text|default('') ? ' ' ~ extra.access.text : ''))|trim %}", $content, 1);
+                $content = preg_replace('/(\{%\s*set\s+access_text\s*=\s*"Luego de finalizada[^%]*%\}\s*\{%\s*endif\s*%\})/', "$1\n{% if extra.access.short|default('') %}{% set access_text = extra.access.short %}{% endif %}", $content, 1);
+            }
             return $content;
         }
 
