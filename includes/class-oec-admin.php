@@ -213,6 +213,9 @@ if (!class_exists('OEC_Admin')) {
                     update_option('oec_ventas_whatsapp', sanitize_text_field($_POST['oec_ventas_whatsapp'] ?? ''));
                     update_option('oec_ventas_email', sanitize_email($_POST['oec_ventas_email'] ?? ''));
                 }
+                if (isset($_POST['oec_sales_closed_extra'])) {
+                    update_option('oec_sales_closed_extra', sanitize_textarea_field(wp_unslash($_POST['oec_sales_closed_extra'])));
+                }
 
                 // Limpiar caché de API (compatible con multisitio)
                 OEC_Api::clear_cache();
@@ -563,6 +566,19 @@ if (!class_exists('OEC_Admin')) {
                                             <input type="email" name="oec_ventas_email" value="<?php echo esc_attr($ventas_email); ?>" class="regular-text" placeholder="ventas@tuorganizacion.com">
                                         </td>
                                     </tr>
+                                    <?php if (function_exists('oec_credits_system_enabled') && oec_credits_system_enabled()):
+                                        $holidays = get_option('oec_ar_holidays');
+                                        $hol_n    = 0;
+                                        foreach ((array) ($holidays['years'] ?? []) as $hol_y => $hol_d) $hol_n += count((array) $hol_d);
+                                    ?>
+                                    <tr>
+                                        <th scope="row">Días sin WhatsApp</th>
+                                        <td>
+                                            <textarea name="oec_sales_closed_extra" rows="4" class="regular-text" placeholder="24/12&#10;31/12&#10;15/01/2027"><?php echo esc_textarea(get_option('oec_sales_closed_extra', '')); ?></textarea>
+                                            <p class="description">En las formaciones abiertas de USD 300 o más, el WhatsApp de OEC se ofrece de lunes a viernes de 8 a 17 hs (Argentina); el resto del tiempo, el chat con IA. Los feriados nacionales (incluidos los puentes) se toman solos de ArgentinaDatos<?php echo $hol_n ? ' (' . (int) $hol_n . ' cargados, ' . esc_html(implode(' y ', array_keys((array) $holidays['years']))) . ')' : ''; ?>. Acá van los días extra, uno por línea: <code>24/12</code> (todos los años) o <code>15/01/2027</code>.</p>
+                                        </td>
+                                    </tr>
+                                    <?php endif; ?>
                                 </table>
                                 <?php submit_button('Actualizar Configuración', 'primary', 'oec_save'); ?>
                             </form>

@@ -757,8 +757,36 @@ if (!class_exists('OEC_Shortcodes')) {
                 if (!$contact['form']) $cls[] = 'oec-c-no-form';
                 if (!$contact['csm']) $cls[] = 'oec-c-no-csm';
                 if (!$contact['form'] && !$contact['whatsapp'] && !$contact['chat']) $cls[] = 'oec-c-none';
+                if (!empty($contact['hours'])) {
+                    $cls[] = 'oec-c-hours';
+                    $output = self::sales_hours_script($contact['hours']) . $output;
+                }
             }
             return $this->full_bleed_wrap($output, $dominant_color_css, implode(' ', $cls));
+        }
+
+        /**
+         * WhatsApp en horario de ventas, chat con IA fuera de él (comunidades, inscripción abierta, USD 300 o
+         * más). La ficha se cachea hasta 24 h, así que la página trae los dos canales y este script decide
+         * con la hora real de Argentina (Intl, sin depender de la zona horaria del visitante): con
+         * body.oec-c-chat-now se ocultan el bloque y el ícono de WhatsApp; sin esa clase, los del chat
+         * (css/oec-formacion.css). Corre al principio de la ficha, antes de pintar los íconos, y vuelve a
+         * mirar cada minuto. Sin JS o si Intl falla: WhatsApp. Los feriados viajan como fechas, no como
+         * "hoy es feriado", así que una página cacheada no se equivoca.
+         */
+        public static function sales_hours_script($hours) {
+            $cfg = wp_json_encode([
+                'tz'     => (string) $hours['tz'],
+                'days'   => array_values(array_map('intval', (array) $hours['days'])),
+                'from'   => (int) $hours['from'],
+                'to'     => (int) $hours['to'],
+                'closed' => array_values((array) $hours['closed']),
+            ], JSON_HEX_TAG);
+            return "<script>(function(){var c={$cfg};window.OEC_SALES_HOURS=c;var W={Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6,Sun:7};"
+                . "function open(){try{var p={};new Intl.DateTimeFormat('en-US',{timeZone:c.tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23',weekday:'short'}).formatToParts(new Date()).forEach(function(x){p[x.type]=x.value;});"
+                . "var h=parseInt(p.hour,10)%24,d=p.year+'-'+p.month+'-'+p.day;return c.days.indexOf(W[p.weekday])>-1&&h>=c.from&&h<c.to&&c.closed.indexOf(d)<0;}catch(e){return true;}}"
+                . "function f(){var b=document.body;if(b)b.classList.toggle('oec-c-chat-now',!open());}"
+                . "window.oecSalesHoursOpen=open;f();setInterval(f,60000);document.addEventListener('visibilitychange',function(){if(!document.hidden)f();});})();</script>";
         }
 
         /**

@@ -389,6 +389,10 @@ if (!class_exists('OEC_Api')) {
             }
             wp_cache_delete('alloptions', 'options');
             wp_cache_delete('notoptions', 'options');
+
+            // Feriados (oec_ar_holidays()): se vuelven a pedir en segundo plano, conservando la lista vieja
+            // por si la API no responde.
+            if (function_exists('oec_ar_holidays_schedule_now')) oec_ar_holidays_schedule_now();
         }
     }
 }

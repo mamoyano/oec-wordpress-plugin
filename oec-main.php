@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.5.7
+Version: 1.5.8
 Author: Online Education Center
 */
 
@@ -108,6 +108,137 @@ if (!function_exists('oec_credits_system_enabled')) {
 if (!defined('OEC_SALES_WHATSAPP')) define('OEC_SALES_WHATSAPP', '5493512584960');
 
 /**
+ * Horario del WhatsApp de OEC en las comunidades (regla de Mario, 2026-11-05): de lunes a viernes de 8 a
+ * 17 hs de Argentina, sin feriados nacionales (incluidos los puentes turísticos) ni los días extra que se
+ * carguen en wp-admin → OEC → Configuración. Fuera de ese horario, chat con IA. Filtro oec_sales_hours.
+ */
+if (!function_exists('oec_sales_hours')) {
+    function oec_sales_hours() {
+        return apply_filters('oec_sales_hours', [
+            'tz'     => 'America/Argentina/Buenos_Aires',
+            'days'   => [1, 2, 3, 4, 5],   // 1 = lunes … 7 = domingo (ISO)
+            'from'   => 8,                 // desde las 8:00
+            'to'     => 17,                // hasta las 16:59 (a las 17:00 ya no)
+            'closed' => oec_sales_closed_days(),
+        ]);
+    }
+}
+
+/**
+ * Feriados nacionales de Argentina del año actual y el siguiente (AAAA-MM-DD), de la API pública
+ * ArgentinaDatos. Se piden SOLO en segundo plano (WP-Cron, una vez por mes: oec_refresh_ar_holidays), nunca
+ * mientras se arma una ficha, así ninguna visita espera a la API. Se guardan en la opción oec_ar_holidays; si
+ * un pedido falla, queda la última lista buena. Si falta la lista (sitio nuevo) o el año actual (cambio de
+ * año), se agenda un pedido inmediato en segundo plano (como mucho uno cada 6 h). Sin ninguna lista, ningún
+ * día cuenta como feriado (peor caso: sale WhatsApp un feriado, nunca chat en un día hábil).
+ */
+if (!function_exists('oec_ar_holidays_refresh')) {
+    function oec_ar_holidays_refresh() {
+        $saved = get_option('oec_ar_holidays');
+        $years = is_array($saved) && isset($saved['years']) ? (array) $saved['years'] : [];
+        $year  = (int) (new DateTime('now', new DateTimeZone('America/Argentina/Buenos_Aires')))->format('Y');
+        $ok    = false;
+        foreach ([$year, $year + 1] as $y) {
+            $res = wp_remote_get("https://api.argentinadatos.com/v1/feriados/{$y}", ['timeout' => 2]);
+            if (is_wp_error($res) || wp_remote_retrieve_response_code($res) !== 200) continue;
+            $list = json_decode(wp_remote_retrieve_body($res), true);
+            if (!is_array($list)) continue;
+            $dates = [];
+            foreach ($list as $h) {
+                $d = (string) ($h['fecha'] ?? '');
+                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)) $dates[] = $d;
+            }
+            // Un año todavía sin publicar puede venir vacío: no se pisa una lista buena con nada.
+            if ($dates || !isset($years[$y])) $years[$y] = $dates;
+            $ok = true;
+        }
+        foreach (array_keys($years) as $y) {
+            if ((int) $y < $year) unset($years[$y]);
+        }
+        if ($ok) update_option('oec_ar_holidays', ['years' => $years, 'fetched' => time()], false);
+        return $ok;
+    }
+}
+if (!function_exists('oec_ar_holidays_schedule_now')) {
+    // Pedido en segundo plano lo antes posible (lo corre WP-Cron en la próxima visita, sin hacerla esperar).
+    function oec_ar_holidays_schedule_now() {
+        if (!wp_next_scheduled('oec_refresh_ar_holidays_once')) {
+            wp_schedule_single_event(time(), 'oec_refresh_ar_holidays_once');
+        }
+    }
+}
+add_filter('cron_schedules', function ($s) {
+    if (!isset($s['oec_monthly'])) $s['oec_monthly'] = ['interval' => 30 * DAY_IN_SECONDS, 'display' => 'Una vez por mes (OEC)'];
+    return $s;
+});
+add_action('oec_refresh_ar_holidays', 'oec_ar_holidays_refresh');
+add_action('oec_refresh_ar_holidays_once', 'oec_ar_holidays_refresh');
+add_action('init', function () {
+    // Solo en comunidades (único lugar donde se usa el horario de ventas). Por sitio, también en multisite.
+    $on = function_exists('oec_credits_system_enabled') && oec_credits_system_enabled();
+    $next = wp_next_scheduled('oec_refresh_ar_holidays');
+    if ($on && !$next) {
+        wp_schedule_event(time() + HOUR_IN_SECONDS, 'oec_monthly', 'oec_refresh_ar_holidays');
+    } elseif (!$on && $next) {
+        wp_clear_scheduled_hook('oec_refresh_ar_holidays');
+    }
+});
+register_deactivation_hook(__FILE__, function () {
+    wp_clear_scheduled_hook('oec_refresh_ar_holidays');
+    wp_clear_scheduled_hook('oec_refresh_ar_holidays_once');
+});
+if (!function_exists('oec_ar_holidays')) {
+    function oec_ar_holidays() {
+        $saved = get_option('oec_ar_holidays');
+        $years = is_array($saved) && isset($saved['years']) ? (array) $saved['years'] : [];
+        $year  = (int) (new DateTime('now', new DateTimeZone('America/Argentina/Buenos_Aires')))->format('Y');
+        if (!isset($years[$year]) && get_transient('oec_ar_holidays_try') === false) {
+            set_transient('oec_ar_holidays_try', 1, 6 * HOUR_IN_SECONDS);
+            oec_ar_holidays_schedule_now();
+        }
+        $out = [];
+        foreach ($years as $dates) $out = array_merge($out, (array) $dates);
+        return array_values(array_unique($out));
+    }
+}
+
+/**
+ * Días extra sin WhatsApp cargados en wp-admin (opción oec_sales_closed_extra), uno por línea:
+ * "24/12" (todos los años), "15/01/2027" o "2027-01-15". Devuelve AAAA-MM-DD (los "DD/MM" se expanden al
+ * año actual y al siguiente) junto con los feriados de oec_ar_holidays().
+ */
+if (!function_exists('oec_parse_closed_days')) {
+    function oec_parse_closed_days($raw) {
+        $year = (int) (new DateTime('now', new DateTimeZone('America/Argentina/Buenos_Aires')))->format('Y');
+        $out  = [];
+        foreach (preg_split('/[\r\n,;]+/', (string) $raw) as $line) {
+            $line = trim($line);
+            if (preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})$/', $line, $m)) {
+                $cands = [[(int) $m[1], (int) $m[2], (int) $m[3]]];
+            } elseif (preg_match('#^(\d{1,2})/(\d{1,2})/(\d{4})$#', $line, $m)) {
+                $cands = [[(int) $m[3], (int) $m[2], (int) $m[1]]];
+            } elseif (preg_match('#^(\d{1,2})/(\d{1,2})$#', $line, $m)) {
+                $cands = [[$year, (int) $m[2], (int) $m[1]], [$year + 1, (int) $m[2], (int) $m[1]]];
+            } else {
+                continue;
+            }
+            foreach ($cands as [$y, $mo, $d]) {
+                if (checkdate($mo, $d, $y)) $out[] = sprintf('%04d-%02d-%02d', $y, $mo, $d);
+            }
+        }
+        return $out;
+    }
+}
+if (!function_exists('oec_sales_closed_days')) {
+    function oec_sales_closed_days() {
+        $days = array_merge(oec_ar_holidays(), oec_parse_closed_days(get_option('oec_sales_closed_extra', '')));
+        $days = array_values(array_unique($days));
+        sort($days);
+        return $days;
+    }
+}
+
+/**
  * Número de WhatsApp utilizable o "": se sacan espacios, caracteres invisibles, guiones, puntos, paréntesis y el "+", y tienen
  * que quedar entre 10 y 15 dígitos (con código de país). Cualquier otro carácter lo invalida.
  */
@@ -126,9 +257,10 @@ if (!function_exists('oec_normalize_whatsapp')) {
  * el envío del formulario (OEC_Ajax::oec_more_info_ajax()).
  *
  * - Comunidad de OEC (dominio en OEC_CREDITS_ALLOWED_DOMAINS) y no incrustada: atiende OEC siempre
- *   (se ignoran el switch de ventas y b2c_package). Formulario a la CRM y, además, WhatsApp de OEC si
- *   la inscripción está abierta y cuesta USD 300 o más; si no, chat con IA (si el tema no lo ofrece,
- *   WhatsApp de OEC).
+ *   (se ignoran el switch de ventas y b2c_package). Formulario a la CRM y, además, si la inscripción
+ *   está abierta y cuesta USD 300 o más, WhatsApp de OEC en horario de ventas (oec_sales_hours()) y chat
+ *   con IA fuera de él (decide el navegador: 'hours'); si no, chat con IA. Si el tema no ofrece el chat,
+ *   siempre WhatsApp de OEC.
  * - Sitio de socio o ficha incrustada:
  *     b2c_package true (o sin el dato): switch "Equipo de Ventas de OEC" → CRM + WhatsApp de OEC;
  *       apagado → email + WhatsApp del socio configurados en el plugin.
@@ -136,7 +268,8 @@ if (!function_exists('oec_normalize_whatsapp')) {
  *
  * @return array form ('crm'|'partner'|''), email (destino si form = partner), whatsapp (dígitos o ''),
  *               chat (bool), csm (mostrar la foto/nombre de nuestro Customer Success Manager),
- *               wa_partner (el WhatsApp es del socio: otro mensaje inicial y otros textos).
+ *               wa_partner (el WhatsApp es del socio: otro mensaje inicial y otros textos),
+ *               hours (solo si WhatsApp y chat dependen de la hora: oec_sales_hours()).
  */
 if (!function_exists('oec_contact_channels')) {
     function oec_contact_channels($data, $embed = false, $open = true) {
@@ -151,9 +284,16 @@ if (!function_exists('oec_contact_channels_base')) {
 
         if (!$embed && function_exists('oec_credits_system_enabled') && oec_credits_system_enabled()) {
             $price = (float) ($data['prices']['total'] ?? 0);
-            if ((!$open || $price < 300) && apply_filters('oec_chat_ia_available', false)) {
+            if (!apply_filters('oec_chat_ia_available', false)) return $oec;   // sin chat en el sitio: WhatsApp
+            if (!$open || $price < 300) {
                 $oec['whatsapp'] = '';
                 $oec['chat']     = true;
+            } else {
+                // Abierta y USD 300 o más: WhatsApp en horario de ventas, chat con IA fuera de él. Con las
+                // fichas en caché (Cloudflare, hasta 24 h) la hora no se puede decidir acá: la página trae
+                // los dos canales y el navegador muestra uno (OEC_Shortcodes::sales_hours_script()).
+                $oec['chat']  = true;
+                $oec['hours'] = oec_sales_hours();
             }
             return $oec;
         }

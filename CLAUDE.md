@@ -2651,6 +2651,36 @@ Causa: `/formacion/{slug}-t-XXXXXXXXXXXXXX` con un ID que la API no conoce rende
 - Probado en local: ID inexistente 404 (dos veces, la segunda sin llamar a la API), `/formacion` 301,
   ficha real y variante en minúsculas 200 con sus 3 JSON-LD.
 
+## v1.5.8 — WhatsApp de OEC solo en horario de ventas, en las comunidades (2026-11-05)
+
+Regla de Mario: en una comunidad, con inscripción abierta y USD 300 o más, WhatsApp de OEC solo de lunes a
+viernes de 8:00 a 16:59 de Argentina, sin feriados nacionales (puentes incluidos) ni días extra; fuera de
+eso, chat con IA. El resto de la tabla de v1.4.31 no cambia (cerrada o < 300 → chat; socio/incrustada →
+igual que antes; sin chat con IA en el sitio → siempre WhatsApp).
+- **Decide el navegador, no PHP** (la ficha va cacheada hasta 24 h en Cloudflare): en esa rama
+  `oec_contact_channels()` devuelve `chat = true` + `whatsapp` de OEC + `hours` (`oec_sales_hours()`, filtro
+  `oec_sales_hours`), así la plantilla (nueva o ya pegada, sin tocarla) imprime los dos bloques y los dos
+  flotantes. `render_content()` agrega `oec-c-hours` al wrapper y antepone
+  `OEC_Shortcodes::sales_hours_script()`: script en línea que calcula la hora con `Intl` en
+  `America/Argentina/Buenos_Aires` y pone `body.oec-c-chat-now` fuera de horario; revisa cada minuto y al
+  volver a la pestaña. CSS en `oec-formacion.css` (`body:has(.oec-c-hours)…`). Sin JS o si `Intl` falla:
+  WhatsApp. Expone `window.OEC_SALES_HOURS` y `window.oecSalesHoursOpen()` (para probar).
+- **Feriados**: `oec_ar_holidays_refresh()` pide `api.argentinadatos.com/v1/feriados/{año}` (año actual y
+  siguiente, timeout 2 s) SOLO desde WP-Cron: evento mensual `oec_refresh_ar_holidays` (intervalo propio
+  `oec_monthly`, 30 días; se agenda en `init` solo en comunidades y se borra al desactivar el plugin). Ninguna
+  visita espera a la API. `oec_ar_holidays()` solo lee la opción `oec_ar_holidays` (la última lista buena);
+  si falta el año actual (sitio nuevo, cambio de año) agenda un pedido inmediato en segundo plano
+  (`oec_refresh_ar_holidays_once`, como mucho cada 6 h por el transient `oec_ar_holidays_try`). "Actualizar
+  caché" y guardar la configuración también agendan ese pedido. Sin ninguna lista, ningún día es feriado
+  (peor caso: WhatsApp un feriado). Las fechas viajan en la página, así que la caché no las rompe.
+- **Días extra**: wp-admin → OEC → Configuración, "Días sin WhatsApp" (solo visible en comunidades; opción
+  POR SITIO `oec_sales_closed_extra`): `24/12` (todos los años), `15/01/2027` o `2027-01-15`, uno por línea
+  (`oec_parse_closed_days()`). Hay que cargarlo en cada comunidad.
+- Probado en local: 12 fichas (≥ 300 → los dos canales + script; 160 → solo chat; incrustada → solo
+  WhatsApp, sin script); en el navegador, 7:59 no / 8:00 sí / 16:59 sí / 17:00 no / sábado, 9/11 y puente
+  7/12 no; con el día de hoy en `closed`, se ven chat y su flotante y se ocultan los de WhatsApp. Sin
+  errores de consola.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

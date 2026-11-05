@@ -599,6 +599,11 @@ h1.oec-h1.m { font-size: 22px !important; }
 body:has(#oec-bleed-wrapper.oec-c-none) #oec-contacto,
 body:has(#oec-bleed-wrapper.oec-c-none) [where="oec-contacto"],
 body:has(#oec-bleed-wrapper.oec-c-none) p:has(> [where="oec-contacto"]) { display: none !important; }
+/* Horario de ventas (v1.5.8, .oec-c-hours): la página trae WhatsApp y chat con IA, y el script en línea
+   (OEC_Shortcodes::sales_hours_script()) pone body.oec-c-chat-now fuera del horario. Sin esa clase (o sin
+   JS) se ve WhatsApp. Los íconos flotantes se mudan a <body>: por eso body:has(…). */
+body:has(#oec-bleed-wrapper.oec-c-hours):not(.oec-c-chat-now) :is(.oec-contact-block--chat, #oec-float-chat),
+body.oec-c-chat-now:has(#oec-bleed-wrapper.oec-c-hours) :is(.oec-contact-block--whatsapp, #oec-float-wa) { display: none !important; }
 .oec-contact-block--email { flex: 1 1 260px; min-width: 230px !important; }
 /* Sin max-width — a pedido, el formulario ocupa TODO el ancho
    disponible de su columna (los inputs/botón de ".oec-form" ya tenían
