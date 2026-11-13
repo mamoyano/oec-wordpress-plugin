@@ -248,8 +248,6 @@ if (!class_exists('OEC_Shortcodes')) {
                 // URL de admin-ajax de ESTE sitio: con una ruta fija "/wp-admin/admin-ajax.php", en un
                 // multisite por subcarpeta (/es/) los formularios caían en el sitio raíz de la red.
                 wp_add_inline_script('oec-formacion', 'window.OEC_AJAX_URL = ' . wp_json_encode(admin_url('admin-ajax.php')) . ';', 'before');
-                // Verificación de email y saldo de créditos (recuadro "Canjea créditos", oec-formacion.js).
-                wp_add_inline_script('oec-formacion', 'window.OEC_JOURNEY_URL = ' . wp_json_encode(apply_filters('oec_journey_url', defined('OEC_JOURNEY_URL') ? OEC_JOURNEY_URL : 'https://journey.oe.center')) . ';', 'before');
                 if (function_exists('oec_is_embed') && oec_is_embed()) {
                     wp_add_inline_script('oec-formacion', 'window.OEC_EMBED = true;', 'before');
                 }

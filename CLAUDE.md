@@ -2786,7 +2786,21 @@ Para que el Worker sepa qué sitios puede imprimir como brochure en PDF sin carg
   migración 0007 (`brochure_sites` por dominio + prefijo). Un sitio registrado vale para el PDF si está activo, tiene
   plugin ≥ 1.5.10 y avisó en los últimos 7 días. Se publican juntos (Worker + plugin 1.5.12).
 
-## v1.5.13 — créditos: el saldo se ve solo con el email verificado por código (2026-11-13)
+## v1.5.14 — créditos: vuelve el recuadro de la 1.5.12 (2026-11-13)
+
+Mario pidió volver atrás la 1.5.13: la API de créditos (`contable/api/points/{email}`) deja leer el saldo de
+cualquier email sin clave y por ahora no la van a cerrar, así que pedir un código en la ficha solo sumaba un paso
+sin proteger nada. `class-oec-ajax.php`, `class-oec-shortcodes.php` y `js/oec-formacion.js` (+ `.min.js`) quedaron
+idénticos a la 1.5.12 (`git checkout a74d842 -- …`): `oec_check_credits` devuelve el saldo del email escrito,
+`oec_request_redeem` toma el email del navegador y no se imprime `OEC_JOURNEY_URL`. El registro de sitios de la
+1.5.12 sigue igual.
+- **El código de la verificación está guardado en la rama `creditos-verificacion-codigo`** (commit f1ca00a, la
+  1.5.13). Para volver a usarlo el día que la API pida clave para leer: traer esos 4 archivos de esa rama (o
+  `git revert` del commit de la 1.5.14 en esos archivos). Las rutas `/v1/verify/*` y `/v1/me` del Worker siguen
+  publicadas (las usa el chat del tema).
+- La sección de abajo (1.5.13) describe esa versión, que ya no está activa.
+
+## v1.5.13 (revertida en 1.5.14) — créditos: el saldo se ve solo con el email verificado por código (2026-11-13)
 
 Antes, el recuadro "Canjea créditos por descuentos" mostraba el saldo de CUALQUIER email que se escribiera
 (`oec_check_credits` → API de créditos, sin probar que el email fuera de quien preguntaba), y el canje respondía
