@@ -2750,6 +2750,26 @@ decisiones de Mario en `~/Claude/Projects/Lead Journey/docs/brochure-propuesta.m
 - Probado en local: AR/MX/ES/sin país/ZZ/basura, comunidad (/es) y socio (raíz), asincrónica, y por `render()`:
   cerrada, force_contact, mkp_only, sin módulos.
 
+## v1.5.11 — video de "Presentación": Bunny y otras plataformas (2026-11-13)
+
+OEC pasó de Vimeo a Bunny Stream y los `video_url` de Bunny no se mostraban: `video_embed_iframe()` solo
+aceptaba Vimeo y YouTube (lista cerrada a propósito: no se embebe cualquier página que llegue por la API).
+Ahora `OEC_Shortcodes::video_source($url)` reconoce, y `video_facade()` arma la miniatura con play:
+- **Bunny Stream**: `iframe.mediadelivery.net` / `player.mediadelivery.net`, `/embed/` o `/play/{librería}/{video}`
+  → iframe `/embed/` (conserva `token`/`expires`), autoplay con `autoplay=true` (no `=1`). Miniatura: la
+  página del reproductor trae la URL de `vz-….b-cdn.net/{video}/thumbnail_….jpg` (no se deduce del ID de
+  librería), cacheada 7 días (`oec_vthumb_b_…`), con Referer del sitio y de la comunidad como Vimeo.
+  Un `.mp4` de `vz-….b-cdn.net` → `<video>` con `thumbnail.jpg` al lado. Un `.m3u8` NO (Chrome no lo reproduce).
+- YouTube (suma `/live/`), Instagram (`/p/`, `/reel/`, `/tv/` → `/embed/`, sin miniatura), TikTok
+  (`/player/v1/`, miniatura por su oEmbed público), Facebook (`plugins/video.php`, sin miniatura) y un
+  archivo directo `.mp4/.webm/.mov/.m4v` (`data-oec-video-kind="file"` → el click crea un `<video>`).
+- Un `<iframe>` pegado al principio de `short_description` también se reconoce con cualquiera de estas
+  plataformas (antes solo Vimeo). Cualquier otra URL sigue sin mostrarse.
+- La caja es vertical (9:16, 220/240 px): un video horizontal queda con franjas, y el embed de Instagram
+  trae su encabezado y pie, así que el video se ve más chico.
+- Probado: 18 URLs (incluidas inválidas y con comillas), el filtro de Twig, y en el navegador con el video
+  de demo real de Bunny (miniatura + reproducción). NO se probó en una ficha real: la API de OEC no respondía.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

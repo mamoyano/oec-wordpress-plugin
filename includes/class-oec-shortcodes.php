@@ -74,19 +74,20 @@ if (!class_exists('OEC_Shortcodes')) {
                     $rest = preg_replace('/^<iframe\b[^>]*>.*?<\/iframe>\s*/is', '', $html, 1);
                     return ['iframe' => $embed, 'rest' => trim((string) $rest)];
                 }
-                if (preg_match('/^(<iframe\b[^>]*\bsrc=["\'][^"\']*vimeo[^"\']*["\'][^>]*>.*?<\/iframe>)\s*(.*)$/is', $html, $m)) {
+                if (preg_match('/^(<iframe\b[^>]*>.*?<\/iframe>)\s*(.*)$/is', $html, $m)) {
                     $iframe = $m[1];
-                    // Con un src de player.vimeo.com reconocible, la misma miniatura con play.
-                    if (preg_match('#\bsrc=["\'](https?://player\.vimeo\.com/video/\d+[^"\']*)["\']#i', $iframe, $s)) {
-                        return ['iframe' => self::video_facade(html_entity_decode($s[1], ENT_QUOTES, 'UTF-8')), 'rest' => trim($m[2])];
+                    // Un src de una plataforma conocida (Vimeo, Bunny, YouTube…) → la misma miniatura con play.
+                    if (preg_match('#\bsrc=["\']([^"\']+)["\']#i', $iframe, $s) && ($facade = self::video_embed_iframe($s[1]))) {
+                        return ['iframe' => $facade, 'rest' => trim($m[2])];
                     }
-                    // El embed de Vimeo que llega del CMS no trae loading="lazy" — sin
-                    // esto el player (JS/CSS de terceros, pesado) carga eager apenas el
-                    // DOM llega a esta sección, esté o no por debajo del fold.
-                    if (!preg_match('/\bloading\s*=/i', $iframe)) {
-                        $iframe = preg_replace('/^<iframe\b/i', '<iframe loading="lazy"', $iframe, 1);
+                    // Datos viejos: cualquier otro iframe de Vimeo, tal cual pero con loading="lazy"
+                    // (sin esto el player carga apenas el DOM llega a esta sección).
+                    if (stripos($iframe, 'vimeo') !== false) {
+                        if (!preg_match('/\bloading\s*=/i', $iframe)) {
+                            $iframe = preg_replace('/^<iframe\b/i', '<iframe loading="lazy"', $iframe, 1);
+                        }
+                        return ['iframe' => $iframe, 'rest' => trim($m[2])];
                     }
-                    return ['iframe' => $iframe, 'rest' => trim($m[2])];
                 }
                 return ['iframe' => null, 'rest' => $html];
             }));
@@ -1003,25 +1004,71 @@ if (!class_exists('OEC_Shortcodes')) {
         }
 
         /**
-         * <iframe> del video de "Presentación" a partir de data.video_url — el mismo que antes
-         * venía pegado en short_description (loading="lazy" + src del player), así la ficha se
-         * ve igual. Acepta Vimeo (vimeo.com/ID, vimeo.com/ID/hash, player.vimeo.com/video/ID)
-         * y YouTube (watch?v=, youtu.be/, /embed/, /shorts/). Cualquier otra URL → "" (no se
-         * embebe una página cualquiera que llegue por la API).
+         * Video de "Presentación" a partir de data.video_url (o del src de un <iframe> pegado en el
+         * texto). Devuelve la miniatura con play (video_facade()) o "" si la URL no es de una
+         * plataforma conocida: no se embebe una página cualquiera que llegue por la API.
+         *  - Vimeo: vimeo.com/ID, vimeo.com/ID/hash, player.vimeo.com/video/ID
+         *  - Bunny Stream: iframe.mediadelivery.net / player.mediadelivery.net (/embed/ o /play/{librería}/{video}),
+         *    y archivos de su CDN (vz-….b-cdn.net/{video}/play_720p.mp4, /playlist.m3u8 → solo si es mp4)
+         *  - YouTube: watch?v=, youtu.be/, /embed/, /shorts/, /live/
+         *  - Instagram: /p/, /reel/, /reels/, /tv/
+         *  - TikTok: tiktok.com/@usuario/video/ID, tiktok.com/player/v1/ID
+         *  - Facebook: facebook.com/…/videos/…, fb.watch/…, /reel/
+         *  - Un archivo de video directo (https, .mp4/.webm/.mov/.m4v) → <video>
          */
         public static function video_embed_iframe($url) {
+            $v = self::video_source($url);
+            return $v ? self::video_facade($v['src'], $v) : '';
+        }
+
+        /**
+         * Reconoce la URL del video: ['src' => URL del reproductor, 'kind' => 'iframe'|'file',
+         * 'autoplay' => parámetro a sumar al hacer click, 'thumb' => miniatura si se sabe sin pedir nada].
+         */
+        public static function video_source($url) {
             $url = trim(html_entity_decode((string) $url, ENT_QUOTES, 'UTF-8'));
-            if ($url === '') return '';
-            if (preg_match('#^https?://(?:www\.)?player\.vimeo\.com/video/(\d+)(?:\?([^\s"\'<>]*))?#i', $url, $m)) {
-                $src = 'https://player.vimeo.com/video/' . $m[1] . (!empty($m[2]) ? '?' . $m[2] : '');
-            } elseif (preg_match('#^https?://(?:www\.)?vimeo\.com/(?:video/)?(\d+)(?:/([0-9a-f]+))?#i', $url, $m)) {
-                $src = 'https://player.vimeo.com/video/' . $m[1] . (!empty($m[2]) ? '?h=' . $m[2] : '');
-            } elseif (preg_match('#^https?://(?:www\.|m\.)?(?:youtube\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/)|youtu\.be/)([A-Za-z0-9_-]{11})#i', $url, $m)) {
-                $src = 'https://www.youtube-nocookie.com/embed/' . $m[1];
-            } else {
-                return '';
+            if ($url === '' || !preg_match('#^https?://#i', $url) || preg_match('#[\s"\'<>]#', $url)) return null;
+            $url = preg_replace('#^http://#i', 'https://', $url);
+            $q   = parse_url($url, PHP_URL_QUERY);
+
+            if (preg_match('#^https://(?:www\.)?player\.vimeo\.com/video/(\d+)#i', $url, $m)) {
+                return ['src' => 'https://player.vimeo.com/video/' . $m[1] . ($q ? '?' . $q : ''), 'kind' => 'iframe', 'autoplay' => 'autoplay=1'];
             }
-            return self::video_facade($src);
+            if (preg_match('#^https://(?:www\.)?vimeo\.com/(?:video/|channels/[^/]+/|groups/[^/]+/videos/)?(\d+)(?:/([0-9a-f]+))?#i', $url, $m)) {
+                return ['src' => 'https://player.vimeo.com/video/' . $m[1] . (!empty($m[2]) ? '?h=' . $m[2] : ''), 'kind' => 'iframe', 'autoplay' => 'autoplay=1'];
+            }
+            // Bunny Stream: el reproductor (/play/ es la página para ver; /embed/ el iframe; mismo video).
+            if (preg_match('#^https://(?:iframe|player)\.mediadelivery\.net/(?:embed|play)/(\d+)/([0-9a-f-]{36})#i', $url, $m)) {
+                $keep = [];
+                parse_str((string) $q, $params);
+                foreach (['token', 'expires'] as $k) if (isset($params[$k])) $keep[$k] = $params[$k];
+                return ['src' => 'https://iframe.mediadelivery.net/embed/' . $m[1] . '/' . strtolower($m[2]) . ($keep ? '?' . http_build_query($keep) : ''),
+                        'kind' => 'iframe', 'autoplay' => 'autoplay=true'];
+            }
+            // Bunny Stream, archivo de su CDN: la miniatura vive al lado (thumbnail.jpg). Un .m3u8 no se
+            // puede reproducir en un <video> en Chrome: sin la librería no hay forma de embeberlo.
+            if (preg_match('#^(https://vz-[a-z0-9-]+\.b-cdn\.net/[0-9a-f-]{36})/[^?]+\.(?:mp4|webm|mov|m4v)(?:\?|$)#i', $url, $m)) {
+                return ['src' => $url, 'kind' => 'file', 'autoplay' => '', 'thumb' => $m[1] . '/thumbnail.jpg'];
+            }
+            if (preg_match('#^https://(?:www\.|m\.)?(?:youtube\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/|live/|v/)|youtube-nocookie\.com/embed/|youtu\.be/)([A-Za-z0-9_-]{11})#i', $url, $m)) {
+                return ['src' => 'https://www.youtube-nocookie.com/embed/' . $m[1], 'kind' => 'iframe', 'autoplay' => 'autoplay=1',
+                        'thumb' => 'https://i.ytimg.com/vi/' . $m[1] . '/hqdefault.jpg'];
+            }
+            if (preg_match('#^https://(?:www\.)?instagram\.com/(?:[A-Za-z0-9_.]+/)?(p|reels?|tv)/([A-Za-z0-9_-]+)#i', $url, $m)) {
+                $type = strtolower($m[1]) === 'reels' ? 'reel' : strtolower($m[1]);
+                return ['src' => 'https://www.instagram.com/' . $type . '/' . $m[2] . '/embed/', 'kind' => 'iframe', 'autoplay' => ''];
+            }
+            if (preg_match('#^https://(?:www\.)?tiktok\.com/(?:@[^/]+/video/|player/v1/|embed/v2/|embed/)(\d+)#i', $url, $m)) {
+                return ['src' => 'https://www.tiktok.com/player/v1/' . $m[1], 'kind' => 'iframe', 'autoplay' => 'autoplay=1',
+                        'oembed' => 'https://www.tiktok.com/oembed?url=' . rawurlencode('https://www.tiktok.com/video/' . $m[1])];
+            }
+            if (preg_match('#^https://(?:www\.|m\.|web\.)?(?:facebook\.com/(?:[^?]+/videos/|watch/?\?v=|reel/|share/v/)|fb\.watch/)#i', $url)) {
+                return ['src' => 'https://www.facebook.com/plugins/video.php?show_text=false&href=' . rawurlencode($url), 'kind' => 'iframe', 'autoplay' => 'autoplay=true'];
+            }
+            if (preg_match('#\.(?:mp4|webm|mov|m4v)$#i', (string) parse_url($url, PHP_URL_PATH))) {
+                return ['src' => $url, 'kind' => 'file', 'autoplay' => ''];
+            }
+            return null;
         }
 
         /** Comunidad de la formación que se está mostrando (render_content): segundo Referer para el oEmbed de Vimeo. */
@@ -1034,14 +1081,21 @@ if (!class_exists('OEC_Shortcodes')) {
          * imagen del hero. Ahora el iframe se crea recién al hacer click (initVideoFacade(),
          * oec-formacion.js), con autoplay. Sin JS queda el iframe de siempre en un <noscript>.
          */
-        public static function video_facade($src) {
+        public static function video_facade($src, $v = null) {
             $src   = (string) $src;
-            $thumb = self::video_thumbnail($src);
-            $play  = $src . (strpos($src, '?') === false ? '?' : '&') . 'autoplay=1';
+            $v     = $v ?: (self::video_source($src) ?: ['src' => $src, 'kind' => 'iframe', 'autoplay' => 'autoplay=1']);
+            $thumb = self::video_thumbnail($src, $v);
+            $file  = ($v['kind'] ?? '') === 'file';
+            $ap    = $v['autoplay'] ?? '';
+            $play  = $ap ? $src . (strpos($src, '?') === false ? '?' : '&') . $ap : $src;
             $img   = $thumb ? '<img src="' . esc_url($thumb) . '" alt="" loading="lazy" decoding="async" width="480" height="853">' : '';
-            return '<button type="button" class="oec-video-facade" data-oec-video-src="' . esc_url($play) . '" aria-label="Reproducir el video de presentación">'
+            $fallback = $file
+                ? '<video src="' . esc_url($src) . '" controls preload="none" playsinline' . ($thumb ? ' poster="' . esc_url($thumb) . '"' : '') . '></video>'
+                : '<iframe loading="lazy" src="' . esc_url($src) . '" title="Video de presentación" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen></iframe>';
+            return '<button type="button" class="oec-video-facade" data-oec-video-src="' . esc_url($play) . '"' . ($file ? ' data-oec-video-kind="file"' : '')
+                . ' aria-label="Reproducir el video de presentación">'
                 . $img . '<span class="oec-video-play" aria-hidden="true"><i class="bi bi-play-fill"></i></span></button>'
-                . '<noscript><iframe loading="lazy" src="' . esc_url($src) . '" title="Video de presentación" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></noscript>';
+                . '<noscript>' . $fallback . '</noscript>';
         }
 
         /**
@@ -1051,10 +1105,10 @@ if (!class_exists('OEC_Shortcodes')) {
          * este sitio y, si no, con la comunidad de la formación. Sin miniatura, el botón queda
          * negro con el play.
          */
-        private static function video_thumbnail($src) {
-            if (preg_match('#youtube-nocookie\.com/embed/([A-Za-z0-9_-]{11})#', $src, $m)) {
-                return 'https://i.ytimg.com/vi/' . $m[1] . '/hqdefault.jpg';
-            }
+        private static function video_thumbnail($src, $v = []) {
+            if (!empty($v['thumb'])) return $v['thumb'];
+            if (!empty($v['oembed'])) return self::oembed_thumbnail($v['oembed']);
+            if (preg_match('#^https://iframe\.mediadelivery\.net/embed/(\d+)/([0-9a-f-]{36})#', $src, $m)) return self::bunny_thumbnail($src, $m[2]);
             if (!preg_match('#player\.vimeo\.com/video/(\d+)(?:\?(?:.*&)?h=([0-9a-f]+))?#', $src, $m)) return '';
             $key    = 'oec_vthumb_' . $m[1];
             $cached = get_transient($key);
@@ -1073,6 +1127,44 @@ if (!class_exists('OEC_Shortcodes')) {
                     break;
                 }
             }
+            set_transient($key, $thumb ?: 'none', 7 * DAY_IN_SECONDS);
+            return $thumb;
+        }
+
+        /**
+         * Miniatura de un video de Bunny Stream: está en el CDN de la librería
+         * (https://vz-….b-cdn.net/{video}/thumbnail.jpg), que no se deduce del ID de la librería: se lee
+         * de la página del reproductor (og:image / poster). Cacheada 7 días (también el "no hay"). Como en
+         * Vimeo, una librería restringida a ciertos dominios solo responde con un Referer permitido.
+         */
+        private static function bunny_thumbnail($src, $guid) {
+            $key    = 'oec_vthumb_b_' . md5($src);
+            $cached = get_transient($key);
+            if ($cached !== false) return $cached === 'none' ? '' : $cached;
+            $referers = array_unique(array_filter([home_url('/'), self::$video_community ? trailingslashit(self::$video_community) : '']));
+            $thumb    = '';
+            foreach ($referers as $referer) {
+                $res = wp_remote_get($src, ['timeout' => 3, 'headers' => ['Referer' => $referer]]);
+                if (is_wp_error($res) || wp_remote_retrieve_response_code($res) !== 200) continue;
+                $body = wp_remote_retrieve_body($res);
+                if (preg_match('#https://[a-z0-9.-]+/' . preg_quote($guid, '#') . '/thumbnail[^"\'\s<>]*\.(?:jpg|jpeg|png|webp)#i', $body, $m)
+                    || preg_match('#<meta[^>]+property=["\']og:image["\'][^>]+content=["\'](https://[^"\']+)#i', $body, $m)) {
+                    $thumb = html_entity_decode($m[1] ?? $m[0], ENT_QUOTES, 'UTF-8');
+                    break;
+                }
+            }
+            set_transient($key, $thumb ?: 'none', 7 * DAY_IN_SECONDS);
+            return $thumb;
+        }
+
+        /** Miniatura desde un oEmbed público (TikTok). Cacheada 7 días, también el "no hay". */
+        private static function oembed_thumbnail($endpoint) {
+            $key    = 'oec_vthumb_o_' . md5($endpoint);
+            $cached = get_transient($key);
+            if ($cached !== false) return $cached === 'none' ? '' : $cached;
+            $res   = wp_remote_get($endpoint, ['timeout' => 3]);
+            $json  = (!is_wp_error($res) && wp_remote_retrieve_response_code($res) === 200) ? json_decode(wp_remote_retrieve_body($res), true) : null;
+            $thumb = (is_array($json) && !empty($json['thumbnail_url']) && preg_match('#^https://#', $json['thumbnail_url'])) ? $json['thumbnail_url'] : '';
             set_transient($key, $thumb ?: 'none', 7 * DAY_IN_SECONDS);
             return $thumb;
         }

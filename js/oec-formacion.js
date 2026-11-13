@@ -876,11 +876,23 @@ jQuery(document).ready(function($){
     $doc.on('click', '.oec-video-facade', function(){
         const src = this.getAttribute('data-oec-video-src');
         if (!src) return;
-        const f = document.createElement('iframe');
-        f.src = src;
-        f.title = 'Video de presentación';
-        f.allow = 'autoplay; fullscreen; picture-in-picture';
-        f.allowFullscreen = true;
+        let f;
+        if (this.getAttribute('data-oec-video-kind') === 'file') {
+            // Archivo de video directo (p. ej. un .mp4 del CDN de Bunny): <video> nativo.
+            f = document.createElement('video');
+            f.src = src;
+            f.controls = true;
+            f.autoplay = true;
+            f.playsInline = true;
+            const img = this.querySelector('img');
+            if (img) f.poster = img.src;
+        } else {
+            f = document.createElement('iframe');
+            f.src = src;
+            f.title = 'Video de presentación';
+            f.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
+            f.allowFullscreen = true;
+        }
         this.replaceWith(f);
         f.focus();
     });
