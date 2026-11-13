@@ -1,0 +1,281 @@
+{#
+  Brochure de la formación (OEC_Brochure). Página A4 autónoma: sin tema, sin scripts, sin precios.
+  Determinista: no usa la hora actual salvo para "inscripción abierta" (ver OEC_Brochure::render()).
+  Tuteo, igual que la ficha.
+#}
+{%- set org = data.organization.data|default({}) -%}
+{%- set modules = data.modules.data|default([]) -%}
+{%- set module_count = modules|length -%}
+{%- set certs = data.certificates.data|default([]) -%}
+{%- set supports = data.supports.data|default([]) -%}
+{%- set modality = data.modality|default('ONLINE') -%}
+{%- if modality == 'ONLINE' -%}
+  {%- set modality_title = '100% online' -%}{%- set modality_text = 'No hay ninguna instancia presencial.' -%}
+{%- elseif 'BLEND' in modality -%}
+  {%- set modality_title = 'Online + presencial' -%}{%- set modality_text = 'Combina instancias online y presenciales.' -%}
+{%- else -%}
+  {%- set modality_title = 'Presencial' -%}{%- set modality_text = 'Es totalmente presencial.' -%}
+{%- endif -%}
+{%- if sync == 'SYNC' -%}
+  {%- set sync_title = 'En vivo' -%}{%- set sync_text = 'Los docentes están en vivo durante el período de clases, y todo queda grabado.' -%}
+{%- elseif sync == 'MIXED' -%}
+  {%- set sync_title = 'Mixta' -%}{%- set sync_text = 'Combina clases grabadas con encuentros en vivo y foros sincrónicos.' -%}
+{%- elseif sync == 'ASYNC-F' -%}
+  {%- set sync_title = 'Asincrónica' -%}{%- set sync_text = 'Clases grabadas con foros sincrónicos. Estudias a tu ritmo.' -%}
+{%- else -%}
+  {%- set sync_title = 'Asincrónica' -%}{%- set sync_text = 'Clases grabadas. Estudias a tu ritmo.' -%}
+{%- endif -%}
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ data.title }} — Brochure</title>
+{% if ficha_url %}<link rel="canonical" href="{{ ficha_url|split('?')|first }}">{% endif %}
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=block">
+<style>
+:root{--b-dark:{{ brand.dark }};--b-primary:{{ brand.primary }};--b-accent:{{ brand.accent }};--b-text:{{ brand.text }}}
+{{ css|raw }}
+@page{@bottom-left{content:"{{ data.title|e('css') }}  ·  {{ site_host|e('css') }}"}}
+</style>
+</head>
+<body>
+
+{# ── PORTADA ───────────────────────────────────────────── #}
+<header class="b-head b-head--{{ brand.header }}">
+  {% if brand.logo %}<img class="b-logo" src="{{ brand.logo }}" alt="{{ brand.name }}">{% else %}<span class="b-logo-text">{{ brand.name }}</span>{% endif %}
+  <span class="b-head-tag">Programa de la formación</span>
+</header>
+
+<section class="b-cover">
+  {% if data.image %}<img class="b-cover-img" src="{{ data.image|img(1200) }}" alt="">{% endif %}
+  <p class="b-kicker">{{ data.type|default('Formación') }}{% if data.edition_number|default(0) > 1 %} · {{ data.edition_number }}.ª edición{% endif %}</p>
+  <h1>{{ data.title }}</h1>
+  {%- set headline = data.headline|default('')|plain -%}
+  {%- set headline = headline ?: (data.description_oa|default('')|plain|length <= 200 ? data.description_oa|default('')|plain : '') -%}
+  {% if headline %}<p class="b-subtitle">{{ headline }}</p>{% endif %}
+  {% if org.name|default('') and not in_community %}<p class="b-org">Organiza: <strong>{{ org.name }}</strong></p>
+  {% elseif org.name|default('') %}<p class="b-org">Dicta: <strong>{{ org.name }}</strong></p>{% endif %}
+
+  <dl class="b-facts">
+    {% if data.start|default('') and not async %}<div><dt>Inicio</dt><dd>{{ data.start|format_date }}</dd></div>{% endif %}
+    {% if data.enrollment_end|default('') %}<div><dt>Inscripción hasta</dt><dd>{{ data.enrollment_end|format_date }}</dd></div>{% endif %}
+    <div><dt>Modalidad</dt><dd>{{ modality_title }} · {{ sync_title|lower }}</dd></div>
+    {% if data.lecture_hours|default(0) %}<div><dt>Duración</dt><dd>{{ data.lecture_hours }} horas cátedra{% if module_count > 1 %} · {{ module_count }} módulos{% endif %}</dd></div>{% endif %}
+    {% if teachers|length %}<div><dt>Docentes</dt><dd>{{ teachers|length }}</dd></div>{% endif %}
+    {% if certs|length %}<div><dt>Certificado</dt><dd>{{ certs|length > 1 ? certs|length ~ ' certificados' : 'Sí, ' ~ (certs[0].type|default('digital')) }}</dd></div>{% endif %}
+    {% if review_summary %}<div><dt>Opiniones</dt><dd>★ {{ review_summary.average|number_format(1, ',', '.') }} de 5 · {{ review_summary.count }} alumnos</dd></div>{% endif %}
+  </dl>
+  {% if data.short_description|default('') %}<div class="b-lead">{{ data.short_description|rich }}</div>{% endif %}
+</section>
+
+{# ── SOBRE LA FORMACIÓN (mismas preguntas que "Más información" de la ficha) ── #}
+{% if data.introduction|default('')|plain and data.introduction|plain != data.short_description|default('')|plain %}
+<section class="b-sec">
+  <h2>¿En qué consiste esta formación?</h2>
+  <div class="b-rich">{{ data.introduction|rich }}</div>
+</section>
+{% endif %}
+
+{% if data.target_audience|default('')|plain %}
+<section class="b-sec">
+  <h2>¿A quién está dirigida?</h2>
+  <div class="b-rich">{{ data.target_audience|rich }}</div>
+</section>
+{% endif %}
+
+{% if data.objetives|default('')|plain %}
+<section class="b-sec">
+  <h2>¿Qué vas a aprender?</h2>
+  <div class="b-rich">{{ data.objetives|rich }}</div>
+</section>
+{% endif %}
+
+{% if data.graduate_profile|default('')|plain %}
+<section class="b-sec">
+  <h2>¿Qué vas a poder hacer al terminar?</h2>
+  <div class="b-rich">{{ data.graduate_profile|rich }}</div>
+</section>
+{% endif %}
+
+{# ── CONTENIDOS ────────────────────────────────────────── #}
+{% if modules|length %}
+<section class="b-sec b-break">
+  <h2>Contenidos</h2>
+  {% for m in modules %}
+  <article class="b-mod">
+    <header class="b-mod-head">
+      <span class="b-mod-num">{{ module_count > 1 ? 'Módulo ' ~ m.number : 'Módulo' }}</span>
+      <span class="b-mod-meta">
+        {% if m.lecture_hours|default(0) %}{{ m.lecture_hours }} horas cátedra{% endif %}
+        {% if m.start|default('') and not async %} · del {{ m.start|format_date }} al {{ m.end|default(m.start)|format_date }}{% endif %}
+      </span>
+    </header>
+    {% for s in m.subjects.data|default([]) %}
+    <div class="b-subj">
+      <h3>{{ s.name }}</h3>
+      {% set st = s.teachers.data|default([]) %}
+      {% if st|length %}<p class="b-subj-by">{% for t in st %}{{ t.prefix|default('') ? t.prefix ~ ' ' : '' }}{{ t.full_name }}{{ not loop.last ? ', ' : '' }}{% endfor %}</p>{% endif %}
+      {% if s.content|default('')|has_text %}<div class="b-rich b-small">{{ s.content|rich }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+
+{# ── DOCENTES ──────────────────────────────────────────── #}
+{% if teachers|length %}
+<section class="b-sec">
+  <h2>{{ teachers|length > 1 ? 'Docentes' : 'Docente' }}</h2>
+  {% for t in teachers %}
+  <div class="b-teacher">
+    {% if t.image|default('') and 'user-default' not in t.image %}<img src="{{ t.image|img(240) }}" alt="{{ t.full_name }}">{% endif %}
+    <div>
+      <h3>{{ t.prefix|default('') ? t.prefix ~ ' ' : '' }}{{ t.full_name }}</h3>
+      {% if t.origin|default('') %}<p class="b-teacher-org">{{ t.origin }}</p>{% endif %}
+      {% if t.background|default('') %}<p class="b-teacher-bg">{{ t.background }}</p>{% endif %}
+      {% if t.biography|default('') %}{% set bio = t.biography|plain %}<p class="b-small">{{ bio|length > 1600 ? bio|slice(0, 1580)|split(' ')|slice(0, -1)|join(' ') ~ '…' : bio }}</p>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+{# ── METODOLOGÍA Y HORARIOS ────────────────────────────── #}
+<section class="b-sec">
+  <h2>¿Cómo son los horarios y la metodología?</h2>
+  <ul class="b-bullets">
+    <li><strong>{{ modality_title }}.</strong> {{ modality_text }}</li>
+    {% if modality != 'ONSITE' and not data.mkp_only %}<li><strong>{{ sync_title }}.</strong> {{ sync_text }}</li>{% endif %}
+    {% if data.mkp_only %}<li><strong>Campus de {{ org.name }}.</strong> Esta formación se cursa en el campus virtual de {{ org.name }}.</li>
+    {% else %}<li><strong>Campus propio.</strong> Se cursa en el campus virtual de Online Education Center.</li>
+    <li><strong>100% seguro.</strong> Si no cumplimos con lo publicitado, te devolvemos el 100% de tu dinero.</li>{% endif %}
+  </ul>
+  {% if data.methodology|default('')|plain %}<div class="b-box"><div class="b-rich">{{ data.methodology|rich }}</div></div>{% endif %}
+  {% if not data.mkp_only %}
+    {% if not async %}<p>Los docentes proponen los horarios en vivo según el alumnado. Si no puedes asistir, <strong>no pierdes nada</strong>: la grabación queda en el campus virtual.</p>
+    {% else %}<p>Todo el material está grabado. Estudias a tu ritmo{% if sync == 'ASYNC-F' %}, con foros sincrónicos para tus consultas{% endif %}.</p>{% endif %}
+    {% if access.html|default('') %}<p class="b-access">{{ access.html|raw }}</p>{% endif %}
+  {% endif %}
+</section>
+
+{% if data.exams_description|default('')|plain %}
+<section class="b-sec b-avoid">
+  <h2>¿Cómo se evalúa?</h2>
+  <div class="b-rich">{{ data.exams_description|rich }}</div>
+</section>
+{% endif %}
+
+{# ── CERTIFICACIÓN Y AVALES ────────────────────────────── #}
+{% if certs|length %}
+<section class="b-sec">
+  <h2>¿Qué certificado vas a recibir?</h2>
+  {% for c in certs %}
+  <div class="b-cert">
+    {% if c.thumb|default('') %}<img src="{{ c.thumb|img(360) }}" alt="">{% endif %}
+    <div>
+      <h3>{{ c.name }}</h3>
+      <p class="b-small">Otorga: {{ c.organization_name|default(org.name|default('')) }} · Formato {{ c.type|default('digital') }}</p>
+      {% if c.description|default('') %}<p class="b-small">{{ c.description|plain }}</p>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if supports|length %}
+<section class="b-sec b-avoid">
+  <h2>¿Qué avales científicos tiene?</h2>
+  <ul class="b-supports">
+    {% for s in supports %}<li>{% if s.logo_gse|default(s.thumb|default('')) %}<img src="{{ s.logo_gse|default(s.thumb)|img(200) }}" alt="">{% endif %}<span>{{ s.name }}</span></li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if data.requirements|default('')|plain %}
+<section class="b-sec b-avoid">
+  <h2>¿Qué requisitos necesitas?</h2>
+  <div class="b-rich">{{ data.requirements|rich }}</div>
+</section>
+{% endif %}
+
+{# ── QUIÉN ORGANIZA ────────────────────────────────────── #}
+{% if org.short_description|default('')|plain %}
+<section class="b-sec b-avoid">
+  <h2>¿Quién organiza esta formación?</h2>
+  <div class="b-org-box">
+    {# Los logos de las organizaciones son claros, pensados para su color de encabezado. #}
+    {% if org.logo|default('') %}<span class="b-org-logo" style="background:{{ org.color_header|default(brand.dark) }}"><img src="{{ org.logo|img(300) }}" alt="{{ org.name }}"></span>{% endif %}
+    <div><h3>{{ org.name }}</h3><div class="b-rich b-small">{{ org.short_description|rich }}</div></div>
+  </div>
+</section>
+{% endif %}
+
+{# ── OPINIONES ─────────────────────────────────────────── #}
+{% if reviews|length %}
+<section class="b-sec b-avoid">
+  <h2>Lo que dicen los alumnos</h2>
+  {% if review_summary %}<p class="b-rating"><span class="b-stars">★★★★★</span> <strong>{{ review_summary.average|number_format(1, ',', '.') }} de 5</strong> · {{ review_summary.count }} opiniones</p>{% endif %}
+  {% for r in reviews %}
+  <blockquote class="b-review">
+    <p>“{{ r.comment|plain }}”</p>
+    <cite>{{ r.author.first_name|default('') }} {{ r.author.last_name|default('')|slice(0, 1) }}{{ r.author.last_name|default('') ? '.' : '' }}{% if r.author.specialty|default('') %} · {{ r.author.specialty }}{% endif %} · {{ r.rating|stars }}</cite>
+  </blockquote>
+  {% endfor %}
+</section>
+{% endif %}
+
+{# ── MEDIOS DE PAGO ────────────────────────────────────── #}
+{% if not force_contact %}
+<section class="b-sec b-avoid">
+  <h2>Medios de pago</h2>
+  {% if payments and country %}
+  <p>{{ country_name ? 'Desde ' ~ country_name : 'Desde tu país' }} puedes pagar con:</p>
+  <ul class="b-pay">
+    {% for p in payments %}<li>{% if p.logo %}<img src="{{ p.logo }}" alt="">{% endif %}<span>{{ p.name }}</span></li>{% endfor %}
+  </ul>
+  {% elseif payments %}
+  <p>Puedes pagar con tarjeta, PayPal y medios locales de toda Latinoamérica, España y Estados Unidos. Al inscribirte ves los de tu país.</p>
+  <ul class="b-pay-logos">
+    {% for p in payments %}<li title="{{ p.name }}"><img src="{{ p.logo }}" alt="{{ p.name }}"><span>{{ p.name }}</span></li>{% endfor %}
+  </ul>
+  {% else %}
+  <p>Puedes pagar con tarjeta de crédito o débito internacional, PayPal o con los medios de pago locales de tu país. Los verás todos al inscribirte.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+{# ── CIERRE ────────────────────────────────────────────── #}
+<section class="b-cta b-avoid">
+  {% if enroll_url %}
+  <h2>¿Te sumas?</h2>
+  <p>Inscríbete antes del {{ data.enrollment_end|format_date }}.</p>
+  <p class="b-cta-btns">
+    <a class="b-btn" href="{{ enroll_url }}">Inscríbete</a>
+    {% if ficha_url %}<a class="b-btn b-btn--ghost" href="{{ ficha_url }}">Ver el precio en tu moneda</a>{% endif %}
+  </p>
+  {% elseif force_contact %}
+  <h2>¿Te interesa?</h2>
+  <p>Escríbenos y te contamos cómo inscribirte.</p>
+  {% if ficha_url %}<p class="b-cta-btns"><a class="b-btn" href="{{ ficha_url }}">Ver la formación</a></p>{% endif %}
+  {% else %}
+  <h2>Inscripción cerrada</h2>
+  <p>La inscripción a esta edición ya cerró. En la página de la formación puedes pedir que te avisemos cuando abra la próxima.</p>
+  {% if ficha_url %}<p class="b-cta-btns"><a class="b-btn" href="{{ ficha_url }}">Ver la formación</a></p>{% endif %}
+  {% endif %}
+  {% if whatsapp or partner_email %}
+  <p class="b-contact">¿Tienes dudas?
+    {%- if whatsapp %} Escríbenos por WhatsApp: <a href="https://wa.me/{{ whatsapp }}">+{{ whatsapp }}</a>{% endif -%}
+    {%- if whatsapp and partner_email %} o{% endif -%}
+    {%- if partner_email %} {{ whatsapp ? 'por email a' : 'Escríbenos a' }} <a href="mailto:{{ partner_email }}">{{ partner_email }}</a>{% endif -%}
+    .</p>
+  {% else %}
+  <p class="b-contact">¿Tienes dudas? Responde el email con el que recibiste este brochure{% if ficha_url and chat_ia %} o pregúntale al asistente en la <a href="{{ ficha_url }}">página de la formación</a>{% endif %}.</p>
+  {% endif %}
+</section>
+
+</body>
+</html>

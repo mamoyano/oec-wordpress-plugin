@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.5.9
+Version: 1.5.10
 Author: Online Education Center
 */
 
@@ -460,13 +460,14 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-oec-mailer.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-contacts.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-shortcodes.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-ajax.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-oec-brochure.php';
 
 
 // ─────────────────────────────────────────────────────────────────
 // 1. REGLAS DE REESCRITURA (URLs Amigables)
 // ─────────────────────────────────────────────────────────────────
 // Versión de las reglas de abajo: si cambia, se regeneran solas (una vez por sitio).
-if (!defined('OEC_REWRITE_VERSION')) define('OEC_REWRITE_VERSION', '2');
+if (!defined('OEC_REWRITE_VERSION')) define('OEC_REWRITE_VERSION', '3');
 
 add_action('init', function () {
     add_rewrite_rule(
@@ -481,6 +482,14 @@ add_action('init', function () {
         'index.php?pagename=formacion&oec_embed=1',
         'top'
     );
+    // Brochure de la formación ({ficha}/brochure/): página A4 que el Worker journey.oe.center
+    // imprime en PDF para el chat con IA (ver includes/class-oec-brochure.php). No depende de la
+    // página "Formación": funciona aunque el sitio no la tenga.
+    add_rewrite_rule(
+        '^formacion/.*(t-[a-zA-Z0-9]{14})/brochure/?$',
+        'index.php?oec_brochure=$matches[1]',
+        'top'
+    );
     if (get_option('oec_rewrite_version') !== OEC_REWRITE_VERSION) {
         flush_rewrite_rules(false);
         update_option('oec_rewrite_version', OEC_REWRITE_VERSION);
@@ -489,6 +498,7 @@ add_action('init', function () {
 
 add_filter('query_vars', function ($vars) {
     $vars[] = 'oec_embed';
+    $vars[] = 'oec_brochure';
     return $vars;
 });
 
@@ -1395,3 +1405,4 @@ OEC_Mailer::init(); // también fuera de wp-admin: link de baja
 if (is_admin()) OEC_Contacts::init();
 new OEC_Shortcodes();
 new OEC_Ajax();
+new OEC_Brochure();

@@ -1,0 +1,160 @@
+/* Brochure de la formación (templates/brochure.twig, OEC_Brochure). Se inyecta inline en la página.
+   Pensado para A4: lo imprime el Worker journey.oe.center con Chromium (page.pdf). En pantalla se ve
+   como una hoja centrada. Colores: --b-dark/--b-primary/--b-accent/--b-text (marca del sitio). */
+
+@page { size: A4; margin: 16mm 15mm 18mm; }
+@page {
+  @bottom-left  { font: 8pt Inter, Arial, sans-serif; color: #8a94a0; width: 75%; }
+  @bottom-right { content: counter(page) " de " counter(pages); font: 8pt Inter, Arial, sans-serif; color: #8a94a0; white-space: nowrap; }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body {
+  margin: 0; color: var(--b-text); background: #fff;
+  font: 10pt/1.55 Inter, "Helvetica Neue", Arial, sans-serif;
+}
+@media screen {
+  html { background: #e9edf1; }
+  body { max-width: 210mm; margin: 24px auto; padding: 16mm 15mm; box-shadow: 0 2px 16px rgba(0,0,0,.12); }
+}
+
+a { color: var(--b-primary); }
+h1, h2, h3 { line-height: 1.2; margin: 0; color: var(--b-dark); }
+p { margin: 0 0 .6em; }
+img { max-width: 100%; }
+.b-small { font-size: 9pt; }
+
+/* Encabezado con el logo */
+.b-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 16px; border-radius: 10px; margin-bottom: 14px;
+}
+.b-head--dark  { background: var(--b-dark); color: #fff; }
+.b-head--light { background: #fff; border: 1px solid #e3e8ee; color: var(--b-text); }
+.b-logo { height: 34px; width: auto; max-width: 60%; object-fit: contain; display: block; }
+.b-logo-text { font-weight: 800; font-size: 13pt; }
+.b-head-tag { font-size: 8pt; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
+
+/* Portada */
+.b-cover-img {
+  width: 100%; height: 72mm; object-fit: cover; border-radius: 10px; display: block; margin-bottom: 14px;
+}
+.b-kicker {
+  margin: 0 0 4px; font-size: 8.5pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--b-accent);
+}
+.b-cover h1 { font-size: 22pt; font-weight: 800; margin-bottom: 6px; }
+.b-subtitle { font-size: 12pt; font-weight: 600; color: var(--b-primary); margin-bottom: 6px; }
+.b-org { font-size: 10pt; margin-bottom: 10px; }
+.b-lead { font-size: 10.5pt; color: #3c4a58; margin-top: 14px; }
+.b-lead p:last-child { margin-bottom: 0; }
+
+.b-facts {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 0; padding: 0;
+  break-inside: avoid; page-break-inside: avoid;
+}
+.b-facts > div {
+  background: #f4f6f9; border-left: 3px solid var(--b-accent); border-radius: 6px; padding: 7px 10px;
+}
+.b-facts dt { font-size: 7.5pt; text-transform: uppercase; letter-spacing: .06em; color: #6b7785; }
+.b-facts dd { margin: 2px 0 0; font-weight: 700; font-size: 9.5pt; color: var(--b-dark); }
+
+/* Secciones */
+.b-sec { margin-top: 34px; }
+.b-sec h2 {
+  font-size: 13.5pt; font-weight: 800; padding-bottom: 6px; margin-bottom: 12px;
+  border-bottom: 2px solid var(--b-accent); break-after: avoid; page-break-after: avoid;
+}
+.b-sec h3 { font-size: 10.5pt; font-weight: 700; break-after: avoid; }
+.b-sub { margin: 12px 0 6px; }
+.b-rich ul, .b-rich ol { margin: 0 0 .6em; padding-left: 1.2em; }
+.b-rich li { margin-bottom: .2em; }
+.b-avoid { break-inside: avoid; page-break-inside: avoid; }
+.b-break { break-before: page; page-break-before: always; }
+.b-note { margin-top: 8px; color: #4a5866; }
+
+/* Módulos */
+.b-mod { margin-bottom: 14px; }
+.b-mod-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  background: var(--b-dark); color: #fff; border-radius: 6px; padding: 6px 10px; margin-bottom: 8px;
+  break-after: avoid; page-break-after: avoid;
+}
+.b-mod-num { font-weight: 800; font-size: 10.5pt; }
+.b-mod-meta { font-size: 8.5pt; opacity: .9; }
+.b-subj { padding: 0 2px 8px 12px; border-left: 2px solid #e3e8ee; margin: 0 0 8px 4px; break-inside: avoid; page-break-inside: avoid; }
+.b-subj-by { font-size: 8.5pt; color: #6b7785; margin: 2px 0 4px; }
+
+/* Docentes */
+.b-teacher { display: flex; gap: 12px; margin-bottom: 12px; break-inside: avoid; page-break-inside: avoid; }
+.b-teacher img { width: 22mm; height: 22mm; border-radius: 50%; object-fit: cover; flex: none; }
+.b-teacher-org { font-size: 9pt; font-weight: 600; color: var(--b-primary); margin: 2px 0 2px; }
+.b-teacher-bg { font-size: 9pt; color: #4a5866; margin-bottom: 4px; }
+
+/* Cursada */
+.b-bullets { margin: 0; padding: 0; list-style: none; }
+.b-bullets li { position: relative; padding-left: 16px; margin-bottom: 5px; }
+.b-bullets li::before {
+  content: ""; position: absolute; left: 2px; top: .55em; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--b-accent);
+}
+
+/* Certificados */
+.b-cert { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
+.b-cert img { width: 42mm; flex: none; border: 1px solid #e3e8ee; border-radius: 4px; }
+.b-supports { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.b-supports li {
+  display: flex; align-items: center; gap: 10px; border: 1px solid #e3e8ee; border-radius: 8px;
+  padding: 6px 12px 6px 6px; font-size: 9pt; font-weight: 600; flex: 1 1 45%;
+}
+.b-supports img { width: 44px; height: 44px; object-fit: contain; flex: none; }
+
+/* Metodología */
+.b-box { background: #f4f6f9; border-radius: 8px; padding: 10px 14px; margin: 12px 0; }
+.b-box .b-rich p:last-child { margin-bottom: 0; }
+.b-access { font-size: 9pt; color: #4a5866; border-left: 3px solid var(--b-accent); padding-left: 10px; }
+
+/* Quién organiza */
+.b-org-box { display: flex; gap: 14px; align-items: flex-start; }
+.b-org-logo { flex: none; width: 38mm; border-radius: 8px; padding: 8px 10px; display: flex; align-items: center; justify-content: center; }
+.b-org-logo img { width: 100%; max-height: 16mm; object-fit: contain; display: block; }
+.b-org-box h3 { margin-bottom: 4px; }
+
+/* Opiniones */
+.b-rating { margin-bottom: 10px; }
+.b-stars { color: #f5a623; letter-spacing: 1px; }
+.b-review {
+  margin: 0 0 10px; padding: 10px 14px; border-left: 3px solid var(--b-accent); background: #f8fafb;
+  border-radius: 0 8px 8px 0; break-inside: avoid; page-break-inside: avoid;
+}
+.b-review p { font-style: italic; margin-bottom: 4px; }
+.b-review cite { font-style: normal; font-size: 8.5pt; color: #6b7785; }
+
+/* Medios de pago */
+.b-pay { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.b-pay li {
+  display: flex; align-items: center; gap: 8px; border: 1px solid #e3e8ee; border-radius: 8px;
+  padding: 6px 10px; font-size: 9pt; font-weight: 600;
+}
+.b-pay img { width: 28px; height: 28px; object-fit: contain; }
+.b-pay-logos { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.b-pay-logos li {
+  border: 1px solid #e3e8ee; border-radius: 8px; padding: 8px 4px 6px; text-align: center;
+  font-size: 7pt; line-height: 1.25; color: #4a5866;
+}
+.b-pay-logos img { width: 40px; height: 40px; object-fit: contain; display: block; margin: 0 auto 4px; }
+
+/* Cierre */
+.b-cta {
+  margin-top: 36px; padding: 16px 18px; border-radius: 10px; background: #f4f6f9;
+  border-top: 4px solid var(--b-accent);
+}
+.b-cta h2 { font-size: 14pt; font-weight: 800; margin-bottom: 4px; }
+.b-cta-btns { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+.b-btn {
+  display: inline-block; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: 700;
+  background: var(--b-accent); color: #fff; border: 2px solid var(--b-accent);
+}
+.b-btn--ghost { background: transparent; color: var(--b-dark); border-color: var(--b-dark); }
+.b-contact { font-size: 9pt; color: #4a5866; margin: 0; }

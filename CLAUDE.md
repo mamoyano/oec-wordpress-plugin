@@ -2700,6 +2700,56 @@ Regla de Mario: SYNC / MIXED → acceso hasta un año después del fin del últi
 - Probado en local con la plantilla vieja de la base y con la nueva (puesta un rato en `wp_2_posts` ID 8 y
   restaurada byte a byte): SYNC con y sin metodología, ASYNC y mkp_only (sin nota ni bullet); 1366 y 375 px.
 
+## v1.5.10 — brochure de la formación para el chat con IA (2026-11-13)
+
+Reemplaza el brochure viejo de AWS (`brochure.onlineeducation.center/{slug}`: página Divi de onlineeducation.center
+impresa una sola vez como una única hoja de 768 × 5904 pt, con `checkoutv2` y trato de "usted"). Propuesta y
+decisiones de Mario en `~/Claude/Projects/Lead Journey/docs/brochure-propuesta.md`.
+- **Etapa 1 (esto)**: `{ficha}/brochure/[?pais=XX]`, servido por el plugin. **Etapa 2 (pendiente, en el Worker
+  journey.oe.center)**: la imprime en PDF con Browser Rendering (`/brochure/{dominio}/{pais}/{slug}.pdf`, en R2,
+  se vuelve a imprimir solo si cambia el hash del HTML). El email del chat cambia recién con la etapa 2.
+- **Exclusivo del chat**: no se enlaza desde la ficha ni desde ningún lado. `X-Robots-Tag: noindex, nofollow`,
+  `Link: rel=canonical` a la ficha y `X-OEC-Brochure: 1` (para que el Worker sepa que es un brochure).
+- Regla `^formacion/.*(t-…)/brochure/?$` → `oec_brochure={id}` (`OEC_REWRITE_VERSION` 3). **No usa la página
+  "Formación"**: `OEC_Brochure::maybe_render()` (`template_redirect`, prioridad 0) arma un HTML autónomo y hace
+  `exit` — sin `wp_head`, tema, GTM ni scripts. Funciona en un sitio sin esa página (probado en la raíz de
+  oec-test, Twenty Twenty-Five). Formación inexistente → 404; API caída sin copia → 503.
+- Datos: `oec_get_page_bundle()` (misma caché que la ficha). Plantilla Twig **dentro del plugin**
+  (`templates/brochure.twig`, con su propio `Twig\Environment` y `autoescape` html — no la de la ficha, que no
+  escapa) + `css/oec-brochure.css` inline. HTML de la API pasa por `OEC_Brochure::rich()` (wp_kses de texto).
+- **Determinista**: sin precios, cuentas regresivas, nonces ni "faltan X días" — dos pedidos dan el mismo HTML
+  (verificado con md5). Lo único que depende de la fecha es si la inscripción está abierta.
+- Marca: con el tema OEC, `oec_nl_colors()`/`OEC_NL_LOGO`/`OEC_NL_BRAND` (lo mismo que `/wp-json/oec/v1/brand`,
+  encabezado oscuro). Sin el tema (socio): logo del sitio (`custom_logo`/`site_logo`), o el de la organización si
+  `organization.domain` es este sitio, o el nombre; color `oec_brand_color`; encabezado claro. Filtro
+  `oec_brochure_brand`.
+- Inscripción como la ficha (`register_url` en la comunidad dueña, `register` en otro sitio) + `utm_source=brochure
+  &utm_medium=pdf`. Cerrada → "Inscripción cerrada" y enlace a la ficha; `force_contact` → "¿Te interesa?" sin
+  medios de pago.
+- Medios de pago (`OEC_Brochure::payments()`, API `payment-methods-locale`, logos por imgrsize como `checkPayOpts()`
+  de la ficha; caché 24 h `oec_cache_…`):
+  - Con `?pais=XX`: los de ese país, con nombre y logo. El nombre del país sale de `Locale::getDisplayRegion` (intl).
+  - Sin país (pedido de Mario, 13/11): grilla de logos con todos los de `ALL_COUNTRIES` (AR CO CL MX EC BO PE US ES UY
+    SA), pedidos en paralelo, **uno por logo** y con un nombre corto debajo ("Tarjetas de crédito y débito",
+    "Transferencia bancaria", lo que va entre paréntesis: "PSE", "PagoTic"). Se calcula por formación, no una lista
+    global, porque dependen de quién cobra (G-SE, OEC, un socio). Si falla algún país, se usa la última lista completa.
+  - Sin datos (API caída y sin copia): texto genérico.
+- Contacto: WhatsApp solo si el canal no depende del horario de ventas (`contact.hours`); email del socio si
+  `form = partner`; si no, "responde el email… o pregúntale al asistente" (el asistente, solo con `oec_chat_ia_available`).
+- A4 con `@page` (pie con título · dominio y "N de M"; Chrome ≥ 131). Muestras en
+  `~/Claude/Projects/Lead Journey/docs/brochure-muestras/`. Fuente Inter de Google Fonts (`display=block`).
+- Contenido (13/11, a pedido de Mario: todo lo que haya). Mismas preguntas que "Más información" de la ficha, cada
+  una solo si trae texto real: ¿En qué consiste? (si `introduction` ≠ `short_description`), ¿A quién está dirigida?,
+  ¿Qué vas a aprender?, ¿Qué vas a poder hacer al terminar?, Contenidos, Docentes (bio hasta ~1600 letras),
+  ¿Cómo son los horarios y la metodología? (`methodology` + "no pierdes nada" + `access_info()`), ¿Cómo se evalúa?
+  (`exams_description`), certificados, avales con logo, requisitos, ¿Quién organiza? (`organization.short_description`)
+  y "Lo que dicen los alumnos" (hasta 3 opiniones de 4-5 estrellas con 60+ letras; promedio solo con 5+ opiniones y
+  4+ de promedio, también en la portada). Bajada del título: `headline` o `description_oa` corta, como el hero.
+- **Logos de organizaciones**: son claros (van sobre su `color_header`). En "¿Quién organiza?" se pintan sobre ese
+  color; si el encabezado de un socio usa el logo de la organización, pasa a oscuro con ese color.
+- Probado en local: AR/MX/ES/sin país/ZZ/basura, comunidad (/es) y socio (raíz), asincrónica, y por `render()`:
+  cerrada, force_contact, mkp_only, sin módulos.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto
