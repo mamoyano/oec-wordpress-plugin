@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.5.11
+Version: 1.5.12
 Author: Online Education Center
 */
 
@@ -461,6 +461,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-oec-contacts.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-shortcodes.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-ajax.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-brochure.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-oec-site-registry.php';
 
 
 // ─────────────────────────────────────────────────────────────────
@@ -1406,3 +1407,5 @@ if (is_admin()) OEC_Contacts::init();
 new OEC_Shortcodes();
 new OEC_Ajax();
 new OEC_Brochure();
+OEC_Site_Registry::init(); // aviso diario a journey.oe.center (brochure en PDF)
+register_deactivation_hook(__FILE__, [OEC_Site_Registry::class, 'deactivate']);

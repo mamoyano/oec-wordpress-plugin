@@ -2770,6 +2770,22 @@ Ahora `OEC_Shortcodes::video_source($url)` reconoce, y `video_facade()` arma la 
 - Probado: 18 URLs (incluidas inválidas y con comillas), el filtro de Twig, y en el navegador con el video
   de demo real de Bunny (miniatura + reproducción). NO se probó en una ficha real: la API de OEC no respondía.
 
+## v1.5.12 — el sitio se registra solo en journey.oe.center (2026-11-13)
+
+Para que el Worker sepa qué sitios puede imprimir como brochure en PDF sin cargarlos a mano en
+`brochure_sites` (pedido de Mario). `includes/class-oec-site-registry.php` (`OEC_Site_Registry`):
+- WP-Cron `oec_journey_register` diario, y uno inmediato (`oec_journey_register_once`, en segundo plano) cuando
+  cambia `home_url()` o la versión del plugin. Al desactivar el plugin, aviso de baja (`active: false`, sin esperar).
+- `POST {OEC_JOURNEY_URL}/v1/sites` (filtro `oec_journey_url`, el mismo que usa el tema para el chat), cabecera
+  `X-OEC-Token: <oec_token>` y cuerpo `{ site, domain, prefix, locale, active, plugin_version, features: ["brochure"] }`.
+  `prefix` es la ruta de `home_url()` (`/es` en las comunidades, `""` en joselareta.site); `locale` porque en un
+  multisitio por carpetas (`/es`, `/en`) varios sitios comparten dominio.
+- Sin token, no avisa. En local (`OEC_ENV = local`) tampoco, salvo que el filtro apunte a otra URL (así se probó, con
+  un receptor en 127.0.0.1). Resultado del último aviso en la opción `oec_journey_site` (`at`, `code`, `sent`).
+- Del lado del Worker: `POST /v1/sites` en `worker/src/sites.js` (prueba el token contra oas-api, guarda solo su hash) y
+  migración 0007 (`brochure_sites` por dominio + prefijo). Un sitio registrado vale para el PDF si está activo, tiene
+  plugin ≥ 1.5.10 y avisó en los últimos 7 días. Se publican juntos (Worker + plugin 1.5.12).
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto
