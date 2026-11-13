@@ -2786,6 +2786,36 @@ Para que el Worker sepa qué sitios puede imprimir como brochure en PDF sin carg
   migración 0007 (`brochure_sites` por dominio + prefijo). Un sitio registrado vale para el PDF si está activo, tiene
   plugin ≥ 1.5.10 y avisó en los últimos 7 días. Se publican juntos (Worker + plugin 1.5.12).
 
+## v1.5.13 — créditos: el saldo se ve solo con el email verificado por código (2026-11-13)
+
+Antes, el recuadro "Canjea créditos por descuentos" mostraba el saldo de CUALQUIER email que se escribiera
+(`oec_check_credits` → API de créditos, sin probar que el email fuera de quien preguntaba), y el canje respondía
+"No tienes créditos suficientes" para cualquier email (también dejaba tantear saldos). Pedido de Mario, contrato de
+la sesión del Lead Journey (Worker `src/identity.js`):
+- `js/oec-formacion.js`: "¿Cuántos créditos tengo?" → email → `POST {OEC_JOURNEY_URL}/v1/verify/start`
+  `{ email, site: location.hostname }` (manda un código de 6 números) → campo del código → `/v1/verify/confirm`
+  `{ email, code }` → token guardado en `localStorage['oec_identity'] = { email, token, expires }` (segundos; la
+  MISMA clave que usa el tema, así verificarse en el chat o en la ficha vale para todo el sitio) → `/v1/me { token }`
+  → `{ email, balance }`. Con token vigente al cargar, va directo a `/v1/me`; 401 → se olvida el token. Mensajes para
+  `invalid_email`, `too_many`, `wrong_code` (con `attempts_left`), `expired`, `too_many_attempts`, y saldo `null`
+  ("No pudimos consultar tu saldo…": pasa hasta que el Worker tenga `CREDITS_API_KEY`).
+- **El campo del código y sus enlaces ("Pedir otro código", "Usar otro email") los crea el JS**: no hay que volver a
+  pegar la plantilla en ningún sitio. `window.OEC_JOURNEY_URL` lo imprime `class-oec-shortcodes.php` (filtro
+  `oec_journey_url`). `userEmail` (localStorage) NO se borra: lo usan el chat y el newsletter del tema; solo deja de
+  alcanzar para ver el saldo.
+- `class-oec-ajax.php`: `oec_check_credits` ya no consulta nada (responde "Recarga la página…", para páginas viejas en
+  caché). `oec_request_redeem` toma el email del token (`verified_email()` → `POST /v1/me` del lado del servidor), no
+  del navegador.
+- No se llama a `/v1/credits/welcome`: los 50 de bienvenida los da el bloque de créditos del tema, no la ficha.
+- Saldo `null` ya casi no pasa: desde el Worker 5a983dfd, `/v1/me` lee el saldo sin `CREDITS_API_KEY`.
+- **Agujero de fondo, fuera del plugin**: la API de créditos (`api.onlineeducation.center/contable/api/points/{email}`
+  y `/details`) responde el saldo de CUALQUIER email sin clave (verificado el 13/11: 200 `{"balance":0}`). La
+  verificación de la ficha cierra la pantalla, pero quien llame a la API directo sigue viendo saldos. El arreglo de
+  raíz es que la API pida clave para leer (y que el Worker la use).
+- Probado en local: pantalla en el navegador con respuestas simuladas (paso 1, código corto, código incorrecto,
+  éxito, guardado del token, saldo, "Cambiar email"); contrato real contra el Worker local (`wrangler dev`, dry_run):
+  código → token → `/v1/me` (saldo null), token inválido 401; canje con token válido/falso/vacío.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

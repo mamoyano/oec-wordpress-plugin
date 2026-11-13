@@ -255,19 +255,27 @@ if (!class_exists('OEC_Ajax')) {
         }
 
         /**
-         * Balance de créditos de un email.
+         * Antes devolvía el saldo de CUALQUIER email que se escribiera (sin probar que fuera de quien
+         * preguntaba). Desde 1.5.13 la ficha verifica el email con un código (journey.oe.center
+         * /v1/verify/*) y pide el saldo con el token. Queda solo para las páginas viejas en caché.
          */
         public function oec_check_credits_ajax() {
-            $this->check_nonce();
-            if (!$this->credits_enabled()) wp_send_json_error('Este sistema no está disponible en este sitio.');
+            wp_send_json_error('Recarga la página para verificar tu email con un código.');
+        }
 
-            $email = sanitize_email($_POST['email'] ?? '');
-            if (!is_email($email)) wp_send_json_error('Email inválido.');
-
-            $data = $this->credits_api_request('GET', 'https://api.onlineeducation.center/contable/api/points/' . urlencode($email));
-            if (!isset($data['balance'])) wp_send_json_error('No se pudo verificar el balance.');
-
-            wp_send_json_success(['balance' => intval($data['balance'])]);
+        /** Email de un token de identidad verificada (POST journey.oe.center/v1/me), o '' si no vale. */
+        private function verified_email($token) {
+            if ($token === '' || strlen($token) > 400) return '';
+            $base = apply_filters('oec_journey_url', defined('OEC_JOURNEY_URL') ? OEC_JOURNEY_URL : 'https://journey.oe.center');
+            $res  = wp_remote_post(untrailingslashit($base) . '/v1/me', [
+                'timeout' => 10,
+                'headers' => ['Content-Type' => 'application/json'],
+                'body'    => wp_json_encode(['token' => $token]),
+            ]);
+            if (is_wp_error($res) || (int) wp_remote_retrieve_response_code($res) !== 200) return '';
+            $data  = json_decode((string) wp_remote_retrieve_body($res), true);
+            $email = sanitize_email($data['email'] ?? '');
+            return is_email($email) ? $email : '';
         }
 
         /**
@@ -297,7 +305,10 @@ if (!class_exists('OEC_Ajax')) {
             $this->check_nonce();
             if (!$this->credits_enabled()) wp_send_json_error('Este sistema no está disponible en este sitio.');
 
-            $email         = sanitize_email($_POST['email'] ?? '');
+            // El email sale del token de identidad verificada (journey.oe.center), no de lo que mande el
+            // navegador: si no, cualquiera podía tantear el saldo de otro email ("créditos insuficientes").
+            $email         = $this->verified_email(sanitize_text_field(wp_unslash($_POST['token'] ?? '')));
+            if (!$email) wp_send_json_error('Verifica tu email otra vez para canjear (recarga la página).');
             $training_uid  = sanitize_text_field($_POST['training_uid'] ?? '');
             $edition_uid   = sanitize_text_field($_POST['edition_uid'] ?? '');
             $points_amount = intval($_POST['points_amount'] ?? 0);

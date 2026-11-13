@@ -702,17 +702,11 @@ function initCreditsBox(){
             renderCoupons(res.data);
             jQuery('#oec-credits-box').css('display','block');
 
-            const sEmail=localStorage.getItem('userEmail'), sCredits=sessionStorage.getItem('userCredits');
-            if(sEmail && sCredits){
-                jQuery('#oec-current-email').text(sEmail); jQuery('#oec-current-my-points').text(sCredits);
-                jQuery('#oec-email-change-section').show();
-                showDiscountBtns(sCredits, sEmail);
-            } else if(sEmail){
-                jQuery('#oec-email-change-section').show();
-                checkUserPoints(sEmail);
-            } else {
-                jQuery('#oec-credits-links').show();
-            }
+            // "userEmail" (lo usan también el chat y el newsletter del tema) ya NO alcanza para ver el saldo:
+            // hace falta el token de oec_identity.
+            const id=oecIdentity();
+            if(id) showBalance(id);
+            else jQuery('#oec-credits-links').show();
         });
 }
 
@@ -731,20 +725,104 @@ function renderCoupons(list){
     jQuery('#oec-coupons-list').html(html);
 }
 
-function checkUserPoints(email){
-    if(!email) return;
-    jQuery.post(oecAjaxUrl(), { action:'oec_check_credits', email, nonce: OEC_AJAX_NONCE })
-        .done(res=>{
-            if(!res.success){ jQuery('#oec-credits-status').text(res.data||'Error al verificar créditos.'); return; }
-            const balance=res.data.balance;
-            localStorage.setItem('userEmail',email); sessionStorage.setItem('userCredits',balance);
-            jQuery('#oec-current-email').text(email); jQuery('#oec-current-my-points').text(balance);
-            jQuery('#oec-credits-email-form,#oec-credits-links').hide();
+/* ── Identidad verificada (journey.oe.center, src/identity.js del Worker) ──────────────
+   El saldo de créditos ya no se muestra por escribir un email: hay que probar que es tuyo con un
+   código de 6 dígitos. El token queda en localStorage 'oec_identity' = { email, token, expires }
+   (expires en segundos), la MISMA clave que usa el tema (chat): verificarse en la ficha o en el
+   chat vale para todo el sitio. El campo del código lo arma este JS, así no hay que volver a pegar
+   la plantilla en ningún sitio. */
+const OEC_ID_KEY='oec_identity';
+function oecJourney(path, body){
+    const base=(window.OEC_JOURNEY_URL||'https://journey.oe.center').replace(/\/+$/,'');
+    return fetch(base+path,{ method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(body) })
+        .then(r=>r.json().catch(()=>({})).then(j=>({ status:r.status, data:j })));
+}
+function oecIdentity(){
+    try{
+        const id=JSON.parse(localStorage.getItem(OEC_ID_KEY)||'null');
+        if(id && id.token && id.email && Number(id.expires)*1000>Date.now()) return id;
+    }catch(e){}
+    return null;
+}
+function oecForgetIdentity(){ try{ localStorage.removeItem(OEC_ID_KEY); }catch(e){} }
+
+function creditsStatus(html){ jQuery('#oec-credits-status').html(html||''); }
+
+function showBalance(id){
+    oecJourney('/v1/me',{ token:id.token })
+        .then(({status,data})=>{
+            if(status===401){ oecForgetIdentity(); jQuery('#oec-credits-links').show(); return; }
+            jQuery('#oec-credits-email-form,#oec-credits-code-form,#oec-credits-code-links,#oec-credits-links').hide();
+            jQuery('#oec-current-email').text(id.email);
             jQuery('#oec-email-change-section').show();
-            jQuery('#oec-credits-status').text('');
-            showDiscountBtns(balance,email);
+            if(status!==200 || data.balance===null || data.balance===undefined){
+                jQuery('#oec-current-my-points').text('—');
+                creditsStatus('No pudimos consultar tu saldo en este momento. Intenta más tarde.');
+                return;
+            }
+            jQuery('#oec-current-my-points').text(data.balance);
+            creditsStatus('');
+            showDiscountBtns(data.balance, id.email);
         })
-        .fail(()=>jQuery('#oec-credits-status').text('Error al verificar créditos.'));
+        .catch(()=>creditsStatus('No pudimos consultar tu saldo en este momento. Intenta más tarde.'));
+}
+
+/** Paso 1: manda el código al email. */
+function startVerification(email){
+    const $btn=jQuery('#oec-credits-email-form button').prop('disabled',true);
+    creditsStatus('Enviando el código…');
+    oecJourney('/v1/verify/start',{ email, site: location.hostname })
+        .then(({status,data})=>{
+            $btn.prop('disabled',false);
+            if(status===200 && data.ok){
+                codeForm().data('email',email).show().find('input').val('').trigger('focus');
+                jQuery('#oec-credits-email-form').hide();
+                creditsStatus(`Te enviamos un código de 6 números a <strong>${jQuery('<i>').text(email).html()}</strong>. Revisa también la carpeta de spam.`);
+                return;
+            }
+            creditsStatus(data.error==='invalid_email' ? 'Revisa el email: no parece válido.'
+                : data.error==='too_many' ? 'Pediste varios códigos seguidos. Espera un rato e intenta de nuevo.'
+                : 'No pudimos enviar el código. Intenta de nuevo en unos minutos.');
+        })
+        .catch(()=>{ $btn.prop('disabled',false); creditsStatus('No pudimos enviar el código. Intenta de nuevo en unos minutos.'); });
+}
+
+/** Paso 2: confirma el código, guarda el token y muestra el saldo. */
+function confirmVerification(email, code){
+    const $f=codeForm(), $btn=$f.find('button').prop('disabled',true);
+    oecJourney('/v1/verify/confirm',{ email, code })
+        .then(({status,data})=>{
+            $btn.prop('disabled',false);
+            if(status===200 && data.token){
+                const id={ email:data.email||email, token:data.token, expires:data.expires };
+                try{ localStorage.setItem(OEC_ID_KEY, JSON.stringify(id)); }catch(e){}
+                $f.hide();
+                showBalance(id);
+                return;
+            }
+            if(data.error==='wrong_code') creditsStatus(data.attempts_left>0 ? `El código no es correcto. Te quedan ${data.attempts_left} intentos.` : 'El código no es correcto. Pide uno nuevo.');
+            else if(data.error==='expired') creditsStatus('El código venció. Pide uno nuevo.');
+            else if(data.error==='too_many_attempts') creditsStatus('Demasiados intentos. Pide un código nuevo.');
+            else creditsStatus('No pudimos verificar el código. Intenta de nuevo.');
+        })
+        .catch(()=>{ $btn.prop('disabled',false); creditsStatus('No pudimos verificar el código. Intenta de nuevo.'); });
+}
+
+/** El formulario del código (lo crea la primera vez, a continuación del del email). */
+function codeForm(){
+    let $f=jQuery('#oec-credits-code-form');
+    if(!$f.length){
+        $f=jQuery(`<form id="oec-credits-code-form" class="oec-credits-form" style="display:none">
+            <input type="text" id="oec-user-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="Código de 6 números" required>
+            <button type="submit" aria-label="Confirmar código"><i class="bi bi-arrow-right-circle"></i></button>
+        </form>
+        `);
+        const $after=jQuery('#oec-credits-email-form');
+        if($after.length) $f.insertAfter($after); else $f.prependTo('#oec-credits-box');
+        jQuery('<p class="oec-credits-links" id="oec-credits-code-links" style="display:none"><a href="#" id="oec-credits-resend">Pedir otro código</a><a href="#" id="oec-credits-other-email">Usar otro email</a></p>').insertAfter($f);
+    }
+    jQuery('#oec-credits-code-links').show();
+    return $f;
 }
 
 function showDiscountBtns(balance,email){
@@ -1014,19 +1092,23 @@ jQuery(document).ready(function($){
         oecSafe('initCreditsBox', initCreditsBox);
 
         $doc
-            .on('click','#oec-check-points-link',e=>{ e.preventDefault(); $('#oec-credits-links').hide(); $('#oec-credits-email-form').show(); })
-            .on('submit','#oec-credits-email-form',e=>{ e.preventDefault(); const em=$('#oec-user-email').val().trim(); if(em) checkUserPoints(em); })
+            .on('click','#oec-check-points-link',e=>{ e.preventDefault(); $('#oec-credits-links').hide(); $('#oec-credits-email-form').show(); creditsStatus('Te vamos a enviar un código a tu email para confirmar que es tuyo.'); })
+            .on('submit','#oec-credits-email-form',e=>{ e.preventDefault(); const em=$('#oec-user-email').val().trim(); if(em) startVerification(em); })
+            .on('submit','#oec-credits-code-form',function(e){ e.preventDefault(); const code=$('#oec-user-code').val().replace(/\D/g,''); if(code.length===6) confirmVerification($(this).data('email'), code); else creditsStatus('El código tiene 6 números.'); })
+            .on('click','#oec-credits-resend',e=>{ e.preventDefault(); const em=$('#oec-credits-code-form').data('email'); if(em) startVerification(em); })
+            .on('click','#oec-credits-other-email',e=>{ e.preventDefault(); $('#oec-credits-code-form,#oec-credits-code-links').hide(); $('#oec-credits-email-form').show(); creditsStatus(''); })
             .on('click','#oec-change-email',e=>{
                 e.preventDefault();
-                localStorage.removeItem('userEmail'); sessionStorage.removeItem('userCredits');
-                $('#oec-email-change-section,#oec-how-get-credits').hide();
+                oecForgetIdentity();
+                $('#oec-email-change-section,#oec-how-get-credits,#oec-credits-code-form,#oec-credits-code-links').hide();
                 $('#oec-coupons-list .oec-coupon-action').empty();
+                creditsStatus('');
                 $('#oec-credits-links').show();
             })
             .on('click','.oec-how-points-link',e=>{ e.preventDefault(); $('#oec-how-get-credits').show(); })
             .on('click','.oec-redeem-btn',function(e){
                 e.preventDefault();
-                const $btn=$(this), email=localStorage.getItem('userEmail');
+                const $btn=$(this), id=oecIdentity(), email=id&&id.email;
                 if(!email) return;
                 // Guardamos el contenedor ANTES de vaciarlo — una vez que
                 // .html() reemplaza su contenido, $btn queda huérfano (sin
@@ -1035,7 +1117,7 @@ jQuery(document).ready(function($){
                 // el servidor sí haya respondido.
                 const $action = $btn.closest('.oec-coupon-action');
                 const payload={
-                    action:'oec_request_redeem', email, nonce: OEC_AJAX_NONCE,
+                    action:'oec_request_redeem', token: id.token, nonce: OEC_AJAX_NONCE,
                     training_uid: OEC_TRAINING_DATA.id,
                     edition_uid:  OEC_TRAINING_DATA.edition_uid,
                     points_amount: $btn.data('points'),
