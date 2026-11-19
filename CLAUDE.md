@@ -2653,6 +2653,7 @@ Causa: `/formacion/{slug}-t-XXXXXXXXXXXXXX` con un ID que la API no conoce rende
 
 ## v1.5.8 — WhatsApp de OEC solo en horario de ventas, en las comunidades (2026-11-05)
 
+**Reemplazado en la 1.5.16 (siempre chat con IA en las comunidades); queda como historia.**
 Regla de Mario: en una comunidad, con inscripción abierta y USD 300 o más, WhatsApp de OEC solo de lunes a
 viernes de 8:00 a 16:59 de Argentina, sin feriados nacionales (puentes incluidos) ni días extra; fuera de
 eso, chat con IA. El resto de la tabla de v1.4.31 no cambia (cerrada o < 300 → chat; socio/incrustada →
@@ -2854,6 +2855,20 @@ pedido y le escribe a la persona cuando la formación vuelve a abrir.
   journey 401 y formulario OK; journey inalcanzable → timeout a los 3 s y formulario OK; `XX` → sin
   `country`; abierta → no avisa; sin token → no avisa. oec-test.local no tiene token: el caso `ok` con el
   token real queda por probar cuando Mario lo cargue.
+
+## v1.5.16 — comunidades: siempre el chat con IA (2026-11-19)
+
+Decisión de Mario: en una comunidad atiende siempre el chat con IA (bloque de Contacto + ícono flotante), sin
+importar precio, inscripción ni horario. El chat deriva a WhatsApp por Lead Journey (`/wa/chat?cid=…&f=…`, tema
+≥ 1.0.228), así la IA sigue en WhatsApp con la conversación de la web. Si el sitio no ofrece el chat
+(`oec_chat_ia_available` en false), WhatsApp de OEC como antes. Socios e incrustada: sin cambios (decisión de
+Mario: "solo comunidades"; ahí no hay chat del tema).
+- **Se sacó el horario de ventas de la 1.5.8**: `oec_sales_hours()`, feriados de ArgentinaDatos y su cron mensual,
+  "Días sin WhatsApp" en wp-admin y `sales_hours_script()`. Un `init` borra el cron y las opciones
+  (`oec_ar_holidays`, `oec_sales_closed_extra`) en los sitios que los tenían. Las reglas CSS de `.oec-c-hours`
+  quedan solo para fichas en caché con HTML de 1.5.8–1.5.15; se pueden borrar más adelante.
+- Probado en local: fichas de comunidad de 81 a 750 → solo chat; incrustada → WhatsApp de OEC; sin chat en el
+  sitio → WhatsApp de OEC; cron y opciones borrados.
 
 ## Pendientes abiertos (a retomar)
 
