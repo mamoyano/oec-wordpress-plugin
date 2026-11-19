@@ -107,7 +107,18 @@ if (!class_exists('OEC_Ajax')) {
             if ($channels['form'] === 'partner' && $channels['email']) {
                 $this->enviar_email_propio($channels['email'], $uid, $name, $lastname, $email, $phone, $country);
             } elseif ($channels['form'] === 'crm') {
-                $this->enviar_a_api_oec($uid, $name, $lastname, $email, $phone, $country, $locale);
+                $ok = $this->enviar_a_api_oec($uid, $name, $lastname, $email, $phone, $country, $locale);
+                // Formación cerrada: además, "Avísame cuando abra" en journey.oe.center (que le escribe
+                // cuando vuelve a abrir). Solo si la CRM ya lo recibió; un fallo acá no cambia la respuesta.
+                if ($ok && $data && !self::enrollment_open($data)) {
+                    self::notify_journey($email, $uid, $country);
+                }
+                if ($ok) {
+                    // El mensaje de éxito NO se toma de la respuesta de la API externa (venía con "usted"):
+                    // mismo texto que enviar_email_propio().
+                    wp_send_json_success('¡Listo! Ya recibimos tu consulta — te vamos a contactar a la brevedad.');
+                }
+                wp_send_json_error('Error en la comunicación con la API.');
             } else {
                 wp_send_json_error('Esta formación no recibe consultas por este medio.');
             }
@@ -167,37 +178,70 @@ if (!class_exists('OEC_Ajax')) {
                 'phone'        => $phone,
             ] + $this->utm_from_post();
 
-            $token = get_option('oec_token', '');
-
-            $ch = curl_init('https://oas-api.onlineeducation.center/api-oas/v1/more-info');
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST           => true,
-                CURLOPT_HTTPHEADER     => [
-                    'X-API-TOKEN: ' . $token,
-                    'Content-Type: application/json',
+            $res = wp_remote_post('https://oas-api.onlineeducation.center/api-oas/v1/more-info', [
+                'timeout' => 20,
+                'headers' => [
+                    'X-API-TOKEN'  => (string) get_option('oec_token', ''),
+                    'Content-Type' => 'application/json',
                 ],
-                CURLOPT_POSTFIELDS     => json_encode($payload),
-                CURLOPT_TIMEOUT        => 20,
-                CURLOPT_SSL_VERIFYPEER => true,
+                'body'    => wp_json_encode($payload),
             ]);
+            $response = is_wp_error($res) ? '' : wp_remote_retrieve_body($res);
+            $data = json_decode((string) $response, true);
+            return isset($data['success']);
+        }
 
-            $response = curl_exec($ch);
-            curl_close($ch);
+        /** Misma regla que la ficha: abierta hasta el final del día de cierre, en la hora del sitio. */
+        private static function enrollment_open($data) {
+            return !empty($data['enrollment_end'])
+                && substr((string) $data['enrollment_end'], 0, 10) >= current_time('Y-m-d');
+        }
 
-            $data = json_decode($response, true);
-
-            // El mensaje de éxito NO se toma de $data['success']['message'] —
-            // ese texto lo devuelve la API externa de OEC (fuera de este
-            // repo) y quedó con "usted"/redacción vieja. Usamos siempre
-            // nuestro propio texto (mismo tuteo/tono que enviar_email_propio()
-            // más arriba), así el copy de cara al usuario queda bajo nuestro
-            // control sin depender de lo que responda un sistema externo.
-            if (isset($data['success'])) {
-                wp_send_json_success('¡Listo! Ya recibimos tu consulta — te vamos a contactar a la brevedad.');
+        /**
+         * Token de journey.oe.center (el mismo que usa el tema para el brochure): constante
+         * OEC_JOURNEY_TOKEN de wp-config, opción del plugin o, si no, la del tema (Tema OEC → Chat IA).
+         */
+        public static function journey_token() {
+            if (defined('OEC_JOURNEY_TOKEN') && OEC_JOURNEY_TOKEN) return (string) OEC_JOURNEY_TOKEN;
+            $t = trim((string) get_option('oec_journey_token', ''));
+            if ($t !== '') return $t;
+            if (function_exists('oec_get_options')) {
+                $opts = oec_get_options();
+                return trim((string) (is_array($opts) ? ($opts['oec_journey_token'] ?? '') : ''));
             }
+            return '';
+        }
 
-            wp_send_json_error('Error en la comunicación con la API.');
+        /** De dónde sale el token ('constant' | 'plugin' | 'theme' | ''), para la pantalla de ajustes. */
+        public static function journey_token_source() {
+            if (defined('OEC_JOURNEY_TOKEN') && OEC_JOURNEY_TOKEN) return 'constant';
+            if (trim((string) get_option('oec_journey_token', '')) !== '') return 'plugin';
+            return self::journey_token() !== '' ? 'theme' : '';
+        }
+
+        /**
+         * POST {OEC_JOURNEY_URL}/v1/notify — "Avísame cuando abra". Del lado del servidor (el token
+         * nunca va al navegador), timeout corto; cualquier fallo solo queda en el log.
+         * Devuelve el código HTTP (0 = sin respuesta), o null si no hay token.
+         */
+        public static function notify_journey($email, $uid, $country = '') {
+            $token = self::journey_token();
+            if ($token === '') return null;
+            $body = ['email' => $email, 'training_uid' => $uid, 'source' => 'ficha'];
+            $country = strtoupper((string) $country);
+            if (preg_match('/^[A-Z]{2}$/', $country) && $country !== 'XX') $body['country'] = $country;
+
+            $base = defined('OEC_JOURNEY_URL') ? OEC_JOURNEY_URL : 'https://journey.oe.center';
+            $res  = wp_remote_post(apply_filters('oec_journey_url', $base) . '/v1/notify', [
+                'timeout' => 3,
+                'headers' => ['Content-Type' => 'application/json', 'Authorization' => 'Bearer ' . $token],
+                'body'    => wp_json_encode($body),
+            ]);
+            $code = is_wp_error($res) ? 0 : (int) wp_remote_retrieve_response_code($res);
+            if ($code < 200 || $code >= 300) {
+                error_log('OEC journey: notify ' . $uid . ' → ' . ($code ?: (is_wp_error($res) ? $res->get_error_message() : 'sin respuesta')));
+            }
+            return $code;
         }
 
         /**

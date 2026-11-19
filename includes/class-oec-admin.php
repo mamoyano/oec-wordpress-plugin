@@ -216,6 +216,13 @@ if (!class_exists('OEC_Admin')) {
                 if (isset($_POST['oec_sales_closed_extra'])) {
                     update_option('oec_sales_closed_extra', sanitize_textarea_field(wp_unslash($_POST['oec_sales_closed_extra'])));
                 }
+                // Token de journey.oe.center (aviso "Avísame cuando abra"). Vacío = se deja el guardado.
+                $jt = trim((string) wp_unslash($_POST['oec_journey_token'] ?? ''));
+                if (!empty($_POST['oec_journey_token_clear'])) {
+                    delete_option('oec_journey_token');
+                } elseif ($jt !== '' && preg_match('/^[A-Za-z0-9_-]{16,200}$/', $jt)) {
+                    update_option('oec_journey_token', $jt, false);
+                }
 
                 // Limpiar caché de API (compatible con multisitio)
                 OEC_Api::clear_cache();
@@ -579,6 +586,20 @@ if (!class_exists('OEC_Admin')) {
                                         </td>
                                     </tr>
                                     <?php endif; ?>
+                                    <?php $jt_src = class_exists('OEC_Ajax') ? OEC_Ajax::journey_token_source() : ''; ?>
+                                    <tr>
+                                        <th scope="row">Token de Lead Journey</th>
+                                        <td>
+                                            <input type="password" name="oec_journey_token" value="" class="regular-text" autocomplete="off" placeholder="<?php echo $jt_src ? 'Configurado — vacío para no cambiarlo' : 'Pega el token'; ?>">
+                                            <?php if ($jt_src === 'plugin'): ?><label style="margin-left:8px;"><input type="checkbox" name="oec_journey_token_clear" value="1"> Borrar</label><?php endif; ?>
+                                            <p class="description">Con el token, quien deja sus datos en "Avísame cuando abra inscripciones" (formación cerrada) también queda anotado en journey.oe.center, que le escribe cuando vuelve a abrir. <?php
+                                                if ($jt_src === 'constant') echo 'Ahora se usa la constante <code>OEC_JOURNEY_TOKEN</code> de wp-config.php.';
+                                                elseif ($jt_src === 'theme') echo 'Ahora se usa el token del tema (Tema OEC → Chat IA).';
+                                                elseif ($jt_src === 'plugin') echo 'Ahora se usa el token guardado acá.';
+                                                else echo 'Sin token, el formulario sigue llegando solo a la CRM.';
+                                            ?></p>
+                                        </td>
+                                    </tr>
                                 </table>
                                 <?php submit_button('Actualizar Configuración', 'primary', 'oec_save'); ?>
                             </form>

@@ -2830,6 +2830,31 @@ la sesión del Lead Journey (Worker `src/identity.js`):
   éxito, guardado del token, saldo, "Cambiar email"); contrato real contra el Worker local (`wrangler dev`, dry_run):
   código → token → `/v1/me` (saldo null), token inválido 401; canje con token válido/falso/vacío.
 
+## v1.5.15 — "Avísame cuando abra" también va a Lead Journey (2026-11-19)
+
+El formulario de la sección Contacto (`oec_more_info_ajax()`, el mismo en fichas abiertas y cerradas)
+iba solo a la CRM. Ahora, si la formación está CERRADA (misma regla que la ficha: `enrollment_end` contra
+`current_time('Y-m-d')`, con los datos de la API, no del navegador), la ruta es la CRM y la CRM respondió
+bien, además hace `POST {OEC_JOURNEY_URL}/v1/notify` (`OEC_Ajax::notify_journey()`) con
+`{ email, training_uid, source: "ficha", country }` y `Authorization: Bearer <token>`. Journey guarda el
+pedido y le escribe a la persona cuando la formación vuelve a abrir.
+- **Token**: constante `OEC_JOURNEY_TOKEN` (wp-config) → opción del plugin `oec_journey_token` (OEC →
+  Configuración, campo "Token de Lead Journey", tipo password, vacío = no cambia, casilla "Borrar") → la del
+  tema (`oec_get_options()['oec_journey_token']`, Tema OEC → Chat IA). Es el mismo token del brochure del
+  chat. Nunca va al navegador. Sin token no se avisa (el formulario sigue igual).
+- `country`: el que manda el formulario (`data-country`, lo completa la detección de región); se omite si no
+  es un código de 2 letras o es `XX`.
+- Timeout 3 s. Cualquier fallo (401, 400, caída) solo va al `error_log` ("OEC journey: notify …"); la
+  respuesta al visitante es la de la CRM.
+- Ruta `partner` (formulario al email del socio): no se avisa a journey (los datos no son de OEC).
+- De paso, `enviar_a_api_oec()` pasó de `curl_*` a `wp_remote_post()` (mismo pedido) y devuelve true/false;
+  el JSON de respuesta lo arma `oec_more_info_ajax()`. Así se puede simular con `pre_http_request`.
+- **Probado en local** (CLI, CRM simulada con `pre_http_request` sobre `/api-oas/v1/more-info` — ojo: el
+  detalle de la formación sale del mismo host `oas-api`, no simular todo el host): cerrada + token inválido →
+  journey 401 y formulario OK; journey inalcanzable → timeout a los 3 s y formulario OK; `XX` → sin
+  `country`; abierta → no avisa; sin token → no avisa. oec-test.local no tiene token: el caso `ok` con el
+  token real queda por probar cuando Mario lo cargue.
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto
