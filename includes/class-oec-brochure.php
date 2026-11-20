@@ -93,6 +93,10 @@ if (!class_exists('OEC_Brochure')) {
             // WhatsApp solo si el canal está siempre disponible: con horario de ventas (comunidades,
             // USD 300 o más) un PDF no sabe a qué hora lo van a leer.
             $whatsapp = ($contact && !empty($contact['whatsapp']) && empty($contact['hours'])) ? $contact['whatsapp'] : '';
+            // v1.5.20: con el WhatsApp de ventas de OEC, el enlace va a la Bandeja de Lead Journey (oec_journey_wa_link())
+            // y se muestra el número de la Bandeja, no el de siempre.
+            $wa_link    = ($whatsapp && !empty($contact['wa_link'])) ? $contact['wa_link'] : '';
+            $wa_display = $wa_link ? (defined('OEC_JOURNEY_WA_DISPLAY') ? OEC_JOURNEY_WA_DISPLAY : '+1 302 830 3745') : '';
 
             $css = (string) @file_get_contents(plugin_dir_path(__DIR__) . 'css/oec-brochure.css');
 
@@ -117,6 +121,8 @@ if (!class_exists('OEC_Brochure')) {
                 'country'   => $country,
                 'country_name' => self::country_name($country),
                 'whatsapp'  => $whatsapp,
+                'whatsapp_link'    => $wa_link,
+                'whatsapp_display' => $wa_display,
                 'chat_ia'   => (bool) apply_filters('oec_chat_ia_available', false),
                 'partner_email' => ($contact && ($contact['form'] ?? '') === 'partner') ? ($contact['email'] ?? '') : '',
             ]);

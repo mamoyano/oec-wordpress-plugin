@@ -268,7 +268,7 @@
   {% endif %}
   {% if whatsapp or partner_email %}
   <p class="b-contact">¿Tienes dudas?
-    {%- if whatsapp %} Escríbenos por WhatsApp: <a href="https://wa.me/{{ whatsapp }}">+{{ whatsapp }}</a>{% endif -%}
+    {%- if whatsapp %} Escríbenos por WhatsApp: <a href="{{ whatsapp_link ?: 'https://wa.me/' ~ whatsapp }}">{{ whatsapp_display ?: '+' ~ whatsapp }}</a>{% endif -%}
     {%- if whatsapp and partner_email %} o{% endif -%}
     {%- if partner_email %} {{ whatsapp ? 'por email a' : 'Escríbenos a' }} <a href="mailto:{{ partner_email }}">{{ partner_email }}</a>{% endif -%}
     .</p>
