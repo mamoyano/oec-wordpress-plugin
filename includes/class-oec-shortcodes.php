@@ -1247,6 +1247,10 @@ if (!class_exists('OEC_Shortcodes')) {
                 // Plantillas muy viejas: el <script> que inyectaba el widget en cada visita.
                 $content = preg_replace('#<script\b[^>]*>(?:(?!</script>|OEC_CONFIG).)*go\.botmaker\.com(?:(?!</script>|OEC_CONFIG).)*</script>#s', '', $content);
             }
+            // < 1.5.19: con el WhatsApp de OEC, el botón va a la Bandeja de Lead Journey (extra.contact.wa_link).
+            if (strpos($content, 'extra.contact.wa_link') === false) {
+                $content = preg_replace('/(\{%\s*set\s+wa_link\s*=[^%]*%\})/', "$1\n{% if extra.contact.wa_link|default('') %}{% set wa_link = extra.contact.wa_link %}{% endif %}", $content, 1);
+            }
             // < 1.4.31: los canales de contacto los decide oec_contact_channels() (extra.contact): comunidad
             // por dominio, umbral USD 300, b2c_package y los datos de contacto de la organización.
             $content = preg_replace('/\{%\s*set\s+wa_number\s*=\s*extra\.equipo_oec[^%]*%\}/', '{% set wa_number = extra.contact.whatsapp %}', $content, 1);

@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.5.18
+Version: 1.5.19
 Author: Online Education Center
 */
 
@@ -152,7 +152,24 @@ if (!function_exists('oec_contact_channels')) {
     function oec_contact_channels($data, $embed = false, $open = true) {
         // Filtro para casos especiales (y para probar ramas que la API todavía no trae, como
         // b2c_package = false): recibe el resultado y los mismos datos.
-        return apply_filters('oec_contact_channels', oec_contact_channels_base($data, $embed, $open), $data, $embed, $open);
+        return apply_filters('oec_contact_channels', oec_journey_wa_link(oec_contact_channels_base($data, $embed, $open), $data), $data, $embed, $open);
+    }
+}
+if (!function_exists('oec_journey_wa_link')) {
+    /**
+     * WhatsApp de OEC → Bandeja de Lead Journey (v1.5.19, pedido de Mario 20/11/2026). Cuando la ficha ofrece el
+     * WhatsApp de ventas de OEC (sitios de socios con el equipo de OEC, ficha incrustada, comunidad sin chat con IA),
+     * el botón va a journey.oe.center/wa/ficha?f=<formación>: abre el WhatsApp de la Bandeja con un código de esa
+     * formación, la IA la presenta y deriva al equipo cuando hace falta. El WhatsApp de un socio no cambia.
+     * Para volver al número de siempre: add_filter('oec_journey_whatsapp', '__return_false').
+     */
+    function oec_journey_wa_link($c, $data) {
+        if (!is_array($c) || !empty($c['wa_partner']) || ($c['whatsapp'] ?? '') !== OEC_SALES_WHATSAPP) return $c;
+        $id = (string) ($data['id'] ?? '');
+        if (!preg_match('/^t-[A-Za-z0-9]{14}$/', $id) || !apply_filters('oec_journey_whatsapp', true, $data)) return $c;
+        $base = defined('OEC_JOURNEY_URL') ? OEC_JOURNEY_URL : 'https://journey.oe.center';
+        $c['wa_link'] = apply_filters('oec_journey_url', $base) . '/wa/ficha?f=' . rawurlencode($id);
+        return $c;
     }
 }
 if (!function_exists('oec_contact_channels_base')) {

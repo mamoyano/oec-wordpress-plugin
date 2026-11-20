@@ -154,6 +154,8 @@
 {% set org_contact_name = data.organization.data.name|default('') ?: 'el organizador' %}
 {% set wa_number = extra.contact.whatsapp %}
 {% set wa_link   = "https://api.whatsapp.com/send?phone=" ~ wa_number ~ "&amp;text=" ~ chat_message|url_encode %}
+{# v1.5.19: con el WhatsApp de OEC, el botón va a la Bandeja de Lead Journey (oec_journey_wa_link()). #}
+{% if extra.contact.wa_link|default('') %}{% set wa_link = extra.contact.wa_link %}{% endif %}
 
 {# ══════════════════════════════════════════════════════════════
    CANAL DE CONTACTO — lo decide el plugin (oec_contact_channels(), oec-main.php) y llega en
