@@ -1148,10 +1148,10 @@ if (!class_exists('OEC_Shortcodes')) {
          */
         /** Bloque "chat con IA" de la sección Contacto (igual al de data/page-formacion.txt). */
         const CHAT_IA_BLOCK = '<div class="oec-contact-block oec-contact-block--chat">
-                    <h3 class="oec-contact-block-title"><i class="bi bi-stars"></i> Con nuestro asistente con IA</h3>
+                    <h3 class="oec-contact-block-title"><i class="bi bi-chat-dots-fill"></i> Con nuestro asistente con IA</h3>
                     <p class="oec-contact-sub">Te responde al instante sobre esta formación (contenidos, fechas, precios y formas de pago), sin que tengas que dejar tus datos. Está entrenado para reconocer cuándo no sabe una respuesta: en ese caso te deriva con una persona de nuestro equipo.</p>
                     <a href="#chat" role="button" class="oec-contact-cta oec-contact-cta--chat oec-chat-ia-trigger" data-msg="Hola">
-                        <i class="bi bi-stars"></i> Chatear ahora
+                        <i class="bi bi-chat-dots-fill"></i> Chatear ahora
                     </a>
                 </div>';
 
@@ -1320,8 +1320,9 @@ if (!class_exists('OEC_Shortcodes')) {
                 ],
                 $content
             );
-            // < 1.5.17: el ícono flotante del chat pasa de estrellas a un globo de charla.
-            $content = preg_replace('#(<a\b[^>]*\bid="oec-float-chat"[^>]*>.*?<i class="bi )bi-stars(">)#s', '$1bi-chat-dots-fill$2', $content, 1);
+            // < 1.5.18: el chat con IA usa un globo de charla en vez de estrellas (ícono flotante desde 1.5.17,
+            // bloque de Contacto y su botón desde 1.5.18). En la ficha las estrellas solo marcaban el chat.
+            $content = str_replace('<i class="bi bi-stars"></i>', '<i class="bi bi-chat-dots-fill"></i>', $content);
             // < 1.5.9: hasta cuándo hay acceso al campus (ver ACCESS_NOTE y access_info()).
             if (strpos($content, 'extra.access.') === false) {
                 $content = preg_replace('/(Todo el material está grabado\..*?<\/p>\s*\{%\s*endif\s*%\})/s', '$1' . "\n" . self::ACCESS_NOTE, $content, 1);

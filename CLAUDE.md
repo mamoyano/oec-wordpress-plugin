@@ -2879,6 +2879,17 @@ El tema 1.0.230 hace lo mismo con `.oec-chat-bubble` (home, landings y listado).
 (plantilla vieja de la base): 64 px en 1366, 56 px en 700, sin tapar la barra de inscripción. El tema no se pudo
 ver en local: oec-test usa una copia vieja (1.0.225).
 
+## v1.5.18 — el chat con IA usa el globo de charla en todos lados (2026-11-20)
+
+Pedido de Mario ("cambiar el ícono de estrellas en todos lados"): en la ficha, el título "Con nuestro asistente con
+IA" y el botón "Chatear ahora" pasan de `bi-stars` a `bi-chat-dots-fill` (el flotante ya lo tenía desde 1.5.17).
+Plantillas ya pegadas: `upgrade_template()` reemplaza todo `<i class="bi bi-stars"></i>` (en la ficha las
+estrellas solo marcaban el chat). Tema 1.0.231: header (campo del asistente y botón de celular), botones de
+campaña, "Pregúntanos" y el botón "¿Qué quieres aprender?" de la home (que además ahora arranca con el saludo de la
+página, `cfg.launch`: en la home "Hola, ¿qué es lo mejor que tiene hoy {sitio}?", igual que el globo flotante).
+La estrella de "Novedades / Recién llegadas" del tema quedó: no es del chat. `chat-dots-fill` ya estaba en el
+recorte de íconos del tema (`build-subset.py`).
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

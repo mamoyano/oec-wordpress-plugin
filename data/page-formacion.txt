@@ -1106,10 +1106,10 @@
             <div class="oec-contact-col-alt">
                 {% if showChatIA %}
                 <div class="oec-contact-block oec-contact-block--chat">
-                    <h3 class="oec-contact-block-title"><i class="bi bi-stars"></i> Con nuestro asistente con IA</h3>
+                    <h3 class="oec-contact-block-title"><i class="bi bi-chat-dots-fill"></i> Con nuestro asistente con IA</h3>
                     <p class="oec-contact-sub">Te responde al instante sobre esta formación (contenidos, fechas, precios y formas de pago), sin que tengas que dejar tus datos. Está entrenado para reconocer cuándo no sabe una respuesta: en ese caso te deriva con una persona de nuestro equipo.</p>
                     <a href="#chat" role="button" class="oec-contact-cta oec-contact-cta--chat oec-chat-ia-trigger" data-msg="Hola">
-                        <i class="bi bi-stars"></i> Chatear ahora
+                        <i class="bi bi-chat-dots-fill"></i> Chatear ahora
                     </a>
                 </div>
                 {% endif %}
