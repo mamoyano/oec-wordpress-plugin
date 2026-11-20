@@ -84,6 +84,7 @@ if (!class_exists('OEC_Ajax')) {
             $phone    = sanitize_text_field($_POST['phone']    ?? '');
             $email    = sanitize_email($_POST['email']         ?? '');
             $country  = sanitize_text_field($_POST['country']  ?? 'AR');
+            $question = mb_substr(sanitize_textarea_field(wp_unslash($_POST['question'] ?? '')), 0, 2000);
             $locale   = sanitize_text_field($_POST['locale']   ?? 'es');
 
             if (!$uid || !$name || !$lastname || !is_email($email)) {
@@ -105,18 +106,22 @@ if (!class_exists('OEC_Ajax')) {
                 : ['form' => 'crm', 'email' => ''];
 
             if ($channels['form'] === 'partner' && $channels['email']) {
-                $this->enviar_email_propio($channels['email'], $uid, $name, $lastname, $email, $phone, $country);
+                $this->enviar_email_propio($channels['email'], $uid, $name, $lastname, $email, $phone, $country, $question);
             } elseif ($channels['form'] === 'crm') {
                 $ok = $this->enviar_a_api_oec($uid, $name, $lastname, $email, $phone, $country, $locale);
-                // Formación cerrada: además, "Avísame cuando abra" en journey.oe.center (que le escribe
-                // cuando vuelve a abrir). Solo si la CRM ya lo recibió; un fallo acá no cambia la respuesta.
-                if ($ok && $data && !self::enrollment_open($data)) {
+                // v1.5.21: la consulta va también a Lead Journey, que la responde por email con IA (o manda el
+                // brochure si no escribió nada; si la formación está cerrada, además "Avísame cuando abra").
+                // Sin token de Lead Journey, como antes: solo la CRM (y el aviso de apertura si está cerrada).
+                $journey = $ok ? self::consulta_journey($email, $uid, $country, $name, $lastname, $phone, $question) : null;
+                if ($ok && $journey === null && $data && !self::enrollment_open($data)) {
                     self::notify_journey($email, $uid, $country);
                 }
                 if ($ok) {
                     // El mensaje de éxito NO se toma de la respuesta de la API externa (venía con "usted"):
                     // mismo texto que enviar_email_propio().
-                    wp_send_json_success('¡Listo! Ya recibimos tu consulta — te vamos a contactar a la brevedad.');
+                    wp_send_json_success($journey && $question !== ''
+                        ? '¡Listo! Te respondemos por email en unos minutos (revisa también la carpeta de spam o promociones).'
+                        : '¡Listo! Ya recibimos tu consulta — te vamos a contactar a la brevedad.');
                 }
                 wp_send_json_error('Error en la comunicación con la API.');
             } else {
@@ -136,7 +141,7 @@ if (!class_exists('OEC_Ajax')) {
         /**
          * Envía los datos del formulario por email al equipo de ventas del cliente.
          */
-        private function enviar_email_propio($destino, $uid, $name, $lastname, $email, $phone, $country) {
+        private function enviar_email_propio($destino, $uid, $name, $lastname, $email, $phone, $country, $question = '') {
             $site_name   = get_bloginfo('name');
             $asunto      = "[{$site_name}] Nueva consulta de formación";
 
@@ -146,6 +151,7 @@ if (!class_exists('OEC_Ajax')) {
             $cuerpo .= "Email:          {$email}\n";
             $cuerpo .= "Teléfono:       " . ($phone ?: '—') . "\n";
             $cuerpo .= "País:           {$country}\n";
+            if ($question !== '') $cuerpo .= "\nConsulta:\n{$question}\n";
             $cuerpo .= "\n— Enviado desde el plugin OEC WordPress";
 
             $headers = [
@@ -224,6 +230,30 @@ if (!class_exists('OEC_Ajax')) {
          * nunca va al navegador), timeout corto; cualquier fallo solo queda en el log.
          * Devuelve el código HTTP (0 = sin respuesta), o null si no hay token.
          */
+        /**
+         * Consulta de la ficha → journey.oe.center/v1/consulta (src/consulta.js del Worker). Devuelve el código HTTP,
+         * o null si el sitio no tiene el token de Lead Journey. Nunca frena el formulario (3 s de espera como máximo).
+         */
+        public static function consulta_journey($email, $uid, $country, $name, $lastname, $phone, $question) {
+            $token = self::journey_token();
+            if ($token === '' || get_option('oec_journey_consulta', '0') !== '1') return null;
+            $body = ['email' => $email, 'training_uid' => $uid, 'name' => $name, 'lastname' => $lastname, 'phone' => $phone, 'question' => $question, 'source' => 'ficha'];
+            $country = strtoupper((string) $country);
+            if (preg_match('/^[A-Z]{2}$/', $country) && $country !== 'XX') $body['country'] = $country;
+            $base = defined('OEC_JOURNEY_URL') ? OEC_JOURNEY_URL : 'https://journey.oe.center';
+            $res  = wp_remote_post(apply_filters('oec_journey_url', $base) . '/v1/consulta', [
+                'timeout' => 3,
+                'headers' => ['Content-Type' => 'application/json', 'Authorization' => 'Bearer ' . $token],
+                'body'    => wp_json_encode($body),
+            ]);
+            $code = is_wp_error($res) ? 0 : (int) wp_remote_retrieve_response_code($res);
+            if ($code < 200 || $code >= 300) {
+                error_log('OEC journey: consulta ' . $uid . ' → ' . ($code ?: (is_wp_error($res) ? $res->get_error_message() : 'sin respuesta')));
+                return 0;
+            }
+            return $code;
+        }
+
         public static function notify_journey($email, $uid, $country = '') {
             $token = self::journey_token();
             if ($token === '') return null;

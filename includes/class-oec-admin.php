@@ -220,6 +220,9 @@ if (!class_exists('OEC_Admin')) {
                 } elseif ($jt !== '' && preg_match('/^[A-Za-z0-9_-]{16,200}$/', $jt)) {
                     update_option('oec_journey_token', $jt, false);
                 }
+                // v1.5.21: las consultas del formulario las responde Lead Journey con IA (apagado por defecto: se prende
+                // después de apagar los emails de "More Info Request" en la CRM, para que no lleguen duplicados).
+                update_option('oec_journey_consulta', isset($_POST['oec_journey_consulta']) ? '1' : '0', false);
 
                 // Limpiar caché de API (compatible con multisitio)
                 OEC_Api::clear_cache();
@@ -582,6 +585,13 @@ if (!class_exists('OEC_Admin')) {
                                                 elseif ($jt_src === 'plugin') echo 'Ahora se usa el token guardado acá.';
                                                 else echo 'Sin token, el formulario sigue llegando solo a la CRM.';
                                             ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Consultas por email con IA</th>
+                                        <td>
+                                            <label><input type="checkbox" name="oec_journey_consulta" value="1" <?php checked(get_option('oec_journey_consulta', '0'), '1'); ?>> Que Lead Journey responda las consultas del formulario de la ficha</label>
+                                            <p class="description">Con el token cargado, la consulta escrita la responde la IA por email en unos minutos (y si no escribió nada, le llega el brochure). La CRM la sigue recibiendo igual. Prendelo después de apagar los emails de "More Info Request" en la CRM: si no, la persona recibe los dos.</p>
                                         </td>
                                     </tr>
                                 </table>

@@ -637,8 +637,9 @@ body.oec-c-chat-now:has(#oec-bleed-wrapper.oec-c-hours) :is(.oec-contact-block--
 .oec-contact-block--whatsapp:hover .oec-contact-cta--whatsapp,
 .oec-contact-cta--whatsapp:hover { background: #25d366 !important; border-color: #25d366 !important; color: #fff !important; }
 .oec-form    { display: flex; flex-direction: column; gap: 10px; }
-.oec-form input  { padding: 11px 14px !important; font-size: 14px !important; border: 1.5px solid #e5e7eb !important; border-radius: 8px !important; outline: none !important; transition: border-color .2s; width: 100%; box-sizing: border-box; }
-.oec-form input:focus { border-color: var(--oec-brand) !important; }
+.oec-form input, .oec-form textarea  { padding: 11px 14px !important; font-size: 14px !important; border: 1.5px solid #e5e7eb !important; border-radius: 8px !important; outline: none !important; transition: border-color .2s; width: 100%; box-sizing: border-box; }
+.oec-form textarea { font-family: inherit !important; line-height: 1.45 !important; resize: vertical; min-height: 84px; }
+.oec-form input:focus, .oec-form textarea:focus { border-color: var(--oec-brand) !important; }
 /* Mismo criterio "apagado hasta hover" que los botones de chat/WhatsApp
    de al lado — no competir con "INICIAR INSCRIPCIÓN" de la sidebar. */
 .oec-form button { padding: 13px !important; background: transparent !important; color: var(--oec-brand) !important; border: 1.5px solid var(--oec-brand) !important; border-radius: 8px !important; font-size: 15px !important; font-weight: 700 !important; cursor: pointer; transition: background .25s ease, color .25s ease; }

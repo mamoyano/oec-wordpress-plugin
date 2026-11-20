@@ -1099,6 +1099,7 @@
                             <input type="text" name="lastname" placeholder="Apellido" required="" autocomplete="family-name">
                             {% if force_contact %}<input type="tel" name="phone" placeholder="Teléfono" required="" autocomplete="tel">{% endif %}
                             <input type="email" name="email" placeholder="Email" required="" autocomplete="email">
+                            {% if extra.consulta_ia|default(false) %}<textarea name="question" rows="3" maxlength="2000" placeholder="Tu consulta (opcional): precio, cuotas, fechas, certificado…"></textarea>{% endif %}
                             <button type="submit">{% if force_contact %}SOLICITAR INFORMACIÓN{% else %}Enviar mis datos{% endif %}</button>
                         </form>
                         <div class="oec-form-resp oec-form-response"></div>

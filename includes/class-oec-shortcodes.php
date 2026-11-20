@@ -702,6 +702,8 @@ if (!class_exists('OEC_Shortcodes')) {
                     // ¿El sitio tiene chat con IA? Lo dice el tema (oec-wp-theme) por este filtro; un
                     // sitio de socio o la ficha incrustada no lo tienen y ofrecen WhatsApp.
                     'chat_ia'             => !$embed && (bool) apply_filters('oec_chat_ia_available', false),
+                    // v1.5.21: "Tu consulta" en el formulario, solo si Lead Journey responde las consultas (token + interruptor).
+                    'consulta_ia'         => !$embed && get_option('oec_journey_consulta', '0') === '1' && class_exists('OEC_Ajax') && OEC_Ajax::journey_token() !== '',
                     // Sin el email de destino: el Twig solo necesita saber qué mostrar.
                     'contact'             => $contact ? array_diff_key($contact, ['email' => 1]) : ['form' => 'crm', 'whatsapp' => '5493512584960', 'chat' => false, 'csm' => true, 'wa_partner' => false],
                     // Mismos ítems que el BreadcrumbList JSON-LD (oec-main.php): el hero los muestra visibles.
@@ -1246,6 +1248,10 @@ if (!class_exists('OEC_Shortcodes')) {
                 $content = preg_replace('#^[ \t]*window\.OEC_BOTMAKER_SRC[^\n]*\n#m', '', $content);
                 // Plantillas muy viejas: el <script> que inyectaba el widget en cada visita.
                 $content = preg_replace('#<script\b[^>]*>(?:(?!</script>|OEC_CONFIG).)*go\.botmaker\.com(?:(?!</script>|OEC_CONFIG).)*</script>#s', '', $content);
+            }
+            // < 1.5.21: el formulario "¿Alguna duda? Por Email" suma "Tu consulta" (la responde la IA de Lead Journey por email).
+            if (strpos($content, 'name="question"') === false) {
+                $content = preg_replace('#(<form class="oecMoreInfoForm[^>]*>(?:(?!</form>).)*?<input type="email" name="email"[^>]*>)#s', '$1' . "\n" . '{% if extra.consulta_ia|default(false) %}<textarea name="question" rows="3" maxlength="2000" placeholder="Tu consulta (opcional): precio, cuotas, fechas, certificado…"></textarea>{% endif %}', $content, 1);
             }
             // < 1.5.19: con el WhatsApp de OEC, el botón va a la Bandeja de Lead Journey (extra.contact.wa_link).
             if (strpos($content, 'extra.contact.wa_link') === false) {
