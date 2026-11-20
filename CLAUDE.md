@@ -2870,6 +2870,15 @@ Mario: "solo comunidades"; ahí no hay chat del tema).
 - Probado en local: fichas de comunidad de 81 a 750 → solo chat; incrustada → WhatsApp de OEC; sin chat en el
   sitio → WhatsApp de OEC; cron y opciones borrados.
 
+## v1.5.17 — ícono flotante del chat: globo de charla y más grande (2026-11-20)
+
+Pedido de Mario, en el plugin y en el tema a la vez: `#oec-float-chat` pasa de `bi-stars` a
+`bi-chat-dots-fill` y de 56 a 64 px (30 px de ícono); en celular, de 48 a 56 px (26 px). El de WhatsApp
+(`.oec-float-wa`) no cambia. Plantillas ya pegadas: `upgrade_template()` cambia el ícono dentro del flotante.
+El tema 1.0.230 hace lo mismo con `.oec-chat-bubble` (home, landings y listado). Probado en local en la ficha
+(plantilla vieja de la base): 64 px en 1366, 56 px en 700, sin tapar la barra de inscripción. El tema no se pudo
+ver en local: oec-test usa una copia vieja (1.0.225).
+
 ## Pendientes abiertos (a retomar)
 
 1. ~~`page-formacion.txt` y `page-formaciones.txt` atrasadas~~ — **resuelto

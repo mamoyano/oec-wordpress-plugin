@@ -1158,7 +1158,7 @@ if (!class_exists('OEC_Shortcodes')) {
         /** Ícono flotante del chat con IA (igual al de data/page-formacion.txt). */
         const CHAT_IA_FLOAT = '<a href="#chat" role="button" id="oec-float-chat" class="oec-float-chat oec-chat-ia-trigger{% if not openEnrollment %} oec-float-chat--no-mobile-bar{% endif %}" aria-label="Chatear con nuestro asistente con IA" data-msg="Hola">
     <span class="oec-float-chat-tip" aria-hidden="true">¿Alguna pregunta?</span>
-    <i class="bi bi-stars"></i>
+    <i class="bi bi-chat-dots-fill"></i>
 </a>';
 
         // < 1.5.9: hasta cuándo hay acceso al campus (access_info()), en el acordeón de horarios, su FAQ y el
@@ -1320,6 +1320,8 @@ if (!class_exists('OEC_Shortcodes')) {
                 ],
                 $content
             );
+            // < 1.5.17: el ícono flotante del chat pasa de estrellas a un globo de charla.
+            $content = preg_replace('#(<a\b[^>]*\bid="oec-float-chat"[^>]*>.*?<i class="bi )bi-stars(">)#s', '$1bi-chat-dots-fill$2', $content, 1);
             // < 1.5.9: hasta cuándo hay acceso al campus (ver ACCESS_NOTE y access_info()).
             if (strpos($content, 'extra.access.') === false) {
                 $content = preg_replace('/(Todo el material está grabado\..*?<\/p>\s*\{%\s*endif\s*%\})/s', '$1' . "\n" . self::ACCESS_NOTE, $content, 1);

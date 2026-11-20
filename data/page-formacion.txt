@@ -1532,7 +1532,7 @@
 {% if showFloatChatIA %}
 <a href="#chat" role="button" id="oec-float-chat" class="oec-float-chat oec-chat-ia-trigger{% if not openEnrollment %} oec-float-chat--no-mobile-bar{% endif %}" aria-label="Chatear con nuestro asistente con IA" data-msg="Hola">
     <span class="oec-float-chat-tip" aria-hidden="true">¿Alguna pregunta?</span>
-    <i class="bi bi-stars"></i>
+    <i class="bi bi-chat-dots-fill"></i>
 </a>
 {% endif %}
 
