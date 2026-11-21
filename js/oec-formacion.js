@@ -690,6 +690,20 @@ function updateDiscountRing(pct, label){
 function initCreditsBox(){
     const editionUid = OEC_TRAINING_DATA.edition_uid;
     if(!editionUid || !document.getElementById('oec-credits-box')) return;
+    // Saldo que cambió en otra parte de la página (créditos regalados por el chat IA, bloque de créditos
+    // o newsletter del tema): se actualiza el recuadro sin recargar, para que pueda canjear ya.
+    window.addEventListener('oec:credits-updated', e=>{
+        const balance = e && e.detail ? parseInt(e.detail.balance,10) : NaN;
+        const email = localStorage.getItem('userEmail');
+        if(isNaN(balance) || !email) return;
+        sessionStorage.setItem('userCredits', balance);
+        if(!window.OEC_COUPONS) return; // sin cupones el recuadro no se muestra
+        jQuery('#oec-current-email').text(email); jQuery('#oec-current-my-points').text(balance);
+        jQuery('#oec-credits-email-form,#oec-credits-links').hide();
+        jQuery('#oec-credits-status').text('');
+        jQuery('#oec-email-change-section').show();
+        showDiscountBtns(balance, email);
+    });
     jQuery.post(oecAjaxUrl(), { action:'oec_list_coupons', edition_uid: editionUid, nonce: OEC_AJAX_NONCE })
         .done(res=>{
             if(!res.success || !res.data || !res.data.length) return; // sin cupones vigentes, no mostramos nada
