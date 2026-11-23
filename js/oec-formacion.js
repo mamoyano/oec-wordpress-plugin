@@ -733,8 +733,11 @@ function initCreditsBox(){
 function renderCoupons(list){
     const stdEl=document.querySelector('.std-disc-percent');
     const std=stdEl?parseInt(stdEl.textContent||'0',10):0;
+    // El descuento por pago completo no aplica pagando módulo a módulo, y el código de créditos sí se puede usar
+    // en esos pagos (v1.5.23): ahí el cupón sirve aunque no supere el descuento por pago completo.
+    const fullPay=!!stdEl && !stdEl.closest('#oec-disc-early-payment');
     const html=list.map(c=>`
-        <div class="oec-coupon" data-points="${c.points_value}" data-percent="${c.percentage}" data-beats-current="${c.percentage>std?1:0}">
+        <div class="oec-coupon" data-points="${c.points_value}" data-percent="${c.percentage}" data-beats-current="${c.percentage>std?1:0}" data-by-modules="${c.percentage<=std&&fullPay?1:0}" data-std="${std}">
             <div class="oec-coupon-pct">${c.percentage}%</div>
             <div class="oec-coupon-info">
                 <p>Canjea <strong>${c.points_value}</strong> créditos por este ${c.percentage}% de descuento.</p>
@@ -765,8 +768,13 @@ function showDiscountBtns(balance,email){
     balance=parseInt(balance,10);
     jQuery('#oec-coupons-list .oec-coupon').each(function(){
         const $c=jQuery(this), pts=parseInt($c.data('points'),10), pct=parseInt($c.data('percent'),10), beats=$c.data('beats-current')==1;
+        const byModules=$c.data('by-modules')==1, std=parseInt($c.data('std'),10)||0;
         const $action=$c.find('.oec-coupon-action');
-        if(beats && balance>=pts){
+        if(byModules && balance>=pts){
+            $action.html(`<a href="#" class="oec-redeem-btn" data-points="${pts}" data-percent="${pct}">Obtener descuento</a><p style="margin-top:4px">Para pagar módulo a módulo: pagando todo junto ya tienes el ${std}% por pago completo (los descuentos no se suman). Confirmación por email a ${email}.</p>`);
+        } else if(byModules){
+            $action.html(`<p>Créditos insuficientes. Sirve si pagas módulo a módulo.</p>`);
+        } else if(beats && balance>=pts){
             $action.html(`<a href="#" class="oec-redeem-btn" data-points="${pts}" data-percent="${pct}">Obtener descuento</a><p style="margin-top:4px">Confirmación por email a ${email}.</p>`);
         } else {
             $action.html(`<p>${balance>=pts?'Ya tienes un descuento igual o mejor activo.':'Créditos insuficientes.'}</p>`);
