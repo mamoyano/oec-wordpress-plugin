@@ -577,6 +577,21 @@ if (!class_exists('OEC_Ajax')) {
                 </div>
                 <p class="oecrd-balance">Ahora te quedan <b>' . number_format($remaining, 0, ',', '.') . '</b> créditos. También te enviamos esta información a ' . esc_html($email) . '.</p>
                 <script>
+                // Saldo nuevo en el navegador (mismas claves que la ficha, el header
+                // del tema y el chat IA): si no, el resto del sitio sigue mostrando
+                // el saldo de antes del canje. Solo si el email guardado es el del
+                // canje (o no hay ninguno: quien abre este link es dueño del email).
+                (function(){
+                    try {
+                        var email = ' . wp_json_encode($email) . ', remaining = ' . (int) $remaining . ';
+                        var saved = localStorage.getItem("userEmail");
+                        if (saved && saved.trim().toLowerCase() !== email.toLowerCase()) return;
+                        if (!saved) localStorage.setItem("userEmail", email);
+                        sessionStorage.setItem("userCredits", String(remaining));
+                        localStorage.setItem("oec_credits_balance", String(remaining));
+                        window.dispatchEvent(new CustomEvent("oec:credits-updated", { detail: { balance: remaining } }));
+                    } catch (e) {}
+                })();
                 (function(){
                     var btn = document.getElementById("oecrd-copy-btn");
                     if (!btn) return;

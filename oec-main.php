@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.5.23
+Version: 1.5.24
 Author: Online Education Center
 */
 
