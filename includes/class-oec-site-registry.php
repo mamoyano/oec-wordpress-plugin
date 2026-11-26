@@ -76,6 +76,8 @@ if (!class_exists('OEC_Site_Registry')) {
                 'active'         => (bool) $active,
                 'plugin_version' => self::plugin_version(),
                 'features'       => self::features(),
+                // v1.5.26: subdominio del checkout del socio (lo guarda la pantalla del token, sale de su organización).
+                'subdomain'      => preg_match('/^[a-z0-9][a-z0-9-]{0,62}$/', (string) get_option('oec_subdomain', '')) ? (string) get_option('oec_subdomain') : '',
             ];
         }
 
@@ -106,6 +108,11 @@ if (!class_exists('OEC_Site_Registry')) {
             if ($blocking) {
                 if (!$code || $code >= 300) error_log('OEC journey: registro del sitio ' . ($code ?: (is_wp_error($res) ? $res->get_error_message() : 'sin respuesta')));
                 update_option(self::OPTION, ['at' => time(), 'code' => $code, 'sent' => $body], false);
+                // v1.5.26: el Worker dice si este sitio ya tiene el chat con IA (OEC_Journey_Chat).
+                if ($code >= 200 && $code < 300) {
+                    $resp = json_decode((string) wp_remote_retrieve_body($res), true);
+                    update_option('oec_journey_chat', !empty($resp['chat']) ? '1' : '0', true);
+                }
             }
             return $code;
         }
@@ -115,6 +122,7 @@ if (!class_exists('OEC_Site_Registry')) {
             wp_clear_scheduled_hook(self::HOOK);
             wp_clear_scheduled_hook(self::HOOK . '_once');
             delete_option(self::OPTION);
+            delete_option('oec_journey_chat');
         }
 
         private static function plugin_version() {

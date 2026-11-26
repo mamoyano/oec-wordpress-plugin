@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.5.25
+Version: 1.5.26
 Author: Online Education Center
 */
 
@@ -188,7 +188,15 @@ if (!function_exists('oec_contact_channels_base')) {
 
         $b2c = !array_key_exists('b2c_package', (array) $data) || !empty($data['b2c_package']);
         if ($b2c) {
-            if (get_option('oec_equipo_ventas', '1') === '1') return $oec;
+            if (get_option('oec_equipo_ventas', '1') === '1') {
+                // v1.5.26: socio con el chat de Lead Journey activo (OEC_Journey_Chat): el chat con IA en lugar del
+                // WhatsApp, como en las comunidades; el chat deriva al WhatsApp de la Bandeja cuando hace falta.
+                if (!$embed && class_exists('OEC_Journey_Chat') && OEC_Journey_Chat::active()) {
+                    $oec['whatsapp'] = '';
+                    $oec['chat']     = true;
+                }
+                return $oec;
+            }
             $email = sanitize_email(get_option('oec_ventas_email', ''));
             return [
                 // Sin email del socio cargado, el formulario sigue yendo a la CRM (como antes).
@@ -350,6 +358,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-oec-shortcodes.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-ajax.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-brochure.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-site-registry.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-oec-journey-chat.php';
 
 
 // ─────────────────────────────────────────────────────────────────

@@ -3200,3 +3200,15 @@ cierre de inscripción ("días para inscribirte"); el de pago anticipado sigue t
 activado. Con eso Lead Journey guarda el token del sitio cifrado y baja su catálogo para el chat con IA de los
 socios (`docs/socios-chat.md` del proyecto Lead Journey; piloto: joselareta.site). Si el socio contesta él, no
 se manda y el Worker no guarda el token.
+
+## v1.5.26 — chat con IA de Lead Journey en los sitios de socios (2026-11-26)
+
+Nuevo `includes/class-oec-journey-chat.php` (`OEC_Journey_Chat`). El registro diario manda el `subdomain`
+(opción `oec_subdomain`) y guarda `oec_journey_chat` con lo que responde el Worker (`chat: true` cuando el
+socio tiene "Equipo de ventas de OEC", está en el piloto y su catálogo ya está bajado). Con eso:
+- carga `https://journey.oe.center/chat.js` (la interfaz del chat del Tema OEC, servida por el Worker) con
+  `window.oecAiChat`: la ficha que se ve, su link de inscripción (el del botón) y el pase a WhatsApp de la
+  Bandeja (`/wa/chat`), que reemplaza a Botmaker;
+- en la ficha, `oec_contact_channels_base()` muestra el chat en lugar del WhatsApp.
+No hace nada en las comunidades (tienen el tema), en fichas incrustadas ni si el socio contesta él. Al
+desactivar el plugin se borra `oec_journey_chat`. Diseño: `docs/socios-chat.md` del proyecto Lead Journey.

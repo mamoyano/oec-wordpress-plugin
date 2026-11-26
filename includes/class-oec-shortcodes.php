@@ -673,6 +673,11 @@ if (!class_exists('OEC_Shortcodes')) {
             $similar    = ($openEnrollment || $embed || !$own_site) ? [] : $this->get_similar_open_trainings($data);
             // Canales de contacto (formulario / WhatsApp / chat con IA): ver oec_contact_channels().
             $contact = function_exists('oec_contact_channels') ? oec_contact_channels($data, $embed, $openEnrollment) : null;
+            // v1.5.26: el chat de Lead Journey (sitios de socios) necesita la ficha y su link de inscripción (el mismo del botón).
+            if (class_exists('OEC_Journey_Chat') && !$embed) {
+                $in_comm = function_exists('oec_is_community_site') && oec_is_community_site($data['community'] ?? '');
+                OEC_Journey_Chat::set_page($data, $in_comm ? ($data['register_url'] ?? '') : ($data['register'] ?? ''), $openEnrollment);
+            }
 
             // Ficha incrustada en el sitio de un socio ($embed, ver oec_is_embed()): inscripción con
             // el link del socio (data.register), sin breadcrumb, y las demás fichas también incrustadas.
