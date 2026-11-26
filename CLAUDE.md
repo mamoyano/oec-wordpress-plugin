@@ -3193,3 +3193,10 @@ cierre de inscripción ("días para inscribirte"); el de pago anticipado sigue t
   caja sticky y de la barra de celular (`showCalendarChip = synchronic and openEnrollment`), sección
   "¿Me pierdo algo?" y su FAQ, `startDate`/`endDate` del JSON-LD (solo SYNC/MIXED), tarjetas de
   `[oec-list]` ("Comienza cuando quieras", sin countdown), marquesina de sesiones en vivo (vacía sin sesiones).
+
+## v1.5.25 — el registro avisa si las consultas las contesta OEC (2026-11-26)
+
+`OEC_Site_Registry::features()` suma `oec_sales` cuando "Equipo de ventas de OEC" (`oec_equipo_ventas`) está
+activado. Con eso Lead Journey guarda el token del sitio cifrado y baja su catálogo para el chat con IA de los
+socios (`docs/socios-chat.md` del proyecto Lead Journey; piloto: joselareta.site). Si el socio contesta él, no
+se manda y el Worker no guarda el token.

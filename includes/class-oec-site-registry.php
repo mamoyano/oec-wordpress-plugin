@@ -11,7 +11,9 @@
  *   POST {OEC_JOURNEY_URL}/v1/sites
  *   X-OEC-Token: <oec_token>
  *   { "site": "https://g-se.com/es", "domain": "g-se.com", "prefix": "/es", "locale": "es_ES", "active": true,
- *     "plugin_version": "1.5.12", "features": ["brochure"] }
+ *     "plugin_version": "1.5.12", "features": ["brochure", "oec_sales"] }
+ *
+ * "oec_sales" va si las consultas las contesta OEC (ver features()).
  *
  * Sin token configurado no se avisa nada. El resultado del último aviso queda en la opción
  * oec_journey_site ({ at, code, sent }) para revisarlo si hace falta. Por sitio, también en multisite.
@@ -73,8 +75,19 @@ if (!class_exists('OEC_Site_Registry')) {
                 'locale'         => get_locale(),
                 'active'         => (bool) $active,
                 'plugin_version' => self::plugin_version(),
-                'features'       => ['brochure'],
+                'features'       => self::features(),
             ];
+        }
+
+        /**
+         * "oec_sales": las consultas las contesta OEC (opción "Equipo de ventas de OEC", oec_equipo_ventas). Con eso
+         * el Worker guarda el token cifrado y suma el catálogo del sitio al chat con IA (docs/socios-chat.md de
+         * Lead Journey). Si el socio contesta él, no se manda y el Worker no guarda el token.
+         */
+        public static function features() {
+            $f = ['brochure'];
+            if (get_option('oec_equipo_ventas', '1') === '1') $f[] = 'oec_sales';
+            return $f;
         }
 
         /** Aviso al Worker. $blocking = false en la desactivación (no se espera la respuesta). */
