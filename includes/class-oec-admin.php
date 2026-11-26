@@ -209,9 +209,14 @@ if (!class_exists('OEC_Admin')) {
                 // Equipo de ventas
                 $equipo_oec = isset($_POST['oec_equipo_ventas']) ? '1' : '0';
                 update_option('oec_equipo_ventas', $equipo_oec);
+                $is_community_save = function_exists('oec_credits_system_enabled') && oec_credits_system_enabled();
                 if ($equipo_oec === '0') {
                     update_option('oec_ventas_whatsapp', sanitize_text_field($_POST['oec_ventas_whatsapp'] ?? ''));
                     update_option('oec_ventas_email', sanitize_email($_POST['oec_ventas_email'] ?? ''));
+                } elseif (!$is_community_save && isset($_POST['oec_ventas_email'])) {
+                    // v1.5.29: con OEC atendiendo, el email del socio es para las consultas académicas que le hace el
+                    // equipo de OEC desde la Bandeja de Lead Journey (va en el registro, class-oec-site-registry.php).
+                    update_option('oec_ventas_email', sanitize_email($_POST['oec_ventas_email']));
                 }
                 // Token de journey.oe.center (aviso "Avísame cuando abra"). Vacío = se deja el guardado.
                 $jt = trim((string) wp_unslash($_POST['oec_journey_token'] ?? ''));
@@ -227,6 +232,8 @@ if (!class_exists('OEC_Admin')) {
                 // Limpiar caché de API (compatible con multisitio)
                 OEC_Api::clear_cache();
                 delete_option('oec_admin_cache');
+                // v1.5.29: avisarle ya a Lead Journey (el switch y el email para consultas), sin esperar el registro diario.
+                if (class_exists('OEC_Site_Registry')) OEC_Site_Registry::register(true, false);
             
                 echo '<div class="updated" style="margin: 20px 0;"><p>Configuración guardada.</p></div>';
             }
@@ -567,10 +574,14 @@ if (!class_exists('OEC_Admin')) {
                                             <p class="description">Número internacional con código de país (10 a 15 dígitos). Ej: 5491112345678. Si no es válido, no se muestra el botón de WhatsApp.</p>
                                         </td>
                                     </tr>
-                                    <tr id="oec-ventas-email-field" style="<?php echo $equipo_oec === '1' ? 'display:none;' : ''; ?>">
-                                        <th scope="row">Email de contacto</th>
+                                    <?php $is_community_row = function_exists('oec_credits_system_enabled') && oec_credits_system_enabled(); ?>
+                                    <tr id="oec-ventas-email-field" data-partner="<?php echo $is_community_row ? '0' : '1'; ?>" style="<?php echo ($equipo_oec === '1' && $is_community_row) ? 'display:none;' : ''; ?>">
+                                        <th scope="row" id="oec-ventas-email-label"><?php echo ($equipo_oec === '1' && !$is_community_row) ? 'Email para consultas académicas' : 'Email de contacto'; ?></th>
                                         <td>
                                             <input type="email" name="oec_ventas_email" value="<?php echo esc_attr($ventas_email); ?>" class="regular-text" placeholder="ventas@tuorganizacion.com">
+                                            <?php if (!$is_community_row): ?>
+                                            <p class="description" id="oec-ventas-email-desc" style="<?php echo $equipo_oec === '1' ? '' : 'display:none;'; ?>">OEC te escribe acá solo si una persona pregunta algo que solo ustedes pueden responder (contenidos, requisitos). Respondés el email y nuestro equipo le pasa la respuesta.</p>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                     <?php
@@ -624,11 +635,18 @@ if (!class_exists('OEC_Admin')) {
                                 var track = document.getElementById('oec-toggle-track');
                                 var thumb = document.getElementById('oec-toggle-thumb');
                                 var label = document.getElementById('oec-toggle-label');
-                                var rows  = [
-                                    document.getElementById('oec-ventas-fields'),
-                                    document.getElementById('oec-ventas-email-field')
-                                ];
+                                var emailRow = document.getElementById('oec-ventas-email-field');
+                                var partner = emailRow && emailRow.getAttribute('data-partner') === '1';
+                                var emailLabel = document.getElementById('oec-ventas-email-label');
+                                var emailDesc = document.getElementById('oec-ventas-email-desc');
+                                // En un socio, el email queda visible también con OEC atendiendo: es para las consultas académicas.
+                                var rows  = [document.getElementById('oec-ventas-fields')].concat(partner ? [] : [emailRow]);
                                 var chat = document.getElementById('oec-journey-chat-status');
+                                var setEmail = function(on){
+                                    if (!partner) return;
+                                    emailLabel.textContent = on ? 'Email para consultas académicas' : 'Email de contacto';
+                                    if (emailDesc) emailDesc.style.display = on ? '' : 'none';
+                                };
                                 cb.addEventListener('change', function(){
                                     if (cb.checked) {
                                         track.style.background = '#2271b1';
@@ -636,12 +654,14 @@ if (!class_exists('OEC_Admin')) {
                                         label.textContent = 'SÍ';
                                         rows.forEach(function(r){ r.style.display = 'none'; });
                                         if (chat) chat.style.display = '';
+                                        setEmail(true);
                                     } else {
                                         track.style.background = '#ccc';
                                         thumb.style.left = '3px';
                                         label.textContent = 'NO';
                                         rows.forEach(function(r){ r.style.display = ''; });
                                         if (chat) chat.style.display = 'none';
+                                        setEmail(false);
                                     }
                                 });
                             })();

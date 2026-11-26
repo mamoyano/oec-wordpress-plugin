@@ -78,6 +78,8 @@ if (!class_exists('OEC_Site_Registry')) {
                 'features'       => self::features(),
                 // v1.5.26: subdominio del checkout del socio (lo guarda la pantalla del token, sale de su organización).
                 'subdomain'      => preg_match('/^[a-z0-9][a-z0-9-]{0,62}$/', (string) get_option('oec_subdomain', '')) ? (string) get_option('oec_subdomain') : '',
+                // v1.5.29: email del socio para las consultas académicas que le hace el equipo de OEC desde la Bandeja.
+                'contact_email'  => (string) sanitize_email((string) get_option('oec_ventas_email', '')),
             ];
         }
 

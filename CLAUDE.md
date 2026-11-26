@@ -3226,3 +3226,11 @@ y la persona queda atribuida al socio por 30 días. Si el Worker no responde (5 
 En un socio (no comunidad), la pantalla de ajustes ya no muestra "Token de Lead Journey" ni "Consultas por email con
 IA" (son de las comunidades, con el token de servicio de OEC); siguen visibles si el token ya estaba configurado. Con
 "Equipo de ventas de OEC" en SÍ aparece "Chat con IA de OEC": activo, o que se activa solo (opción `oec_journey_chat`).
+
+## v1.5.29 — email del socio para consultas académicas (2026-11-26)
+
+En un socio (no comunidad), el campo de email (`oec_ventas_email`) queda visible también con "Equipo de ventas de
+OEC" en SÍ, con el nombre "Email para consultas académicas": el equipo de OEC le escribe ahí desde la Bandeja de Lead
+Journey cuando una persona pregunta algo que solo el socio puede responder, y su respuesta vuelve a la conversación.
+No se muestra en la ficha (con OEC atendiendo, el email no sale al público). El registro (`class-oec-site-registry.php`)
+lo manda como `contact_email`. Al guardar los ajustes, el plugin se registra enseguida (sin esperar el diario).
