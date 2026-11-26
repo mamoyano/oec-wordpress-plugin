@@ -107,6 +107,14 @@ if (!class_exists('OEC_Ajax')) {
 
             if ($channels['form'] === 'partner' && $channels['email']) {
                 $this->enviar_email_propio($channels['email'], $uid, $name, $lastname, $email, $phone, $country, $question);
+            } elseif ($channels['form'] === 'crm' && !$embed && class_exists('OEC_Journey_Chat') && OEC_Journey_Chat::active()
+                && self::consulta_journey_partner($email, $uid, $country, $name, $lastname, $phone, $question)) {
+                // v1.5.27: socio con "Equipo de ventas de OEC" y el chat de Lead Journey activo: la consulta va directo
+                // al Worker con el token del sitio (la responde la IA por email, con su checkout y su firma). Si el
+                // Worker no responde, sigue como antes (CRM).
+                wp_send_json_success($question !== ''
+                    ? '¡Listo! Te respondemos por email en unos minutos (revisa también la carpeta de spam o promociones).'
+                    : '¡Listo! Ya recibimos tu consulta — te vamos a contactar a la brevedad.');
             } elseif ($channels['form'] === 'crm') {
                 $ok = $this->enviar_a_api_oec($uid, $name, $lastname, $email, $phone, $country, $locale);
                 // v1.5.21: la consulta va también a Lead Journey, que la responde por email con IA (o manda el
@@ -252,6 +260,30 @@ if (!class_exists('OEC_Ajax')) {
                 return 0;
             }
             return $code;
+        }
+
+        /**
+         * v1.5.27: consulta de la ficha de un socio → journey.oe.center/v1/consulta con el token de oas-api del sitio
+         * (X-OEC-Token, el mismo del registro: OEC_Site_Registry). Devuelve true si el Worker la tomó (2xx).
+         */
+        public static function consulta_journey_partner($email, $uid, $country, $name, $lastname, $phone, $question) {
+            $token = (string) get_option('oec_token');
+            if ($token === '') return false;
+            $body = ['email' => $email, 'training_uid' => $uid, 'name' => $name, 'lastname' => $lastname, 'phone' => $phone, 'question' => $question, 'source' => 'ficha_socio'];
+            $country = strtoupper((string) $country);
+            if (preg_match('/^[A-Z]{2}$/', $country) && $country !== 'XX') $body['country'] = $country;
+            $base = defined('OEC_JOURNEY_URL') ? OEC_JOURNEY_URL : 'https://journey.oe.center';
+            $res  = wp_remote_post(apply_filters('oec_journey_url', $base) . '/v1/consulta', [
+                'timeout' => 5,
+                'headers' => ['Content-Type' => 'application/json', 'X-OEC-Token' => $token],
+                'body'    => wp_json_encode($body),
+            ]);
+            $code = is_wp_error($res) ? 0 : (int) wp_remote_retrieve_response_code($res);
+            if ($code < 200 || $code >= 300) {
+                error_log('OEC journey: consulta socio ' . $uid . ' → ' . ($code ?: (is_wp_error($res) ? $res->get_error_message() : 'sin respuesta')));
+                return false;
+            }
+            return true;
         }
 
         public static function notify_journey($email, $uid, $country = '') {

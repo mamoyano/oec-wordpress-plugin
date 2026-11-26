@@ -3212,3 +3212,11 @@ socio tiene "Equipo de ventas de OEC", está en el piloto y su catálogo ya est�
 - en la ficha, `oec_contact_channels_base()` muestra el chat en lugar del WhatsApp.
 No hace nada en las comunidades (tienen el tema), en fichas incrustadas ni si el socio contesta él. Al
 desactivar el plugin se borra `oec_journey_chat`. Diseño: `docs/socios-chat.md` del proyecto Lead Journey.
+
+## v1.5.27 — el formulario de la ficha del socio va directo a Lead Journey (2026-11-26)
+
+Con el chat de Lead Journey activo (`OEC_Journey_Chat::active()`), la consulta del formulario de la ficha va solo a
+`journey.oe.center/v1/consulta` con el token de oas-api del sitio en `X-OEC-Token`
+(`OEC_Ajax::consulta_journey_partner()`). La responde la IA por email con el checkout, la ficha y la firma del socio,
+y la persona queda atribuida al socio por 30 días. Si el Worker no responde (5 s), va a la CRM como antes. El campo
+"Tu consulta" se muestra también en esos sitios (`consulta_ia`). Diseño: `docs/socios-chat.md` de Lead Journey (paso 6).

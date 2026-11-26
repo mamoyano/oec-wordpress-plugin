@@ -708,7 +708,9 @@ if (!class_exists('OEC_Shortcodes')) {
                     // sitio de socio o la ficha incrustada no lo tienen y ofrecen WhatsApp.
                     'chat_ia'             => !$embed && (bool) apply_filters('oec_chat_ia_available', false),
                     // v1.5.21: "Tu consulta" en el formulario, solo si Lead Journey responde las consultas (token + interruptor).
-                    'consulta_ia'         => !$embed && get_option('oec_journey_consulta', '0') === '1' && class_exists('OEC_Ajax') && OEC_Ajax::journey_token() !== '',
+                    // v1.5.27: también en el sitio de un socio con el chat de Lead Journey (la consulta va a su Worker).
+                    'consulta_ia'         => !$embed && ((get_option('oec_journey_consulta', '0') === '1' && class_exists('OEC_Ajax') && OEC_Ajax::journey_token() !== '')
+                        || (class_exists('OEC_Journey_Chat') && OEC_Journey_Chat::active())),
                     // Sin el email de destino: el Twig solo necesita saber qué mostrar.
                     'contact'             => $contact ? array_diff_key($contact, ['email' => 1]) : ['form' => 'crm', 'whatsapp' => '5493512584960', 'chat' => false, 'csm' => true, 'wa_partner' => false],
                     // Mismos ítems que el BreadcrumbList JSON-LD (oec-main.php): el hero los muestra visibles.
