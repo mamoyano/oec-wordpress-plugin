@@ -3220,3 +3220,9 @@ Con el chat de Lead Journey activo (`OEC_Journey_Chat::active()`), la consulta d
 (`OEC_Ajax::consulta_journey_partner()`). La responde la IA por email con el checkout, la ficha y la firma del socio,
 y la persona queda atribuida al socio por 30 días. Si el Worker no responde (5 s), va a la CRM como antes. El campo
 "Tu consulta" se muestra también en esos sitios (`consulta_ia`). Diseño: `docs/socios-chat.md` de Lead Journey (paso 6).
+
+## v1.5.28 — ajustes más simples en los sitios de socios (2026-11-26)
+
+En un socio (no comunidad), la pantalla de ajustes ya no muestra "Token de Lead Journey" ni "Consultas por email con
+IA" (son de las comunidades, con el token de servicio de OEC); siguen visibles si el token ya estaba configurado. Con
+"Equipo de ventas de OEC" en SÍ aparece "Chat con IA de OEC": activo, o que se activa solo (opción `oec_journey_chat`).

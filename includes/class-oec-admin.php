@@ -573,7 +573,27 @@ if (!class_exists('OEC_Admin')) {
                                             <input type="email" name="oec_ventas_email" value="<?php echo esc_attr($ventas_email); ?>" class="regular-text" placeholder="ventas@tuorganizacion.com">
                                         </td>
                                     </tr>
-                                    <?php $jt_src = class_exists('OEC_Ajax') ? OEC_Ajax::journey_token_source() : ''; ?>
+                                    <?php
+                                    $jt_src = class_exists('OEC_Ajax') ? OEC_Ajax::journey_token_source() : '';
+                                    // v1.5.28: el token de Lead Journey y "Consultas por email con IA" son de las comunidades (token de
+                                    // servicio de OEC). En un socio no hacen falta: con "Equipo de ventas de OEC" en SÍ, el sitio usa su
+                                    // propio token (OEC API Token) y Lead Journey atiende todo (chat, formulario, WhatsApp).
+                                    $is_community = function_exists('oec_credits_system_enabled') && oec_credits_system_enabled();
+                                    $show_jt = $is_community || $jt_src !== '';
+                                    ?>
+                                    <?php if (!$is_community): ?>
+                                    <tr id="oec-journey-chat-status" style="<?php echo $equipo_oec === '1' ? '' : 'display:none;'; ?>">
+                                        <th scope="row">Chat con IA de OEC</th>
+                                        <td>
+                                            <?php if (get_option('oec_journey_chat', '0') === '1'): ?>
+                                                <p style="margin:0;"><strong>Activo.</strong> Las consultas de las fichas (chat, formulario y WhatsApp) las atiende OEC.</p>
+                                            <?php else: ?>
+                                                <p style="margin:0;">Se activa solo, sin hacer nada: OEC prepara el catálogo de este sitio y, en el próximo registro diario, aparece el chat en las fichas.</p>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if ($show_jt): ?>
                                     <tr>
                                         <th scope="row">Token de Lead Journey</th>
                                         <td>
@@ -594,6 +614,7 @@ if (!class_exists('OEC_Admin')) {
                                             <p class="description">Con el token cargado, la consulta escrita la responde la IA por email en unos minutos (y si no escribió nada, le llega el brochure). La CRM la sigue recibiendo igual. Prendelo después de apagar los emails de "More Info Request" en la CRM: si no, la persona recibe los dos.</p>
                                         </td>
                                     </tr>
+                                    <?php endif; ?>
                                 </table>
                                 <?php submit_button('Actualizar Configuración', 'primary', 'oec_save'); ?>
                             </form>
@@ -607,17 +628,20 @@ if (!class_exists('OEC_Admin')) {
                                     document.getElementById('oec-ventas-fields'),
                                     document.getElementById('oec-ventas-email-field')
                                 ];
+                                var chat = document.getElementById('oec-journey-chat-status');
                                 cb.addEventListener('change', function(){
                                     if (cb.checked) {
                                         track.style.background = '#2271b1';
                                         thumb.style.left = '23px';
                                         label.textContent = 'SÍ';
                                         rows.forEach(function(r){ r.style.display = 'none'; });
+                                        if (chat) chat.style.display = '';
                                     } else {
                                         track.style.background = '#ccc';
                                         thumb.style.left = '3px';
                                         label.textContent = 'NO';
                                         rows.forEach(function(r){ r.style.display = ''; });
+                                        if (chat) chat.style.display = 'none';
                                     }
                                 });
                             })();
