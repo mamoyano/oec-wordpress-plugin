@@ -3234,3 +3234,14 @@ OEC" en SÍ, con el nombre "Email para consultas académicas": el equipo de OEC 
 Journey cuando una persona pregunta algo que solo el socio puede responder, y su respuesta vuelve a la conversación.
 No se muestra en la ficha (con OEC atendiendo, el email no sale al público). El registro (`class-oec-site-registry.php`)
 lo manda como `contact_email`. Al guardar los ajustes, el plugin se registra enseguida (sin esperar el diario).
+
+## v1.5.30 — atribución paga en los socios (2026-11-26)
+
+Decisión de OEC: si el socio con "Equipo de ventas de OEC" en SÍ quiere mantener la atribución (las inscripciones de
+quienes atiende OEC van al checkout de su subdominio, con su firma), paga un monto mensual a mes vencido; si no, OEC
+los atiende con las fichas y el checkout de la comunidad que publica la formación y firma "Online Education Center de
+{Socio} y {Comunidad}". En los ajustes (solo socios, con el switch en SÍ) aparece "Mantener mi atribución" (opción
+`oec_attrib`, apagada por defecto) con el monto que manda Lead Journey en el registro (`attrib_fee_usd`, guardado en
+`oec_attrib_fee`). Prendida, el registro manda la feature `oec_attrib`. El botón "Inscribirme" del chat usa el
+checkout de la comunidad (`register_url`) salvo con la atribución prendida. Al guardar los ajustes, el registro ahora
+espera la respuesta (hasta 10 s) para mostrar enseguida el estado del chat y el monto.

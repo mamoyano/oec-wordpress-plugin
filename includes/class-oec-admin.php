@@ -213,7 +213,12 @@ if (!class_exists('OEC_Admin')) {
                 if ($equipo_oec === '0') {
                     update_option('oec_ventas_whatsapp', sanitize_text_field($_POST['oec_ventas_whatsapp'] ?? ''));
                     update_option('oec_ventas_email', sanitize_email($_POST['oec_ventas_email'] ?? ''));
-                } elseif (!$is_community_save && isset($_POST['oec_ventas_email'])) {
+                }
+                // v1.5.30: atribución paga (solo socios con OEC atendiendo).
+                if (!$is_community_save && $equipo_oec === '1') {
+                    update_option('oec_attrib', isset($_POST['oec_attrib']) ? '1' : '0', false);
+                }
+                if ($equipo_oec === '1' && !$is_community_save && isset($_POST['oec_ventas_email'])) {
                     // v1.5.29: con OEC atendiendo, el email del socio es para las consultas académicas que le hace el
                     // equipo de OEC desde la Bandeja de Lead Journey (va en el registro, class-oec-site-registry.php).
                     update_option('oec_ventas_email', sanitize_email($_POST['oec_ventas_email']));
@@ -233,7 +238,8 @@ if (!class_exists('OEC_Admin')) {
                 OEC_Api::clear_cache();
                 delete_option('oec_admin_cache');
                 // v1.5.29: avisarle ya a Lead Journey (el switch y el email para consultas), sin esperar el registro diario.
-                if (class_exists('OEC_Site_Registry')) OEC_Site_Registry::register(true, false);
+                // v1.5.30: esperando la respuesta (hasta 10 s), para mostrar ya el estado del chat y el monto de la atribución.
+                if (class_exists('OEC_Site_Registry')) OEC_Site_Registry::register(true, true);
             
                 echo '<div class="updated" style="margin: 20px 0;"><p>Configuración guardada.</p></div>';
             }
@@ -604,6 +610,15 @@ if (!class_exists('OEC_Admin')) {
                                         </td>
                                     </tr>
                                     <?php endif; ?>
+                                    <?php if (!$is_community): $attrib_on = get_option('oec_attrib', '0') === '1'; $attrib_fee = get_option('oec_attrib_fee', '20'); ?>
+                                    <tr id="oec-attrib-row" style="<?php echo $equipo_oec === '1' ? '' : 'display:none;'; ?>">
+                                        <th scope="row">Mantener mi atribución</th>
+                                        <td>
+                                            <label><input type="checkbox" name="oec_attrib" value="1" <?php checked($attrib_on); ?>> Sí, que las inscripciones vayan a mi checkout</label>
+                                            <p class="description" style="margin-top:6px;">Con la atribución, quienes te consultan se inscriben en el checkout de tu subdominio (tu comisión) y les escribimos con tu firma. Cuesta <strong>USD <?php echo esc_html($attrib_fee); ?> por mes</strong>, a mes vencido, descontado de tu liquidación. Sin la atribución, OEC los atiende igual, pero con las fichas y el checkout de la comunidad de OEC que publica la formación.</p>
+                                        </td>
+                                    </tr>
+                                    <?php endif; ?>
                                     <?php if ($show_jt): ?>
                                     <tr>
                                         <th scope="row">Token de Lead Journey</th>
@@ -642,6 +657,7 @@ if (!class_exists('OEC_Admin')) {
                                 // En un socio, el email queda visible también con OEC atendiendo: es para las consultas académicas.
                                 var rows  = [document.getElementById('oec-ventas-fields')].concat(partner ? [] : [emailRow]);
                                 var chat = document.getElementById('oec-journey-chat-status');
+                                var attribRow = document.getElementById('oec-attrib-row');
                                 var setEmail = function(on){
                                     if (!partner) return;
                                     emailLabel.textContent = on ? 'Email para consultas académicas' : 'Email de contacto';
@@ -654,6 +670,7 @@ if (!class_exists('OEC_Admin')) {
                                         label.textContent = 'SÍ';
                                         rows.forEach(function(r){ r.style.display = 'none'; });
                                         if (chat) chat.style.display = '';
+                                        if (attribRow) attribRow.style.display = '';
                                         setEmail(true);
                                     } else {
                                         track.style.background = '#ccc';
@@ -661,6 +678,7 @@ if (!class_exists('OEC_Admin')) {
                                         label.textContent = 'NO';
                                         rows.forEach(function(r){ r.style.display = ''; });
                                         if (chat) chat.style.display = 'none';
+                                        if (attribRow) attribRow.style.display = 'none';
                                         setEmail(false);
                                     }
                                 });

@@ -90,7 +90,11 @@ if (!class_exists('OEC_Site_Registry')) {
          */
         public static function features() {
             $f = ['brochure'];
-            if (get_option('oec_equipo_ventas', '1') === '1') $f[] = 'oec_sales';
+            if (get_option('oec_equipo_ventas', '1') === '1') {
+                $f[] = 'oec_sales';
+                // v1.5.30: el socio mantiene la atribución (checkout a su subdominio); OEC la cobra por mes, a mes vencido.
+                if (get_option('oec_attrib', '0') === '1') $f[] = 'oec_attrib';
+            }
             return $f;
         }
 
@@ -114,6 +118,8 @@ if (!class_exists('OEC_Site_Registry')) {
                 if ($code >= 200 && $code < 300) {
                     $resp = json_decode((string) wp_remote_retrieve_body($res), true);
                     update_option('oec_journey_chat', !empty($resp['chat']) ? '1' : '0', true);
+                    // v1.5.30: el monto mensual de la atribución paga (se muestra junto al switch en los ajustes).
+                    if (isset($resp['attrib_fee_usd']) && is_numeric($resp['attrib_fee_usd'])) update_option('oec_attrib_fee', (string) (0 + $resp['attrib_fee_usd']), false);
                 }
             }
             return $code;

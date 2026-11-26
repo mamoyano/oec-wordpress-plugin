@@ -676,7 +676,10 @@ if (!class_exists('OEC_Shortcodes')) {
             // v1.5.26: el chat de Lead Journey (sitios de socios) necesita la ficha y su link de inscripción (el mismo del botón).
             if (class_exists('OEC_Journey_Chat') && !$embed) {
                 $in_comm = function_exists('oec_is_community_site') && oec_is_community_site($data['community'] ?? '');
-                OEC_Journey_Chat::set_page($data, $in_comm ? ($data['register_url'] ?? '') : ($data['register'] ?? ''), $openEnrollment);
+                // v1.5.30: sin la atribución paga (oec_attrib), el botón "Inscribirme" del chat va al checkout de la
+                // comunidad (register_url), como los links que manda el chat; con ella, al del subdominio del socio.
+                $chat_enroll = ($in_comm || get_option('oec_attrib', '0') !== '1') ? ($data['register_url'] ?? '') : ($data['register'] ?? '');
+                OEC_Journey_Chat::set_page($data, $chat_enroll !== '' ? $chat_enroll : ($data['register'] ?? ''), $openEnrollment);
             }
 
             // Ficha incrustada en el sitio de un socio ($embed, ver oec_is_embed()): inscripción con
