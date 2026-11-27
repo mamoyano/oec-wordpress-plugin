@@ -65,11 +65,20 @@ if (!class_exists('OEC_Journey_Chat')) {
                 'siteName'       => wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES),
                 // v1.5.31: el globo flotante del chat (páginas sin el botón de la ficha) con el color de marca del sitio.
                 'brandColor'     => (string) sanitize_hex_color(get_option('oec_brand_color', '')),
-                'logo'           => (string) get_site_icon_url(96),
+                // v1.5.32: el logo del tema (custom_logo), no el favicon. Sin logo, el chat muestra el nombre del sitio; y si el
+                // sitio tiene un menú fijo arriba, el chat se abre debajo y lo deja a la vista (journey.oe.center/chat.js).
+                'logo'           => self::logo(),
                 'streamEndpoint' => $base . '/v1/chat',
                 'clickEndpoint'  => $base . '/v1/chat/click',
                 'convUrl'        => $base . '/conversacion/',
             ];
+        }
+
+        /** El logo del tema (Apariencia → Personalizar → Logo), o ''. */
+        private static function logo() {
+            $id = (int) get_theme_mod('custom_logo');
+            $url = $id ? wp_get_attachment_image_url($id, 'medium') : '';
+            return $url ? (string) $url : '';
         }
 
         /** Para la caché del navegador: cambia una vez por día (chat.js lo actualiza el Worker, no el plugin). */

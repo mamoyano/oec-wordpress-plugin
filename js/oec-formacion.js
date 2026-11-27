@@ -706,8 +706,9 @@ function initCreditsBox(){
     });
     jQuery.post(oecAjaxUrl(), { action:'oec_list_coupons', edition_uid: editionUid, nonce: OEC_AJAX_NONCE })
         .done(res=>{
-            // v1.5.31: socio con el chat de Lead Journey: los mismos descuentos, y el canje se hace en el chat.
-            if(res && res.success && res.data && res.data.chat){ initCreditsChat(res.data.coupons || []); return; }
+            // v1.5.31: socio con el chat de Lead Journey: los mismos descuentos (los da Lead Journey). v1.5.32: el recuadro
+            // funciona igual que en las comunidades (email, saldo, qué le alcanza); solo "Obtener descuento" abre el chat.
+            if(res && res.success && res.data && res.data.chat){ window.OEC_CREDITS_CHAT = true; res = { success:true, data: res.data.coupons || [] }; }
             if(!res.success || !res.data || !res.data.length) return; // sin cupones vigentes, no mostramos nada
             window.OEC_COUPONS = res.data;
             // res.data viene ordenado de mayor a menor % (ver get_valid_coupons en
@@ -730,28 +731,6 @@ function initCreditsBox(){
                 jQuery('#oec-credits-links').show();
             }
         });
-}
-
-/* v1.5.31: recuadro de créditos en el sitio de un socio con el chat de Lead Journey. Se ve igual que en las
-   comunidades, pero no pide el email acá: "Obtener descuento" y "¿Cuántos créditos tengo?" abren el chat con el
-   pedido ya escrito (.oec-chat-ia-trigger, lo atiende journey.oe.center/chat.js), que verifica el email con un
-   código y hace el canje. */
-function initCreditsChat(list){
-    if(!list.length) return;
-    window.OEC_CREDITS_CHAT = true;
-    window.OEC_COUPONS = list;
-    updateDiscountRing(list[0].percentage, 'off canjeando créditos');
-    renderCoupons(list);
-    const esc = s => String(s).replace(/"/g,'&quot;');
-    jQuery('#oec-coupons-list .oec-coupon').each(function(){
-        const $c=jQuery(this), pts=parseInt($c.data('points'),10), pct=parseInt($c.data('percent'),10);
-        const msg = 'Quiero canjear ' + pts + ' créditos por el ' + pct + '% de descuento';
-        $c.find('.oec-coupon-action').html('<a href="#chat" class="oec-redeem-btn oec-chat-ia-trigger" data-msg="' + esc(msg) + '">Obtener descuento</a><p style="margin-top:4px">Lo confirmás en el chat, con un código que te mandamos por email.</p>');
-    });
-    jQuery('#oec-credits-email-form,#oec-email-change-section').hide();
-    jQuery('#oec-check-points-link').attr({ href:'#chat', 'data-msg':'¿Cuántos créditos tengo?' }).addClass('oec-chat-ia-trigger');
-    jQuery('#oec-credits-links').show();
-    jQuery('#oec-credits-box').css('display','block');
 }
 
 function renderCoupons(list){
@@ -790,16 +769,22 @@ function checkUserPoints(email){
 
 function showDiscountBtns(balance,email){
     balance=parseInt(balance,10);
+    // Socio con el chat de Lead Journey: "Obtener descuento" abre el chat con el pedido escrito; ahí se confirma con un
+    // código que le llega por email y recibe el código de descuento.
+    const btn=(pts,pct)=>window.OEC_CREDITS_CHAT
+        ? `<a href="#chat" class="oec-redeem-btn oec-chat-ia-trigger" data-msg="Quiero canjear ${pts} créditos por el ${pct}% de descuento">Obtener descuento</a>`
+        : `<a href="#" class="oec-redeem-btn" data-points="${pts}" data-percent="${pct}">Obtener descuento</a>`;
+    const conf=window.OEC_CREDITS_CHAT ? `Lo confirmas en el chat, con un código que te enviamos a ${email}.` : `Confirmación por email a ${email}.`;
     jQuery('#oec-coupons-list .oec-coupon').each(function(){
         const $c=jQuery(this), pts=parseInt($c.data('points'),10), pct=parseInt($c.data('percent'),10), beats=$c.data('beats-current')==1;
         const byModules=$c.data('by-modules')==1, std=parseInt($c.data('std'),10)||0;
         const $action=$c.find('.oec-coupon-action');
         if(byModules && balance>=pts){
-            $action.html(`<a href="#" class="oec-redeem-btn" data-points="${pts}" data-percent="${pct}">Obtener descuento</a><p style="margin-top:4px">Para pagar módulo a módulo: pagando todo junto ya tienes el ${std}% por pago completo (los descuentos no se suman). Confirmación por email a ${email}.</p>`);
+            $action.html(`${btn(pts,pct)}<p style="margin-top:4px">Para pagar módulo a módulo: pagando todo junto ya tienes el ${std}% por pago completo (los descuentos no se suman). ${conf}</p>`);
         } else if(byModules){
             $action.html(`<p>Créditos insuficientes. Sirve si pagas módulo a módulo.</p>`);
         } else if(beats && balance>=pts){
-            $action.html(`<a href="#" class="oec-redeem-btn" data-points="${pts}" data-percent="${pct}">Obtener descuento</a><p style="margin-top:4px">Confirmación por email a ${email}.</p>`);
+            $action.html(`${btn(pts,pct)}<p style="margin-top:4px">${conf}</p>`);
         } else {
             $action.html(`<p>${balance>=pts?'Ya tienes un descuento igual o mejor activo.':'Créditos insuficientes.'}</p>`);
         }
@@ -1060,7 +1045,7 @@ jQuery(document).ready(function($){
         oecSafe('initCreditsBox', initCreditsBox);
 
         $doc
-            .on('click','#oec-check-points-link',e=>{ e.preventDefault(); if(window.OEC_CREDITS_CHAT) return; /* lo abre el chat */ $('#oec-credits-links').hide(); $('#oec-credits-email-form').show(); })
+            .on('click','#oec-check-points-link',e=>{ e.preventDefault(); $('#oec-credits-links').hide(); $('#oec-credits-email-form').show(); })
             .on('submit','#oec-credits-email-form',e=>{ e.preventDefault(); const em=$('#oec-user-email').val().trim(); if(em) checkUserPoints(em); })
             .on('click','#oec-change-email',e=>{
                 e.preventDefault();
@@ -1072,7 +1057,7 @@ jQuery(document).ready(function($){
             .on('click','.oec-how-points-link',e=>{ e.preventDefault(); $('#oec-how-get-credits').show(); })
             .on('click','.oec-redeem-btn',function(e){
                 e.preventDefault();
-                if(window.OEC_CREDITS_CHAT) return; // socio con chat: el canje lo hace el chat (initCreditsChat)
+                if(window.OEC_CREDITS_CHAT) return; // socio con chat: el canje lo hace el chat (showDiscountBtns)
                 const $btn=$(this), email=localStorage.getItem('userEmail');
                 if(!email) return;
                 // Guardamos el contenedor ANTES de vaciarlo — una vez que

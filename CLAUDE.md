@@ -3260,3 +3260,13 @@ espera la respuesta (hasta 10 s) para mostrar enseguida el estado del chat y el 
   Journey cambia ahí los links por los de la comunidad).
 - **El globo flotante del chat** (páginas sin el botón de la ficha) recibe el color de marca del sitio
   (`brandColor` = `oec_brand_color`) y se ve igual al botón de la ficha.
+
+## v1.5.32 — recuadro de créditos del socio igual al de las comunidades (2026-11-27)
+
+- En un socio con el chat de Lead Journey, el recuadro de créditos funciona como en las comunidades: reconoce el
+  email guardado (el que dejó en el recuadro o en el chat), muestra el saldo y, por cada descuento, si le alcanza
+  o si ya tiene uno igual o mejor. El saldo lo consulta Lead Journey (`oec_check_credits` → `GET
+  /v1/partner/balance`, con el token del sitio). Solo cambia el botón: "Obtener descuento" abre el chat con el
+  pedido escrito (`.oec-chat-ia-trigger`), donde se confirma con un código por email (`showDiscountBtns`).
+- El chat recibe el logo del tema (`custom_logo`), no el favicon; sin logo, muestra el nombre del sitio. Si el
+  sitio tiene un menú fijo arriba, el chat (journey.oe.center/chat.js) se abre debajo y lo deja a la vista.

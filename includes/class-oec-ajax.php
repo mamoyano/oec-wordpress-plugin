@@ -365,6 +365,20 @@ if (!class_exists('OEC_Ajax')) {
          */
         public function oec_check_credits_ajax() {
             $this->check_nonce();
+            // v1.5.32: socio con el chat de Lead Journey: el saldo lo consulta Lead Journey (como en las comunidades, sin
+            // confirmar el email; el canje sí se confirma en el chat con un código por email).
+            if (!$this->credits_enabled() && class_exists('OEC_Journey_Chat') && OEC_Journey_Chat::active()) {
+                $email = sanitize_email($_POST['email'] ?? '');
+                if (!is_email($email)) wp_send_json_error('Email inválido.');
+                $base = defined('OEC_JOURNEY_URL') ? OEC_JOURNEY_URL : 'https://journey.oe.center';
+                $res  = wp_remote_get(apply_filters('oec_journey_url', $base) . '/v1/partner/balance?email=' . rawurlencode($email), [
+                    'timeout' => 6,
+                    'headers' => ['X-OEC-Token' => (string) get_option('oec_token')],
+                ]);
+                $body = is_wp_error($res) ? null : json_decode((string) wp_remote_retrieve_body($res), true);
+                if (!isset($body['balance'])) wp_send_json_error('No se pudo verificar el balance.');
+                wp_send_json_success(['balance' => intval($body['balance'])]);
+            }
             if (!$this->credits_enabled()) wp_send_json_error('Este sistema no está disponible en este sitio.');
 
             $email = sanitize_email($_POST['email'] ?? '');
