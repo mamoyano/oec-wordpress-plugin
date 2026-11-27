@@ -63,6 +63,8 @@ if (!class_exists('OEC_Journey_Chat')) {
                 // Pase a WhatsApp por Lead Journey: abre el WhatsApp de la Bandeja unido a esta conversación.
                 'waHandoff'      => $base . '/wa/chat',
                 'siteName'       => wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES),
+                // v1.5.31: el globo flotante del chat (páginas sin el botón de la ficha) con el color de marca del sitio.
+                'brandColor'     => (string) sanitize_hex_color(get_option('oec_brand_color', '')),
                 'logo'           => (string) get_site_icon_url(96),
                 'streamEndpoint' => $base . '/v1/chat',
                 'clickEndpoint'  => $base . '/v1/chat/click',

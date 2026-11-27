@@ -676,10 +676,9 @@ if (!class_exists('OEC_Shortcodes')) {
             // v1.5.26: el chat de Lead Journey (sitios de socios) necesita la ficha y su link de inscripción (el mismo del botón).
             if (class_exists('OEC_Journey_Chat') && !$embed) {
                 $in_comm = function_exists('oec_is_community_site') && oec_is_community_site($data['community'] ?? '');
-                // v1.5.30: sin la atribución paga (oec_attrib), el botón "Inscribirme" del chat va al checkout de la
-                // comunidad (register_url), como los links que manda el chat; con ella, al del subdominio del socio.
-                $chat_enroll = ($in_comm || get_option('oec_attrib', '0') !== '1') ? ($data['register_url'] ?? '') : ($data['register'] ?? '');
-                OEC_Journey_Chat::set_page($data, $chat_enroll !== '' ? $chat_enroll : ($data['register'] ?? ''), $openEnrollment);
+                // v1.5.31: en el chat del sitio la persona sigue en el sitio del socio, con o sin la atribución paga: el botón
+                // "Inscribirme" va al checkout de su subdominio. La atribución decide solo email y WhatsApp (Lead Journey).
+                OEC_Journey_Chat::set_page($data, $in_comm ? ($data['register_url'] ?? '') : ($data['register'] ?? ''), $openEnrollment);
             }
 
             // Ficha incrustada en el sitio de un socio ($embed, ver oec_is_embed()): inscripción con
@@ -706,7 +705,10 @@ if (!class_exists('OEC_Shortcodes')) {
                     'dominant_color'      => $dominant_color,
                     'dominant_color_css'  => $dominant_color_css,
                     'ajax_nonce'          => class_exists('OEC_Ajax') ? OEC_Ajax::token() : wp_create_nonce('oec_ajax'), // dura días: ver OEC_Ajax::token()
-                    'credits_enabled'     => !$embed && function_exists('oec_credits_system_enabled') && oec_credits_system_enabled(),
+                    // v1.5.31: también en un socio con el chat de Lead Journey: el recuadro muestra los descuentos de la
+                    // edición (se los pide a Lead Journey, OEC_Ajax::oec_list_coupons_ajax) y el canje se hace en el chat.
+                    'credits_enabled'     => !$embed && ((function_exists('oec_credits_system_enabled') && oec_credits_system_enabled())
+                                              || (class_exists('OEC_Journey_Chat') && OEC_Journey_Chat::active())),
                     // ¿El sitio tiene chat con IA? Lo dice el tema (oec-wp-theme) por este filtro; un
                     // sitio de socio o la ficha incrustada no lo tienen y ofrecen WhatsApp.
                     'chat_ia'             => !$embed && (bool) apply_filters('oec_chat_ia_available', false),

@@ -381,6 +381,29 @@ if (!class_exists('OEC_Ajax')) {
          */
         public function oec_list_coupons_ajax() {
             $this->check_nonce();
+            // v1.5.31: socio con el chat de Lead Journey: los descuentos los da Lead Journey (tiene la clave de la API de
+            // créditos) y el canje se hace en el chat. La respuesta lleva chat = true (js/oec-formacion.js, initCreditsBox).
+            if (!$this->credits_enabled() && class_exists('OEC_Journey_Chat') && OEC_Journey_Chat::active()) {
+                $edition_uid = sanitize_text_field($_POST['edition_uid'] ?? '');
+                if (!preg_match('/^te-[A-Za-z0-9]{14}$/', $edition_uid)) wp_send_json_error('Falta edition_uid.');
+                $key = 'oec_jcoupons_' . md5($edition_uid);
+                $list = get_transient($key);
+                if (!is_array($list)) {
+                    $base = defined('OEC_JOURNEY_URL') ? OEC_JOURNEY_URL : 'https://journey.oe.center';
+                    $res  = wp_remote_get(apply_filters('oec_journey_url', $base) . '/v1/partner/coupons?edition_uid=' . rawurlencode($edition_uid), [
+                        'timeout' => 5,
+                        'headers' => ['X-OEC-Token' => (string) get_option('oec_token')],
+                    ]);
+                    $body = is_wp_error($res) ? null : json_decode((string) wp_remote_retrieve_body($res), true);
+                    $list = [];
+                    foreach ((array) ($body['coupons'] ?? []) as $c) {
+                        $pct = intval($c['percentage'] ?? 0); $pts = intval($c['points_value'] ?? 0);
+                        if ($pct > 0 && $pts > 0) $list[] = ['percentage' => $pct, 'points_value' => $pts];
+                    }
+                    if (!is_wp_error($res) && wp_remote_retrieve_response_code($res) === 200) set_transient($key, $list, 10 * MINUTE_IN_SECONDS);
+                }
+                wp_send_json_success(['chat' => true, 'coupons' => $list]);
+            }
             if (!$this->credits_enabled()) wp_send_json_error('Este sistema no está disponible en este sitio.');
 
             $edition_uid = sanitize_text_field($_POST['edition_uid'] ?? '');

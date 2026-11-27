@@ -3245,3 +3245,18 @@ los atiende con las fichas y el checkout de la comunidad que publica la formaci�
 `oec_attrib_fee`). Prendida, el registro manda la feature `oec_attrib`. El botón "Inscribirme" del chat usa el
 checkout de la comunidad (`register_url`) salvo con la atribución prendida. Al guardar los ajustes, el registro ahora
 espera la respuesta (hasta 10 s) para mostrar enseguida el estado del chat y el monto.
+
+## v1.5.31 — socios: créditos a la vista, chat siempre con el socio, globo con su color (2026-11-27)
+
+- **Recuadro "Canjea créditos por descuentos" en los socios con el chat de Lead Journey.** `credits_enabled` vale
+  también ahí. `oec_list_coupons` (class-oec-ajax.php), en un socio, le pide los descuentos de la edición a Lead
+  Journey (`GET /v1/partner/coupons`, con su token; caché 10 min) y responde `{chat: true, coupons}`. El JS
+  (`initCreditsChat` en oec-formacion.js) muestra los mismos descuentos, sin pedir el email: "Obtener descuento" y
+  "¿Cuántos créditos tengo?" son `.oec-chat-ia-trigger` con el pedido escrito ("Quiero canjear 180 créditos por el
+  30% de descuento"); el chat verifica el email con un código y hace el canje. Los manejadores del canje de las
+  comunidades no actúan (`window.OEC_CREDITS_CHAT`). Minificado con `python3 tools/build-js.py`.
+- **El botón "Inscribirme" del chat vuelve al checkout del subdominio del socio**, con o sin la atribución paga: en
+  el chat la persona sigue en el sitio del socio. La atribución decide solo lo que sale por email y WhatsApp (Lead
+  Journey cambia ahí los links por los de la comunidad).
+- **El globo flotante del chat** (páginas sin el botón de la ficha) recibe el color de marca del sitio
+  (`brandColor` = `oec_brand_color`) y se ve igual al botón de la ficha.
