@@ -29,15 +29,239 @@ if (!class_exists('OEC_Mi_Viaje')) {
             5 => "Hola {nombre}, ¡gracias por inscribirte en {formacion}! Cualquier duda que tengas, escríbeme por acá.",
         ];
 
+        const MAIL_DEFAULTS = [
+            2 => ['subject' => '{nombre}, ¿te quedó alguna duda sobre {formacion}?',
+                  'body'    => "Hola {nombre}:\n\nTe escribo porque consultaste por {formacion}. ¿Te quedó alguna duda?\n\nAcá tienes toda la información y la inscripción:\n{link}\n\nSi prefieres, responde este email y te ayudo.\n\n¡Saludos!"],
+            3 => ['subject' => '{nombre}, precio y fechas de {formacion}',
+                  'body'    => "Hola {nombre}:\n\nTe cuento lo que me consultaste de {formacion}: el precio para tu país es {precio}.\n\nToda la información, las fechas y la inscripción:\n{link}\n\nSi tienes cualquier otra duda, responde este email.\n\n¡Saludos!"],
+            4 => ['subject' => '{nombre}, ¿te ayudo a terminar tu inscripción?',
+                  'body'    => "Hola {nombre}:\n\nVi que empezaste la inscripción a {formacion} y no llegaste a terminarla. ¿Tuviste algún problema con el pago?\n\nPuedes retomarla acá:\n{link}\n\nSi algo no funcionó, responde este email y lo resolvemos.\n\n¡Saludos!"],
+            5 => ['subject' => '{nombre}, gracias por inscribirte en {formacion}',
+                  'body'    => "Hola {nombre}:\n\n¡Gracias por inscribirte en {formacion}! Cualquier duda que tengas antes de empezar, responde este email.\n\n¡Saludos!"],
+        ];
+
         public static function init() {
             add_action('admin_menu', [__CLASS__, 'menu'], 20);
             add_action('wp_ajax_oec_mv', [__CLASS__, 'ajax']);
             add_action('admin_post_oec_mv_csv', [__CLASS__, 'csv']);
+            add_action('oec_mail_sent', [__CLASS__, 'mail_sent'], 10, 3);
+            // v1.5.34: Estadísticas (Zoho) ya no está; su dirección lleva a Mi viaje.
+            // admin_page_access_denied: WordPress corta las páginas que no existen antes de admin_init.
+            add_action('admin_page_access_denied', function () {
+                if (($_GET['page'] ?? '') === 'oec-stats' && current_user_can('manage_options')) {
+                    wp_safe_redirect(admin_url('admin.php?page=oec-mi-viaje'));
+                    exit;
+                }
+            });
         }
 
         public static function menu() {
-            // Antes de "Estadísticas" (Zoho), que convive un mes y después se va.
             add_submenu_page('oec-main', 'Mi viaje', 'Mi viaje', 'manage_options', 'oec-mi-viaje', [__CLASS__, 'render_page'], 2);
+        }
+
+        /* ── Variables del email: vencimiento y precio ─────────────────── */
+
+        /** La formación del socio ({ id, title, slug, enrollment_end, async }) o null. */
+        public static function formation($fid) {
+            foreach (self::formations() as $f) if ($f['id'] === $fid) return $f;
+            return null;
+        }
+
+        /** {vencimiento}: "15 de diciembre de 2026", el día en que cierra la inscripción ('' si no tiene). */
+        public static function deadline_text($fid) {
+            $f = self::formation((string) $fid);
+            if (!$f || $f['async'] || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $f['enrollment_end'])) return '';
+            $months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            [$y, $m, $d] = array_map('intval', explode('-', $f['enrollment_end']));
+            return $d . ' de ' . $months[$m - 1] . ' de ' . $y;
+        }
+
+        /** Moneda en que la ficha muestra los precios a cada país. */
+        private static function currency_for($country) {
+            $c = strtoupper((string) $country);
+            $local = ['AR' => 'ARS', 'MX' => 'MXN', 'CO' => 'COP', 'CL' => 'CLP'];
+            $eur = ['ES', 'PT', 'FR', 'IT', 'DE', 'AD', 'AT', 'BE', 'NL', 'IE', 'GR', 'FI', 'LU'];
+            return $local[$c] ?? (in_array($c, $eur, true) ? 'EUR' : 'USD');
+        }
+
+        /**
+         * {precio}: el precio para el país de la persona, de la misma API pública que la ficha ("ARS 194.400", o con el
+         * descuento vigente "ARS 116.640 (40 % de descuento)"). null = la API no respondió (reintentar); false = no tiene.
+         */
+        public static function price_text($fid, $country) {
+            if (!preg_match('/^t-[A-Za-z0-9]{14}$/', (string) $fid)) return false;
+            $country = preg_match('/^[A-Z]{2}$/', strtoupper((string) $country)) ? strtoupper($country) : 'AR';
+            $cur = self::currency_for($country);
+            $key = 'oec_mv_price_' . md5($fid . '|' . $country . '|' . $cur);
+            $c = get_transient($key);
+            if ($c !== false) return $c === 'err' ? null : ($c === 'none' ? false : $c);
+            $res = wp_remote_get('https://api.onlineeducation.center/api-oas/v1/trainings/' . rawurlencode($fid) . '/prices?country=' . $country . '&currency=' . $cur, ['timeout' => 10, 'headers' => ['Accept' => 'application/json']]);
+            $code = is_wp_error($res) ? 0 : (int) wp_remote_retrieve_response_code($res);
+            $p = $code === 200 ? json_decode(wp_remote_retrieve_body($res), true) : null;
+            if ($code === 404 || ($code === 200 && is_array($p) && (!isset($p['total']) || empty($p['currency'])))) {
+                set_transient($key, 'none', HOUR_IN_SECONDS);
+                return false;
+            }
+            if (!is_array($p)) {
+                set_transient($key, 'err', 5 * MINUTE_IN_SECONDS);
+                return null;
+            }
+            $fmt = function ($n) use ($p) {
+                $dec = in_array($p['currency'], ['USD', 'EUR'], true) && floor((float) $n) != (float) $n ? 2 : 0;
+                return $p['currency'] . ' ' . number_format((float) $n, $dec, ',', '.');
+            };
+            $pct = (float) ($p['discountPercent'] ?? 0);
+            $text = $fmt($p['total']);
+            if ($pct > 0 && isset($p['toPriceDiscount'])) {
+                $until = '';
+                if (preg_match('/^(\d{4})-(\d{2})-(\d{2})/', (string) ($p['expiration'] ?? ''), $m)) {
+                    $months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                    $until = ' hasta el ' . intval($m[3]) . ' de ' . $months[intval($m[2]) - 1];
+                }
+                $text = $fmt($p['toPriceDiscount']) . ' (' . rtrim(rtrim(number_format($pct, 1, ',', ''), '0'), ',') . ' % de descuento' . $until . ')';
+            }
+            set_transient($key, $text, HOUR_IN_SECONDS);
+            return $text;
+        }
+
+        /** Un email de una campaña de Mi viaje salió: queda en la historia de la persona en Lead Journey. */
+        public static function mail_sent($row, $campaign, $subject) {
+            if (strpos((string) ($campaign['stage'] ?? ''), 'mv:') !== 0) return;
+            $token = (string) get_option('oec_token', '');
+            if ($token === '') return;
+            wp_remote_post(self::base() . '/v1/mi-viaje/seguimiento', [
+                'timeout'  => 3,
+                'blocking' => false,
+                'headers'  => ['Content-Type' => 'application/json', 'X-OEC-Token' => $token],
+                'body'     => wp_json_encode(self::who() + [
+                    'who' => strtolower($row['email']), 'formation_id' => $row['training_uid'], 'contact' => 'email', 'subject' => $subject,
+                    'by' => 'Envío desde tu Gmail',
+                ]),
+            ]);
+        }
+
+        public static function mail_templates() {
+            $saved = get_option('oec_mv_mail', []);
+            $out = [];
+            foreach (self::MAIL_DEFAULTS as $st => $def) {
+                $t = is_array($saved) && isset($saved[$st]) && is_array($saved[$st]) ? $saved[$st] : [];
+                $out[$st] = ['subject' => ($t['subject'] ?? '') !== '' ? $t['subject'] : $def['subject'], 'body' => ($t['body'] ?? '') !== '' ? $t['body'] : $def['body']];
+            }
+            return $out;
+        }
+
+        /* ── Envío de email a los elegidos ──────────────────────────────── */
+
+        /**
+         * Las personas elegidas, vueltas a pedir a Lead Journey: del navegador solo llegan email + formación, así no se le
+         * puede escribir a nadie que no esté en el viaje del sitio. Sin las que se dieron de baja (en Mi viaje o en el plugin).
+         */
+        private static function chosen_people() {
+            $pairs = json_decode(wp_unslash($_POST['people'] ?? '[]'), true);
+            $want = [];
+            foreach ((array) $pairs as $x) {
+                $e = strtolower(sanitize_email($x['who'] ?? ''));
+                $f = sanitize_text_field($x['fid'] ?? '');
+                if (is_email($e) && preg_match('/^t-[A-Za-z0-9]{14}$/', $f)) $want[$e . '|' . $f] = true;
+            }
+            if (!$want) wp_send_json_error(['message' => 'No elegiste a nadie.']);
+            if (count($want) > 2000) wp_send_json_error(['message' => 'Elige hasta 2.000 personas por envío.']);
+            [$code, $data] = self::remote('lista', ['csv' => true], 45);
+            if ($code !== 200 || !is_array($data)) wp_send_json_error(['message' => 'No se pudo cargar tu lista. Prueba de nuevo en unos minutos.']);
+            $out = [];
+            foreach ((array) ($data['people'] ?? []) as $p) {
+                $k = ($p['email'] ?? '') . '|' . ($p['fid'] ?? '');
+                if (isset($want[$k]) && ($p['state'] ?? '') !== 'baja') $out[$k] = $p;
+            }
+            if ($out && class_exists('OEC_Mailer')) {
+                $unsubs = array_flip(OEC_Mailer::unsubscribed(array_column($out, 'email')));
+                $out = array_filter($out, function ($p) use ($unsubs) { return !isset($unsubs[$p['email']]); });
+            }
+            return $out;
+        }
+
+        private static function split_name($name) {
+            $parts = preg_split('/\s+/', trim((string) $name), 2);
+            return [$parts[0] ?? '', $parts[1] ?? ''];
+        }
+
+        private static function mail_from_post() {
+            $subject = sanitize_text_field(wp_unslash($_POST['subject'] ?? ''));
+            $body    = sanitize_textarea_field(wp_unslash($_POST['body'] ?? ''));
+            if ($subject === '' || trim($body) === '') wp_send_json_error(['message' => 'Completa el asunto y el mensaje.']);
+            return [$subject, $body];
+        }
+
+        private static function campaign_for($fid, $subject, $body) {
+            $f = self::formation($fid);
+            return [
+                'training_uid'   => $fid,
+                'training_title' => $f ? $f['title'] : $fid,
+                'training_link'  => $f && $f['slug'] !== '' ? home_url('/formacion/' . $f['slug']) : home_url('/'),
+                'subject'        => $subject,
+                'body'           => $body,
+            ];
+        }
+
+        /** "Enviarme una prueba": el email de la primera persona elegida, a mi email. */
+        private static function mail_test() {
+            if (!class_exists('OEC_Mailer') || OEC_Mailer::google_email() === '' || OEC_Mailer::google_broken()) wp_send_json_error(['message' => 'Conecta tu cuenta de Google en OEC → Configuración.']);
+            [$subject, $body] = self::mail_from_post();
+            $people = self::chosen_people();
+            $p = reset($people);
+            if (!$p) wp_send_json_error(['message' => 'Ninguna de las personas elegidas puede recibir el email.']);
+            [$first, $last] = self::split_name($p['name'] ?? '');
+            [$s, $html, $text, $missing] = OEC_Mailer::render(self::campaign_for($p['fid'], $subject, $body), ['email' => $p['email'], 'first_name' => $first, 'last_name' => $last, 'phone' => $p['phone'] ?? '', 'country' => $p['country'] ?? '']);
+            if ($missing) wp_send_json_error(['message' => $missing === 'none' ? 'Esa formación no tiene precio para ' . ($p['country'] ?: 'su país') . ': saca {precio} del mensaje.' : 'No se pudo obtener el precio. Prueba de nuevo en unos minutos.']);
+            $to  = wp_get_current_user()->user_email;
+            $err = OEC_Mailer::send($to, '[Prueba] ' . $s, $html, $text);
+            if ($err) wp_send_json_error(['message' => $err]);
+            wp_send_json_success(['message' => 'Prueba enviada a ' . $to . ' (con los datos de ' . ($p['name'] ?: $p['email']) . ').']);
+        }
+
+        /** Crea una campaña por formación con las personas elegidas y las encola (sale por OEC_Mailer, desde su Gmail). */
+        private static function mail_send() {
+            if (!class_exists('OEC_Mailer') || OEC_Mailer::google_email() === '' || OEC_Mailer::google_broken()) wp_send_json_error(['message' => 'Conecta tu cuenta de Google en OEC → Configuración.']);
+            [$subject, $body] = self::mail_from_post();
+            $stage  = (int) ($_POST['stage'] ?? 0);
+            $people = self::chosen_people();
+            if (!$people) wp_send_json_error(['message' => 'Ninguna de las personas elegidas puede recibir el email (dadas de baja o ya no están en tu viaje).']);
+            global $wpdb;
+            $now = current_time('mysql', true);
+            $by = [];
+            foreach ($people as $p) $by[$p['fid']][] = $p;
+            $cids = [];
+            foreach ($by as $fid => $list) {
+                $camp = self::campaign_for($fid, $subject, $body);
+                $wpdb->insert($wpdb->prefix . 'oec_mail_campaigns', $camp + [
+                    'stage' => 'mv:' . $stage, 'reply_to' => OEC_Mailer::google_email(), 'created_by' => get_current_user_id(), 'created_at' => $now,
+                ]);
+                $cid = (int) $wpdb->insert_id;
+                if (!$cid) continue;
+                $cids[] = $cid;
+                foreach ($list as $p) {
+                    [$first, $last] = self::split_name($p['name'] ?? '');
+                    $wpdb->insert($wpdb->prefix . 'oec_mail_queue', [
+                        'campaign_id' => $cid, 'training_uid' => $fid, 'email' => $p['email'],
+                        'first_name' => mb_substr($first, 0, 100), 'last_name' => mb_substr($last, 0, 100),
+                        'phone' => mb_substr((string) ($p['phone'] ?? ''), 0, 50), 'country' => substr((string) ($p['country'] ?? ''), 0, 10),
+                        'status' => 'queued', 'created_at' => $now,
+                    ]);
+                }
+            }
+            if (!$cids) wp_send_json_error(['message' => 'No se pudo guardar el envío.']);
+            OEC_Mailer::schedule(time() + 30);
+            wp_send_json_success(['campaigns' => $cids, 'progress' => self::mail_progress($cids)]);
+        }
+
+        private static function mail_progress(array $cids) {
+            $sum = ['sent' => 0, 'pending' => 0, 'failed' => 0, 'skipped' => 0, 'errors' => []];
+            foreach ($cids as $cid) {
+                $p = OEC_Mailer::progress((int) $cid);
+                foreach (['sent', 'pending', 'failed', 'skipped'] as $k) $sum[$k] += $p[$k];
+                $sum['errors'] = array_values(array_unique(array_merge($sum['errors'], $p['errors'])));
+            }
+            return $sum;
         }
 
         /** OEC atiende las consultas del sitio ("Equipo de Ventas de OEC" en SÍ). */
@@ -166,6 +390,25 @@ if (!class_exists('OEC_Mi_Viaje')) {
                 case 'migrar':
                     wp_send_json_success(self::migrate());
                     return;
+                case 'mail_test':
+                    self::mail_test();
+                    return;
+                case 'mail_send':
+                    self::mail_send();
+                    return;
+                case 'mail_progress':
+                    $cids = array_filter(array_map('intval', (array) json_decode(wp_unslash($_POST['campaigns'] ?? '[]'), true)));
+                    $info = OEC_Mailer::process(OEC_Mailer::BATCH_AJAX, 20);
+                    wp_send_json_success(self::mail_progress($cids) + ['paused' => $info['paused'], 'error' => $info['error']]);
+                    return;
+                case 'mail_tpl':
+                    $st = (int) ($_POST['stage'] ?? 0);
+                    if (!isset(self::STAGES[$st])) wp_send_json_error(null, 400);
+                    $tpls = self::mail_templates();
+                    $tpls[$st] = ['subject' => sanitize_text_field(wp_unslash($_POST['subject'] ?? '')), 'body' => sanitize_textarea_field(wp_unslash($_POST['body'] ?? ''))];
+                    update_option('oec_mv_mail', $tpls, false);
+                    wp_send_json_success(['mail' => self::mail_templates()]);
+                    return;
                 case 'wa':
                     $msgs = self::wa_messages();
                     $st = (int) ($_POST['stage'] ?? 0);
@@ -284,6 +527,12 @@ if (!class_exists('OEC_Mi_Viaje')) {
                 'migrate'  => !self::oec_attends() && !get_option('oec_mv_migrated'),
                 'links'    => $links,
                 'wa'       => self::wa_messages(),
+                'mail'     => self::mail_templates(),
+                'gmail'    => class_exists('OEC_Mailer') && OEC_Mailer::google_email() !== '' && !OEC_Mailer::google_broken() ? OEC_Mailer::google_email() : '',
+                'limit'    => class_exists('OEC_Mailer') ? OEC_Mailer::daily_limit() : 400,
+                'today'    => class_exists('OEC_Mailer') ? OEC_Mailer::sent_today() : 0,
+                'config'   => admin_url('admin.php?page=oec-main#oec-gmail'),
+                'links_vars' => ['nombre', 'apellido', 'formacion', 'link', 'precio', 'vencimiento'],
                 'statuses' => class_exists('OEC_Contacts') ? OEC_Contacts::STATUSES : ['' => 'Sin contactar'],
             ];
             ?>
@@ -343,6 +592,16 @@ if (!class_exists('OEC_Mi_Viaje')) {
                 .oec-mv-person { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center; padding: 14px 16px; border-bottom: 1px solid #f0f0f1; }
                 .oec-mv-person h2 { border: 0; padding: 0; }
                 .oec-mv-flash { color: #1a7a33; font-size: 12px; margin-left: 8px; }
+                .oec-mv-compose { background: #fff; border: 1px solid #dcdcde; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; display: grid; gap: 10px; }
+                .oec-mv-compose label { font-weight: 600; font-size: 12px; display: block; margin-bottom: 4px; }
+                .oec-mv-compose input[type=text], .oec-mv-compose textarea { width: 100%; }
+                .oec-mv-vars { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: #646970; }
+                .oec-mv-vars button { font-size: 11.5px; border: 1px solid #dcdcde; background: #f6f7f7; border-radius: 20px; padding: 2px 9px; cursor: pointer; }
+                .oec-mv-prev { background: #f6f7f7; border-radius: 8px; padding: 10px 14px; font-size: 13px; white-space: pre-wrap; }
+                .oec-mv-prev strong { display: block; margin-bottom: 6px; }
+                .oec-mv-row-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+                .oec-mv-progress { font-size: 13px; }
+                .oec-mv-table .chk { width: 26px; }
                 @media (max-width: 782px) { .oec-mv-hist li { grid-template-columns: 1fr; gap: 2px; } }
             </style>
             <div class="wrap oec-mv" id="oec-mv">
@@ -390,6 +649,8 @@ if (!class_exists('OEC_Mi_Viaje')) {
                 var selDays = document.getElementById('oec-mv-days');
                 var view = { stage: 0, state: '', country: '', sin: false, q: '' };
                 var people = [];
+                var picked = {};
+                function pkey(p) { return p.email + '|' + p.fid; }
 
                 function el(tag, attrs, text) {
                     var n = document.createElement(tag);
@@ -466,9 +727,9 @@ if (!class_exists('OEC_Mi_Viaje')) {
                     var mb = main.appendChild(el('div', { 'class': 'oec-mv-month' }));
                     var pct = function (x) { return x === null || x === undefined ? '–' : String(x).replace('.', ',') + ' %'; };
                     mb.appendChild(el('strong', null, 'Este mes: '));
-                    mb.appendChild(document.createTextNode((a.nuevos || 0) + ' personas nuevas, ' + (a.alumnos || 0) + ' inscriptas (' + pct(a.conversion) + '). '));
+                    mb.appendChild(document.createTextNode(plural(a.nuevos || 0, 'persona nueva', 'personas nuevas') + ', ' + plural(a.alumnos || 0, 'inscripta', 'inscriptas') + ' (' + pct(a.conversion) + '). '));
                     mb.appendChild(el('strong', null, 'Mes anterior: '));
-                    mb.appendChild(document.createTextNode((p.nuevos || 0) + ' nuevas, ' + (p.alumnos || 0) + ' inscriptas (' + pct(p.conversion) + ').'));
+                    mb.appendChild(document.createTextNode(plural(p.nuevos || 0, 'nueva', 'nuevas') + ', ' + plural(p.alumnos || 0, 'inscripta', 'inscriptas') + ' (' + pct(p.conversion) + ').'));
                     if (!d.subdomain) mb.appendChild(el('div', { 'class': 'oec-mv-dim' }, 'Todavía no sabemos el subdominio de tu checkout: las inscripciones aparecen después del próximo registro diario del sitio.'));
                     if (!d.total) {
                         main.appendChild(el('div', { 'class': 'oec-mv-box' })).appendChild(el('div', { 'class': 'oec-mv-msg' },
@@ -498,6 +759,7 @@ if (!class_exists('OEC_Mi_Viaje')) {
                     post(Object.assign({ op: 'lista', stage: view.stage, state: view.state, country: view.country, sin_contactar: view.sin, q: view.q }, filters())).then(function (res) {
                         if (!res || !res.success) return listBox.replaceChildren(el('div', { 'class': 'oec-mv-err' }, failMsg(res)));
                         people = res.data.people || [];
+                        picked = {};
                         drawList(res.data.total);
                     });
                 }
@@ -517,6 +779,16 @@ if (!class_exists('OEC_Mi_Viaje')) {
                     var href = CFG.csv + Object.keys(params).filter(function (k) { return params[k]; }).map(function (k) { return '&' + k + '=' + encodeURIComponent(params[k]); }).join('');
                     var dl = bar.appendChild(el('a', { 'class': 'button', href: href })); dl.appendChild(icon('download')); dl.appendChild(document.createTextNode(' Descargar CSV'));
                     var wab = bar.appendChild(el('button', { type: 'button', 'class': 'button' })); wab.appendChild(icon('whatsapp')); wab.appendChild(document.createTextNode(' Mensaje de WhatsApp'));
+                    var mb = bar.appendChild(el('button', { type: 'button', 'class': 'button button-primary', disabled: '' }));
+                    mb.appendChild(icon('email-alt')); var mbTxt = mb.appendChild(document.createTextNode(' Enviar email (0)'));
+                    var compose = listBox.appendChild(el('div', { 'class': 'oec-mv-compose', hidden: '' }));
+                    mb.addEventListener('click', function () { compose.hidden = !compose.hidden; if (!compose.hidden) drawCompose(compose); });
+                    updatePicked = function () {
+                        var n = Object.keys(picked).length;
+                        mbTxt.textContent = ' Enviar email (' + n + ')';
+                        if (n) mb.removeAttribute('disabled'); else { mb.setAttribute('disabled', ''); compose.hidden = true; }
+                        if (!compose.hidden) drawCompose(compose);
+                    };
 
                     var wa = listBox.appendChild(el('div', { 'class': 'oec-mv-wa', hidden: '' }));
                     wa.appendChild(el('label', { 'for': 'oec-mv-watext' }, 'Mensaje de WhatsApp para «' + STAGES[view.stage] + '»'));
@@ -533,15 +805,25 @@ if (!class_exists('OEC_Mi_Viaje')) {
                     if (!people.length) { box.appendChild(el('div', { 'class': 'oec-mv-msg' }, 'No hay personas con estos filtros.')); return; }
                     var t = box.appendChild(el('table', { 'class': 'oec-mv-table' }));
                     var hr = t.appendChild(el('thead')).appendChild(el('tr'));
+                    var all = hr.appendChild(el('th', { 'class': 'chk' })).appendChild(el('input', { type: 'checkbox', title: 'Elegir todas (menos las que se dieron de baja)' }));
                     ['Persona', 'País', 'Formación', 'Último movimiento', 'Estado', 'Seguimiento', 'Nota', ''].forEach(function (h) { hr.appendChild(el('th', null, h)); });
                     var tb = t.appendChild(el('tbody'));
                     people.forEach(function (p) { tb.appendChild(row(p)); });
+                    all.addEventListener('change', function () {
+                        tb.querySelectorAll('input[type=checkbox]:not([disabled])').forEach(function (b) { b.checked = all.checked; });
+                        people.forEach(function (p) { if (p.state !== 'baja') { if (all.checked) picked[pkey(p)] = p; else delete picked[pkey(p)]; } });
+                        updatePicked();
+                    });
                     if (total > people.length) box.appendChild(el('div', { 'class': 'oec-mv-msg' }, 'Se muestran ' + people.length + ' de ' + total + '. Descarga el CSV para verlas todas.'));
                     listBox.appendChild(el('p', { 'class': 'oec-mv-note-legal' }, 'Los datos que descargas o copias pasan a ser tu responsabilidad: úsalos solo para responder a estas personas por tus formaciones, y respeta a quienes se dieron de baja.'));
                 }
                 function stateTag(p) { return el('span', { 'class': 'oec-mv-tag oec-mv-tag--' + p.state }, STATES[p.state] || p.state); }
+                var updatePicked = function () {};
                 function row(p) {
                     var tr = el('tr');
+                    var cb = tr.appendChild(el('td', { 'class': 'chk' })).appendChild(el('input', { type: 'checkbox', 'aria-label': 'Elegir a ' + (p.name || p.email) }));
+                    if (p.state === 'baja') { cb.disabled = true; cb.title = 'Se dio de baja: no recibe emails'; }
+                    cb.addEventListener('change', function () { if (cb.checked) picked[pkey(p)] = p; else delete picked[pkey(p)]; updatePicked(); });
                     var who = tr.appendChild(el('td'));
                     var nb = who.appendChild(el('a', { href: '#', 'class': 'oec-mv-name' }, p.name || p.email));
                     nb.addEventListener('click', function (e) { e.preventDefault(); openPerson(p.email); });
@@ -590,6 +872,89 @@ if (!class_exists('OEC_Mi_Viaje')) {
                     m.appendChild(icon('email-alt'));
                     m.addEventListener('click', function () { post({ op: 'seguimiento', who: p.email, formation_id: p.fid, contact: 'email' }); });
                     return a;
+                }
+
+                /* ── Email a los elegidos (desde su Gmail, OEC_Mailer) ── */
+                var draft = {};
+                function fill(tpl, p) {
+                    var n = String(p.name || '').trim().split(/\s+/);
+                    var vars = { nombre: firstName(p), apellido: n.slice(1).join(' '), formacion: p.title || '', link: CFG.links[p.fid] || '', precio: '(precio para ' + (p.country || 'su país') + ')', vencimiento: '(cierre de inscripción)' };
+                    return String(tpl || '').replace(/\{(nombre|apellido|formacion|link|precio|vencimiento)\}/g, function (m, k) { return vars[k]; });
+                }
+                function drawCompose(box) {
+                    var st = view.stage, list = Object.keys(picked).map(function (k) { return picked[k]; });
+                    if (!draft[st]) draft[st] = { subject: (CFG.mail[st] || {}).subject || '', body: (CFG.mail[st] || {}).body || '' };
+                    var d = draft[st];
+                    box.replaceChildren();
+                    if (!CFG.gmail) {
+                        var w = box.appendChild(el('div', { 'class': 'oec-mv-err' }, 'Para enviar emails desde tu Gmail, conecta tu cuenta de Google en Configuración. '));
+                        w.appendChild(el('a', { href: CFG.config }, 'Conectar con Google'));
+                        w.appendChild(document.createTextNode(' — Mientras tanto, el botón de email de cada persona abre el mensaje en tu programa de correo.'));
+                        return;
+                    }
+                    box.appendChild(el('div', { 'class': 'oec-mv-dim' }, 'Sale desde ' + CFG.gmail + ' a ' + plural(list.length, 'persona', 'personas') + '. Las respuestas te llegan a tu Gmail. Hoy van ' + CFG.today + ' de ' + CFG.limit + ' por día; lo que pase del tope sale mañana.'));
+                    var l1 = box.appendChild(el('div')); l1.appendChild(el('label', { 'for': 'oec-mv-subj' }, 'Asunto'));
+                    var subj = l1.appendChild(el('input', { type: 'text', id: 'oec-mv-subj', maxlength: '200' })); subj.value = d.subject;
+                    var l2 = box.appendChild(el('div')); l2.appendChild(el('label', { 'for': 'oec-mv-body' }, 'Mensaje'));
+                    var body = l2.appendChild(el('textarea', { id: 'oec-mv-body', rows: '9' })); body.value = d.body;
+                    var vars = box.appendChild(el('div', { 'class': 'oec-mv-vars' }, 'Insertar: '));
+                    var lastField = body;
+                    subj.addEventListener('focus', function () { lastField = subj; }); body.addEventListener('focus', function () { lastField = body; });
+                    CFG.links_vars.forEach(function (v) {
+                        var b = vars.appendChild(el('button', { type: 'button' }, '{' + v + '}'));
+                        b.addEventListener('click', function () {
+                            var f = lastField, a = f.selectionStart || f.value.length;
+                            f.value = f.value.slice(0, a) + '{' + v + '}' + f.value.slice(f.selectionEnd || a); f.focus(); f.dispatchEvent(new Event('input'));
+                        });
+                    });
+                    vars.appendChild(el('span', null, ' · {precio} va en la moneda del país de cada persona; {vencimiento} es el día en que cierra la inscripción.'));
+                    var prev = box.appendChild(el('div', { 'class': 'oec-mv-prev' }));
+                    function redraw() {
+                        d.subject = subj.value; d.body = body.value;
+                        var p = list[0]; if (!p) return;
+                        prev.replaceChildren(el('strong', null, 'Vista previa para ' + (p.name || p.email) + ': ' + fill(d.subject, p)));
+                        prev.appendChild(document.createTextNode(fill(d.body, p)));
+                    }
+                    subj.addEventListener('input', redraw); body.addEventListener('input', redraw); redraw();
+                    var btns = box.appendChild(el('div', { 'class': 'oec-mv-row-btns' }));
+                    var save = btns.appendChild(el('button', { type: 'button', 'class': 'button' }, 'Guardar como texto de «' + STAGES[st] + '»'));
+                    var test = btns.appendChild(el('button', { type: 'button', 'class': 'button' }, 'Enviarme una prueba'));
+                    var send = btns.appendChild(el('button', { type: 'button', 'class': 'button button-primary' }, 'Enviar desde tu Gmail (' + list.length + ')'));
+                    var out = btns.appendChild(el('span', { 'class': 'oec-mv-progress' }));
+                    var payload = function (op) { return { op: op, stage: st, subject: d.subject, body: d.body, people: JSON.stringify(list.map(function (p) { return { who: p.email, fid: p.fid }; })) }; };
+                    save.addEventListener('click', function () {
+                        post({ op: 'mail_tpl', stage: st, subject: d.subject, body: d.body }).then(function (res) { if (res && res.success) { CFG.mail = res.data.mail; out.textContent = 'Guardado.'; } });
+                    });
+                    test.addEventListener('click', function () {
+                        test.disabled = true; out.textContent = 'Enviando la prueba…';
+                        post(payload('mail_test')).then(function (res) { test.disabled = false; out.textContent = (res && res.data && res.data.message) || 'No se pudo enviar la prueba.'; });
+                    });
+                    send.addEventListener('click', function () {
+                        if (!confirm('¿Enviar este email a ' + plural(list.length, 'persona', 'personas') + ' desde ' + CFG.gmail + '?')) return;
+                        send.disabled = true; test.disabled = true; out.textContent = 'Preparando el envío…';
+                        post(payload('mail_send')).then(function (res) {
+                            if (!res || !res.success) { send.disabled = false; test.disabled = false; out.textContent = (res && res.data && res.data.message) || 'No se pudo enviar.'; return; }
+                            track(res.data.campaigns, res.data.progress, out);
+                        });
+                    });
+                }
+                function track(cids, pr, out) {
+                    var show = function (p) {
+                        var t = 'Enviados: ' + p.sent + (p.pending ? ' · en cola: ' + p.pending : '') + (p.failed ? ' · con error: ' + p.failed : '') + (p.skipped ? ' · de baja: ' + p.skipped : '');
+                        if (p.paused) t += '. Llegaste al tope de hoy: el resto sale mañana solo.';
+                        if (p.error) t += '. ' + p.error;
+                        if (!p.pending) t += '. ¡Listo!';
+                        out.textContent = t;
+                    };
+                    show(pr);
+                    if (!pr.pending) return;
+                    setTimeout(function () {
+                        post({ op: 'mail_progress', campaigns: JSON.stringify(cids) }).then(function (res) {
+                            if (!res || !res.success) { out.textContent += ' (el envío sigue solo aunque cierres esta pantalla)'; return; }
+                            if (res.data.paused || res.data.error) { show(res.data); out.textContent += ' El envío sigue solo.'; return; }
+                            track(cids, res.data, out);
+                        });
+                    }, 2500);
                 }
 
                 /* ── Persona ── */
@@ -641,6 +1006,7 @@ if (!class_exists('OEC_Mi_Viaje')) {
                         var what = TYPES[it.type] || it.type;
                         if (it.type === 'track') what = 'Seguimiento: ' + [it.status !== undefined ? (CFG.statuses[it.status] || it.status) : '', it.note ? '«' + it.note + '»' : ''].filter(Boolean).join(' · ');
                         if (it.type === 'unsub') what = it.unsub ? 'Se dio de baja de tus emails' : 'Volvió a recibir tus emails';
+                        if (it.type === 'email' && it.subject) what += ': «' + it.subject + '»';
                         var w = li.appendChild(el('span', { 'class': 'what' }, what + (it.title ? ' — ' + it.title : '') + (it.by ? ' (' + it.by + ')' : '')));
                         if (it.question) w.appendChild(el('div', { 'class': 'oec-mv-mail' }, it.question));
                     });

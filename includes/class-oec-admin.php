@@ -52,7 +52,6 @@ if (!class_exists('OEC_Admin')) {
             add_menu_page('OEC', 'Online Education Center', 'manage_options', 'oec-main', [$this, 'page_config'], 'dashicons-welcome-learn-more', 20);
             add_submenu_page('oec-main', 'Configuración', 'Configuración', 'manage_options', 'oec-main', [$this, 'page_config']);
             add_submenu_page('oec-main', 'Campus Virtual', 'Campus Virtual', 'manage_options', 'oec-campus', [$this, 'page_campus']);
-            add_submenu_page('oec-main', 'Estadísticas', 'Estadísticas', 'manage_options', 'oec-stats', [$this, 'page_stats']);
             add_submenu_page('oec-main', 'Cuenta Contable', 'Cuenta Contable', 'manage_options', 'oec-account', [$this, 'page_account']);
             add_submenu_page('oec-main', 'Mesa de Ayuda', 'Mesa de Ayuda', 'manage_options', 'oec-help', [$this, 'page_help']);
             add_submenu_page('oec-main', 'Documentación', 'Documentación', 'manage_options', 'oec-docs', [$this, 'page_docs']);
@@ -383,9 +382,9 @@ if (!class_exists('OEC_Admin')) {
 
                         <div class="card" style="margin: 0; padding: 20px;">
                             <span class="dashicons dashicons-chart-bar" style="font-size: 40px; width: 40px; height: 40px; color: <?php echo $color; ?>;"></span>
-                            <h3>Estadísticas</h3>
-                            <p>Visualiza el rendimiento de tus formaciones, métricas de inscritos y progreso general.</p>
-                            <a href="<?php echo admin_url('admin.php?page=oec-stats'); ?>" class="button button-secondary">Ver Reportes</a>
+                            <h3>Mi viaje</h3>
+                            <p>Las personas que consultaron por tus formaciones, en qué etapa están y cuántas se inscribieron. Escríbeles por WhatsApp o por email.</p>
+                            <a href="<?php echo admin_url('admin.php?page=oec-mi-viaje'); ?>" class="button button-secondary">Ver Mi viaje</a>
                         </div>
 
                         <div class="card" style="margin: 0; padding: 20px;">
@@ -458,7 +457,7 @@ if (!class_exists('OEC_Admin')) {
                             <h2 style="margin-top:0;">Enviar emails desde tu Gmail</h2>
                             <p class="description" style="margin-bottom: 16px; max-width: 800px;">
                                 Conecta tu cuenta de Google y los emails que envíes a tus contactos desde
-                                <a href="<?php echo esc_url(admin_url('admin.php?page=oec-stats')); ?>">Estadísticas</a> salen
+                                <a href="<?php echo esc_url(admin_url('admin.php?page=oec-mi-viaje')); ?>">Mi viaje</a> salen
                                 automáticamente desde tu Gmail (o Google Workspace): con tu nombre, quedan en tus "Enviados" y
                                 las respuestas te llegan ahí. El permiso es solo para enviar: no se puede leer tu correo.
                             </p>
@@ -492,7 +491,7 @@ if (!class_exists('OEC_Admin')) {
                                 <span id="oec-gmail-test-msg" style="font-size: 13px;"></span>
                             </p>
                             <?php if (!$g_email) : ?>
-                                <p class="description">Sin conectar tu cuenta también puedes escribirles: en Estadísticas se abre cada email ya escrito en tu Gmail, uno por uno.</p>
+                                <p class="description">Sin conectar tu cuenta también puedes escribirles: en Mi viaje, el botón de email de cada persona abre el mensaje en tu programa de correo.</p>
                             <?php endif; ?>
 
                             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin-top: 16px;">
@@ -824,10 +823,6 @@ if (!class_exists('OEC_Admin')) {
         }
 
 
-        // Estadísticas (ver includes/class-oec-stats.php)
-        public function page_stats() {
-            OEC_Stats::render_page();
-        }
 
 
 

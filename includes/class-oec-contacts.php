@@ -1,6 +1,7 @@
 <?php
 /**
- * Seguimiento de los contactos de Estadísticas: teléfono normalizado (para
+ * Seguimiento de los contactos (hasta la 1.5.33, en Estadísticas; desde la 1.5.34 vive en Lead Journey y estas tablas
+ * solo se leen para migrarlas a Mi viaje): teléfono normalizado (para
  * WhatsApp y llamadas), estado y nota que elige el socio, y registro de cada
  * WhatsApp, llamada o email que abre desde la ventana de contactos.
  *

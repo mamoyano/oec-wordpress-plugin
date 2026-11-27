@@ -3300,3 +3300,35 @@ de Lead Journey). Los datos viven en Lead Journey (`src/mi-viaje.js`, migración
   quedaron en la 1.5.14.
 - **Probado** en oec-test contra el Worker local (`wrangler dev`): consulta → Considerando, lista, estado, nota,
   persona, WhatsApp armado, CSV y el modo "OEC atiende".
+
+## v1.5.34 — Mi viaje: email a los elegidos desde su Gmail; se va Estadísticas (Zoho) (2026-11-27)
+
+Etapa 2 de las herramientas para socios (`docs/socios-herramientas.md` de Lead Journey). Mario decidió apagar Zoho ya,
+con esta versión, y sumar `{precio}`.
+
+- **Email desde Mi viaje:** casillas en la lista de cada etapa ("elegir todas" no toma a las que se dieron de baja) y
+  "Enviar email (N)". El panel muestra el texto de la etapa (`MAIL_DEFAULTS`, editable y guardado en `oec_mv_mail`),
+  las variables `{nombre} {apellido} {formacion} {link} {precio} {vencimiento}`, la vista previa con la primera
+  persona, "Enviarme una prueba" y "Enviar desde tu Gmail (N)", con el progreso.
+- **Envío:** se reutiliza `OEC_Mailer` (Gmail por OAuth, cola, tope diario, bajas, List-Unsubscribe). `OEC_Mi_Viaje`
+  vuelve a pedir la lista a Lead Journey y encola solo a las personas elegidas que siguen en el viaje del sitio, sin
+  las que se dieron de baja. Arma una campaña por formación (`stage` = `mv:<etapa>`). Cada email enviado avisa a Lead
+  Journey (`oec_mail_sent` → `seguimiento` con `contact: email` y el asunto) y queda en la historia de la persona.
+- **`{precio}`** (`OEC_Mi_Viaje::price_text`): sale de la API pública de la ficha (`api-oas/v1/trainings/{id}/prices`),
+  en la moneda del país de la persona: ARS, MXN, COP, CLP, EUR (España y la zona euro) o USD. Si hay un descuento
+  vigente, va con su porcentaje y su fecha: "ARS 194.400 (40 % de descuento hasta el 20 de diciembre)". Caché de 1 hora.
+  - Si la API no responde, el email no sale con el precio vacío: vuelve a la cola y se reintenta en una hora.
+  - Si la formación no tiene precio para ese país, la fila queda `failed`.
+  - `OEC_Mailer::render()` devuelve un 4.º elemento con lo que faltó.
+- **`{vencimiento}`:** el día de cierre de la inscripción ("30 de noviembre de 2026"). Queda vacío en las asincrónicas.
+- **Se va Estadísticas:** se borró `class-oec-stats.php` (`OEC_Stats`), su menú y `OEC_Mailer::ajax_send` (el envío
+  atado a Zoho). `?page=oec-stats` lleva a Mi viaje (`admin_page_access_denied`: WordPress corta las páginas que ya no
+  existen antes de `admin_init`). La tarjeta y los textos de Configuración apuntan a Mi viaje. `OEC_Contacts` queda
+  por los estados, el teléfono y sus tablas, que se migran.
+- **El puente de Zoho** (`server/zoho/partner-contacts.php` en onlineeducation.center) lo usan solo los sitios que
+  siguen en la 1.5.33 o antes. Se apaga a mano cuando todos estén actualizados.
+- **Probado en oec-test** contra el Worker local, con Gmail interceptado por un mu-plugin temporal que no manda nada:
+  - la prueba y el envío a 2 personas, con el precio en ARS y en MXN;
+  - el pie de baja y List-Unsubscribe;
+  - el registro en la historia;
+  - la redirección de Estadísticas.

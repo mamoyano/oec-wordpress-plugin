@@ -1,8 +1,9 @@
 <?php
 /**
- * Emails a los contactos de Estadísticas.
+ * Emails a los contactos del socio (desde v1.5.34, los de Mi viaje: OEC_Mi_Viaje arma las campañas; hasta la 1.5.33
+ * eran los de Estadísticas/Zoho).
  *
- * Dos formas de enviar (ventana de contactos de Estadísticas):
+ * Dos formas de enviar:
  * - "Conectar con Google" (OEC → Configuración): el socio autoriza a la app
  *   "Online Education Center" a enviar desde su Gmail (permiso gmail.send) y los
  *   emails salen automáticamente, desde su casilla, por la API de Gmail. No usa
@@ -26,7 +27,7 @@ if (!class_exists('OEC_Mailer')) {
         const BATCH_CRON    = 15;   // mails por pasada de cron
         const BATCH_AJAX    = 3;    // mails por pedido del navegador
         const DAILY_DEFAULT = 400;  // Gmail gratis: ~500 destinatarios por día
-        const VARS          = ['nombre', 'apellido', 'email', 'telefono', 'pais', 'formacion', 'link'];
+        const VARS          = ['nombre', 'apellido', 'email', 'telefono', 'pais', 'formacion', 'link', 'precio', 'vencimiento'];
         const BROKER        = 'https://onlineeducation.center/connections/google/callback.php';
 
         public static function init() {
@@ -41,7 +42,6 @@ if (!class_exists('OEC_Mailer')) {
             add_action('admin_post_oec_google_settings', [__CLASS__, 'google_settings']);
 
             add_action('wp_ajax_oec_mail_test', [__CLASS__, 'ajax_test']);
-            add_action('wp_ajax_oec_mail_send', [__CLASS__, 'ajax_send']);
             add_action('wp_ajax_oec_mail_preview_test', [__CLASS__, 'ajax_preview_test']);
             add_action('wp_ajax_oec_mail_progress', [__CLASS__, 'ajax_progress']);
             add_action('wp_ajax_oec_mail_template_save', [__CLASS__, 'ajax_template_save']);
@@ -321,6 +321,9 @@ if (!class_exists('OEC_Mailer')) {
                 'pais'      => self::country_name($c['country']),
                 'formacion' => $campaign['training_title'],
                 'link'      => $campaign['training_link'],
+                // v1.5.34: fecha de cierre de la inscripción y precio en la moneda del país de la persona (Mi viaje).
+                'vencimiento' => class_exists('OEC_Mi_Viaje') ? OEC_Mi_Viaje::deadline_text($campaign['training_uid'] ?? '') : '',
+                'precio'      => '',
             ];
         }
 
@@ -347,9 +350,18 @@ if (!class_exists('OEC_Mailer')) {
             ], admin_url('admin-post.php'));
         }
 
-        /** [asunto, html, texto] de un mail de la campaña para una persona. */
+        /**
+         * [asunto, html, texto, error] de un mail de la campaña para una persona. error: '' o, si el texto usa {precio} y
+         * no se pudo saber, 'retry' (la API no respondió: se reintenta) o 'none' (la formación no tiene precio para su país).
+         */
         public static function render(array $campaign, array $c) {
             $vars    = self::vars_for($c, $campaign);
+            $missing = '';
+            if (strpos($campaign['subject'] . $campaign['body'], '{precio}') !== false) {
+                $p = class_exists('OEC_Mi_Viaje') ? OEC_Mi_Viaje::price_text($campaign['training_uid'] ?? '', $c['country'] ?? '') : null;
+                if (is_string($p) && $p !== '') $vars['precio'] = $p;
+                else $missing = $p === false ? 'none' : 'retry';
+            }
             $subject = wp_strip_all_tags(self::replace_vars($campaign['subject'], $vars, false));
             $text    = self::replace_vars($campaign['body'], $vars, false);
             $body    = make_clickable(wpautop(self::replace_vars(esc_html($campaign['body']), $vars, true)));
@@ -363,7 +375,7 @@ if (!class_exists('OEC_Mailer')) {
                   . '<a href="' . esc_url($unsub) . '" style="color:#6b7280;">No quiero recibir más emails de ' . esc_html($from) . '</a>.</p>'
                   . '</div></body></html>';
             $text .= "\n\n--\nNo quiero recibir más emails de " . $from . ': ' . $unsub;
-            return [$subject, $html, $text];
+            return [$subject, $html, $text, $missing];
         }
 
         private static function list_headers($email) {
@@ -451,67 +463,6 @@ if (!class_exists('OEC_Mailer')) {
             wp_send_json_success(['message' => 'Prueba enviada a ' . $to . '.']);
         }
 
-        /**
-         * Crea la campaña y encola a los elegidos. Los contactos se vuelven a pedir a
-         * Zoho (OEC_Stats::contacts_for): del navegador solo llegan los emails elegidos,
-         * así no se le puede escribir a nadie que no esté en esa etapa.
-         */
-        public static function ajax_send() {
-            self::require_ajax_admin();
-            if (self::google_email() === '' || self::google_broken()) wp_send_json_error(['message' => 'Conecta tu cuenta de Google en OEC → Configuración.']);
-            $campaign = self::campaign_from_post();
-            $uid      = sanitize_text_field(wp_unslash($_POST['id'] ?? ''));
-            $edition  = sanitize_text_field(wp_unslash($_POST['edition'] ?? ''));
-            $stage    = wp_unslash($_POST['stage'] ?? '');
-            $chosen   = array_filter(array_map('strtolower', array_map('sanitize_email', (array) json_decode(wp_unslash($_POST['emails'] ?? '[]'), true))));
-            if (!$chosen) wp_send_json_error(['message' => 'No elegiste a nadie.']);
-
-            $contacts = OEC_Stats::contacts_for($uid, $edition, $stage);
-            if ($contacts === null) wp_send_json_error(['message' => 'No se pudieron cargar los contactos de Zoho. Prueba de nuevo en unos minutos.']);
-
-            $chosen = array_flip($chosen);
-            $unsubs = array_flip(self::unsubscribed(array_keys($chosen)));
-            $rows   = [];
-            foreach ($contacts as $c) {
-                $c = self::clean_contact($c);
-                if (!$c['email'] || !isset($chosen[$c['email']]) || isset($unsubs[$c['email']]) || isset($rows[$c['email']])) continue;
-                if ($c['first_name'] === '' && $c['name'] !== '') $c['first_name'] = trim(strtok($c['name'], ' '));
-                $rows[$c['email']] = $c;
-            }
-            if (!$rows) wp_send_json_error(['message' => 'Ninguna de las personas elegidas puede recibir el email (sin email o dadas de baja).']);
-
-            global $wpdb;
-            $now = current_time('mysql', true);
-            $wpdb->insert(self::t('campaigns'), [
-                'training_uid'   => $uid,
-                'training_title' => $campaign['training_title'],
-                'training_link'  => $campaign['training_link'],
-                'stage'          => $stage,
-                'subject'        => $campaign['subject'],
-                'body'           => $campaign['body'],
-                'reply_to'       => self::google_email(),
-                'created_by'     => get_current_user_id(),
-                'created_at'     => $now,
-            ]);
-            $cid = (int) $wpdb->insert_id;
-            if (!$cid) wp_send_json_error(['message' => 'No se pudo guardar el envío.']);
-            foreach ($rows as $c) {
-                $wpdb->insert(self::t('queue'), [
-                    'campaign_id'  => $cid,
-                    'training_uid' => $uid,
-                    'email'        => $c['email'],
-                    'first_name'   => mb_substr($c['first_name'], 0, 100),
-                    'last_name'    => mb_substr($c['last_name'], 0, 100),
-                    'phone'        => mb_substr($c['phone'], 0, 50),
-                    'country'      => $c['country'],
-                    'status'       => 'queued',
-                    'created_at'   => $now,
-                ]);
-            }
-            self::schedule(time() + 30);
-            wp_send_json_success(['campaign' => $cid, 'progress' => self::progress($cid)]);
-        }
-
         public static function ajax_progress() {
             self::require_ajax_admin();
             $cid  = intval($_POST['campaign'] ?? 0);
@@ -519,7 +470,7 @@ if (!class_exists('OEC_Mailer')) {
             wp_send_json_success(self::progress($cid) + ['paused' => $info['paused'], 'error' => $info['error'], 'limit' => self::daily_limit()]);
         }
 
-        private static function progress($cid) {
+        public static function progress($cid) {
             global $wpdb;
             $rows = $wpdb->get_results($wpdb->prepare('SELECT status, COUNT(*) n FROM ' . self::t('queue') . ' WHERE campaign_id = %d GROUP BY status', $cid), OBJECT_K);
             $n = function ($s) use ($rows) { return isset($rows[$s]) ? (int) $rows[$s]->n : 0; };
@@ -535,7 +486,7 @@ if (!class_exists('OEC_Mailer')) {
 
         // === COLA ===========================================================
 
-        private static function schedule($when) {
+        public static function schedule($when) {
             $next = wp_next_scheduled('oec_mail_tick');
             if ($next && $next <= $when) return;
             if ($next) wp_unschedule_event($next, 'oec_mail_tick');
@@ -607,13 +558,24 @@ if (!class_exists('OEC_Mailer')) {
                     $wpdb->update($q, ['status' => 'failed', 'error' => 'Envío borrado'], ['id' => $row['id']]);
                     continue;
                 }
-                [$subject, $html, $text] = self::render($campaign, $row);
+                [$subject, $html, $text, $missing] = self::render($campaign, $row);
+                if ($missing === 'none') {
+                    $wpdb->update($q, ['status' => 'failed', 'error' => 'La formación no tiene precio para su país ({precio})'], ['id' => $row['id']]);
+                    continue;
+                }
+                if ($missing === 'retry') {
+                    // Sin el precio no sale: un email con "{precio}" vacío es peor que uno que llega una hora más tarde.
+                    $wpdb->update($q, ['status' => 'queued', 'sent_at' => null, 'error' => 'No se pudo obtener el precio'], ['id' => $row['id']]);
+                    return ['remaining' => $remaining + 1, 'paused' => false, 'error' => 'No se pudo obtener el precio de la formación. Se reintenta en una hora.'];
+                }
                 $permanent = false;
                 $err = self::send($row['email'], $subject, $html, $text, self::list_headers($row['email']), $permanent);
                 if ($err === '') {
                     $wpdb->update($q, ['status' => 'sent', 'sent_at' => current_time('mysql', true), 'error' => ''], ['id' => $row['id']]);
                     delete_option('oec_mail_last_error');
                     $budget--;
+                    // Mi viaje anota el email en la historia de la persona.
+                    do_action('oec_mail_sent', $row, $campaign, $subject);
                 } elseif ($permanent) {
                     $wpdb->update($q, ['status' => 'failed', 'error' => mb_substr($err, 0, 250)], ['id' => $row['id']]);
                 } else {
