@@ -3270,3 +3270,33 @@ espera la respuesta (hasta 10 s) para mostrar enseguida el estado del chat y el 
   pedido escrito (`.oec-chat-ia-trigger`), donde se confirma con un código por email (`showDiscountBtns`).
 - El chat recibe el logo del tema (`custom_logo`), no el favicon; sin logo, muestra el nombre del sitio. Si el
   sitio tiene un menú fijo arriba, el chat (journey.oe.center/chat.js) se abre debajo y lo deja a la vista.
+
+## v1.5.33 — "Mi viaje": el viaje de los leads del socio (2026-11-27)
+
+Etapa 1 de las herramientas para los socios que atienden ellos (diseño y decisiones en `docs/socios-herramientas.md`
+de Lead Journey). Los datos viven en Lead Journey (`src/mi-viaje.js`, migración 0046); el plugin solo muestra y anota.
+
+- **wp-admin → OEC → Mi viaje** (`includes/class-oec-mi-viaje.php`, `OEC_Mi_Viaje`): embudo por formación (o todas)
+  y período, con las etapas Identificado (dejó sus datos), Considerando (preguntó precio, cuotas, fechas… o volvió),
+  Decidiendo (empezó el checkout en su subdominio) y Alumno (pagó), activas y frías, y el mes contra el anterior.
+  Al tocar una etapa: la lista (filtros de estado, "sin contactar" y búsqueda) con WhatsApp (`wa.me` con el texto de
+  esa etapa, editable y guardado en `oec_mv_wa`), llamar, email, el estado y la nota (los mismos de `OEC_Contacts`) y
+  "Descargar CSV" (`admin-post` `oec_mv_csv`, BOM, celdas `= + - @` neutralizadas). La persona: su historia
+  (consultas, checkout, pago, contactos, cambios) y "Dar de baja" (también en `oec_mail_unsubs`).
+- **Todo pasa por el servidor:** `admin-ajax` `oec_mv` (nonce `oec_mv` + `manage_options`) → `POST
+  journey.oe.center/v1/mi-viaje/<op>` con `X-OEC-Token` y el dominio + prefijo del registro. Cada pedido lleva las
+  formaciones del token (título, cierre, asincrónica; transient `oec_mv_forms`, 6 h), porque Lead Journey no guarda el
+  catálogo de los socios que contestan ellos.
+- **Formulario de la ficha con "¿Equipo de Ventas de OEC?" en NO:** sigue yendo al email del socio y además avisa a
+  `/v1/mi-viaje/lead` sin esperar respuesta (`blocking => false`), con el teléfono normalizado.
+- **Migración:** la primera vez que se abre Mi viaje se mandan `oec_contact_state`, `oec_contact_events` y
+  `oec_mail_unsubs` (`OEC_Mi_Viaje::migrate()`, tandas de 200–1000; se puede repetir sin duplicar). Marca
+  `oec_mv_migrated`.
+- **Con "¿Equipo de Ventas de OEC?" en SÍ:** solo el embudo, sin datos de contacto (lo atiende OEC). El modo lo decide
+  la respuesta de Lead Journey (`mode`), que sigue al registro diario.
+- **Estadísticas (Zoho)** sigue, con un aviso: se va el 31/12/2026.
+- **Actualizaciones automáticas:** filtro `auto_update_plugin` para este plugin (se apaga con
+  `add_filter('oec_auto_update', '__return_false')`). Hasta la 1.5.32 WordPress solo avisaba y 30 de 33 socios
+  quedaron en la 1.5.14.
+- **Probado** en oec-test contra el Worker local (`wrangler dev`): consulta → Considerando, lista, estado, nota,
+  persona, WhatsApp armado, CSV y el modo "OEC atiende".

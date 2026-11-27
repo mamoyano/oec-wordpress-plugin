@@ -278,6 +278,12 @@ if (!class_exists('OEC_Stats')) {
             </style>
 
             <div class="wrap oec-st">
+                <?php if (class_exists('OEC_Mi_Viaje')) : // v1.5.33: Mi viaje reemplaza esta pantalla (Zoho) ?>
+                    <div class="notice notice-info inline" style="margin:16px 0 0;"><p>
+                        <strong>Esta pantalla se va el 31 de diciembre de 2026.</strong> Usa los datos del CRM de OEC (Zoho).
+                        La reemplaza <a href="<?php echo esc_url(admin_url('admin.php?page=oec-mi-viaje')); ?>">Mi viaje</a>, con tus consultas e inscripciones al día. Al abrirla por primera vez, tus estados y notas pasan solos.
+                    </p></div>
+                <?php endif; ?>
                 <div class="oec-st-head">
                     <h1>Estadísticas de conversión</h1>
                     <div class="oec-st-tools">

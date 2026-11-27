@@ -2,7 +2,7 @@
 /*
 Plugin Name: Online Education Center for Wordpress
 Description: Integración avanzada con OEC usando Twig.
-Version: 1.5.32
+Version: 1.5.33
 Author: Online Education Center
 */
 
@@ -25,6 +25,15 @@ if (file_exists($oec_puc_path)) {
     $oec_updater->getVcsApi()->enableReleaseAssets();
     unset($oec_puc_path, $oec_updater);
 }
+// v1.5.33: WordPress instala solo las versiones nuevas de este plugin. Hasta la 1.5.32 solo avisaba y 30 de los 33
+// sitios de socios quedaron en la 1.5.14; "Mi viaje" y lo que siga necesitan llegar a todos sin pasos a mano.
+// Para volver al aviso solo: add_filter('oec_auto_update', '__return_false').
+add_filter('auto_update_plugin', function ($update, $item) {
+    if (is_object($item) && isset($item->plugin) && $item->plugin === plugin_basename(__FILE__)) {
+        return apply_filters('oec_auto_update', true);
+    }
+    return $update;
+}, 20, 2);
 
 // ─────────────────────────────────────────────────────────────────
 // ENTORNO: detectar si estamos en local o en producción
@@ -359,6 +368,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-oec-ajax.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-brochure.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-site-registry.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-oec-journey-chat.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-oec-mi-viaje.php';
 
 
 // ─────────────────────────────────────────────────────────────────
@@ -1297,6 +1307,7 @@ add_filter('the_content', function ($content) {
 if (is_admin()) {
     new OEC_Admin();
     OEC_Stats::init();
+    OEC_Mi_Viaje::init();
 }
 
 OEC_Mailer::init(); // también fuera de wp-admin: link de baja

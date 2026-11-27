@@ -106,6 +106,9 @@ if (!class_exists('OEC_Ajax')) {
                 : ['form' => 'crm', 'email' => ''];
 
             if ($channels['form'] === 'partner' && $channels['email']) {
+                // v1.5.33: la consulta también queda en "Mi viaje" (Lead Journey), sin esperar la respuesta: el socio
+                // recibe su email igual aunque Lead Journey no responda.
+                if (class_exists('OEC_Mi_Viaje')) OEC_Mi_Viaje::lead($email, $uid, $name, $lastname, $phone, $country, $question);
                 $this->enviar_email_propio($channels['email'], $uid, $name, $lastname, $email, $phone, $country, $question);
             } elseif ($channels['form'] === 'crm' && !$embed && class_exists('OEC_Journey_Chat') && OEC_Journey_Chat::active()
                 && self::consulta_journey_partner($email, $uid, $country, $name, $lastname, $phone, $question)) {
